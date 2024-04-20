@@ -1,0 +1,21 @@
+{
+    "name": "nimblephp/fourframework",
+    "description": "NimblePHP MVC Framework",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Nimblephp\\framework\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Krzysztof Żyłka",
+            "email": "krzysztofzylka@yahoo.com"
+        }
+    ],
+    "require": {
+        "krzysztofzylka/database-manager": "^1.0.32",
+        "krzysztofzylka/file": "^1.0.2"
+    }
+}
