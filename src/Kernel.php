@@ -201,11 +201,16 @@ class Kernel implements KernelInterface
         $params = $this->router->getParams();
 
         if (!class_exists($controllerName)) {
-            throw new NotFoundException();
+            throw new NotFoundException('Controller ' . $controllerName . ' not found');
         }
 
         /** @var Controller $controller */
         $controller = new $controllerName();
+
+        if (!method_exists($controller, $methodName)) {
+            throw new NotFoundException('Method ' . $methodName . ' does not exist');
+        }
+
         $controller->name = $controllerName;
         $controller->action = $methodName;
 
