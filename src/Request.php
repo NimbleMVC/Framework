@@ -148,7 +148,7 @@ class Request implements RequestInterface
      */
     public function getUri(): string
     {
-        return $this->server['REQUEST_URI'];
+        return $this->server['REQUEST_URI'] ?? '';
     }
 
     /**
