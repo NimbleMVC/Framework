@@ -95,6 +95,7 @@ class Kernel implements KernelInterface
         $this->autoCreator();
         $this->loadConfiguration();
         $this->initializeSession();
+        $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
     }
@@ -246,6 +247,21 @@ class Kernel implements KernelInterface
         }
 
         throw $exception;
+    }
+
+    /**
+     * Debug options
+     * @return void
+     */
+    protected function debug(): void
+    {
+        if (!Config::get('DEBUG')) {
+            return;
+        }
+
+        ini_set('display_errors', 1);
+        ini_set('display_startup_errors', 1);
+        error_reporting(E_ALL);
     }
 
 }
