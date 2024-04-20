@@ -87,7 +87,8 @@ class Kernel implements KernelInterface
     /**
      * Bootstrap
      * @return void
-     * @throws Exception
+     * @throws DatabaseException
+     * @throws Throwable
      */
     protected function bootstrap(): void
     {
@@ -168,8 +169,6 @@ class Kernel implements KernelInterface
             $manager->connect($connect);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        } catch (Throwable $exception) {
-            throw $exception;
         }
     }
 
