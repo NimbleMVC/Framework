@@ -85,6 +85,24 @@ class Kernel implements KernelInterface
     }
 
     /**
+     * Load configuration
+     * @return void
+     * @throws Exception
+     */
+    public function loadConfiguration(): void
+    {
+        Config::loadFromEnv(__DIR__ . '/Default/.env');
+
+        if (file_exists(self::$projectPath . '/.env')) {
+            Config::loadFromEnv(self::$projectPath . '/.env');
+        }
+
+        if (file_exists(self::$projectPath . '/local.env')) {
+            Config::loadFromEnv(self::$projectPath . '/local.env');
+        }
+    }
+
+    /**
      * Bootstrap
      * @return void
      * @throws DatabaseException
@@ -115,24 +133,6 @@ class Kernel implements KernelInterface
             self::$projectPath . '/storage',
             self::$projectPath . '/storage/logs'
         ]);
-    }
-
-    /**
-     * Load configuration
-     * @return void
-     * @throws Exception
-     */
-    protected function loadConfiguration(): void
-    {
-        Config::loadFromEnv(__DIR__ . '/Default/.env');
-
-        if (file_exists(self::$projectPath . '/.env')) {
-            Config::loadFromEnv(self::$projectPath . '/.env');
-        }
-
-        if (file_exists(self::$projectPath . '/local.env')) {
-            Config::loadFromEnv(self::$projectPath . '/local.env');
-        }
     }
 
     /**
