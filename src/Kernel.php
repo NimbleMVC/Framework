@@ -211,7 +211,7 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
-        $controller->name = $controllerName;
+        $controller->name = str_replace('\src\Controller\\', '', $controllerName);
         $controller->action = $methodName;
 
         call_user_func_array([$controller, $methodName], $params);
