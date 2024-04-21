@@ -1,5 +1,3 @@
-[//]: # (Dokumentacja: https://nimblemvc.github.io/documentation/)
-
 # <h1 align="center">NimblePHP</h1>
 NimblePHP to lekki framework skupiający się na prostocie. Zapewnia wzorzec MVC oraz automatyczne połączenie z bazą danych, dostarczając wszystko, czego potrzebujesz do rozpoczęcia pracy. Jeśli potrzebujesz dodatkowych funkcji, po prostu zainstaluj odpowiedni moduł i zacznij z niego korzystać.
 
