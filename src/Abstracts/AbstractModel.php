@@ -134,7 +134,7 @@ abstract class AbstractModel implements ModelInterface
     {
         if (!Config::get('DATABASE') || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
-        }elseif (is_null($this->getId())) {
+        } elseif (is_null($this->getId())) {
             return false;
         }
 
