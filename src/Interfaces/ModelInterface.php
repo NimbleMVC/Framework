@@ -74,4 +74,21 @@ interface ModelInterface
      */
     public function setId(?int $id = null): self;
 
+    /**
+     * Count elements
+     * @param array|null $condition
+     * @param string|null $groupBy
+     * @return int
+     * @throws DatabaseException
+     */
+    public function count(?array $condition = null, ?string $groupBy = null): int;
+
+    /**
+     * Count elements
+     * @param array|null $condition
+     * @return int
+     * @throws DatabaseException
+     */
+    public function isset(?array $condition = null): int;
+
 }

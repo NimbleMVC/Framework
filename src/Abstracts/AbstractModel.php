@@ -186,4 +186,43 @@ abstract class AbstractModel implements ModelInterface
         $this->table = new Table($this->useTable);
     }
 
+    /**
+     * Count elements
+     * @param array|null $condition
+     * @param string|null $groupBy
+     * @return int
+     * @throws DatabaseException
+     */
+    public function count(?array $condition = null, ?string $groupBy = null): int
+    {
+        if (!Config::get('DATABASE') || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        try {
+            return $this->table->findCount($condition, $groupBy);
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
+    }
+
+    /**
+     * Isset element
+     * @param array|null $condition
+     * @return int
+     * @throws DatabaseException
+     */
+    public function isset(?array $condition = null): int
+    {
+        if (!Config::get('DATABASE') || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        try {
+            return $this->table->findIsset($condition);
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
+    }
+
 }
