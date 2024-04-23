@@ -34,7 +34,7 @@ class Route implements RouteInterface
      */
     public function __construct(RequestInterface $request)
     {
-        $uri = $request->getUri();
+        $uri = strtok($request->getUri(), '?');
 
         if (str_starts_with($uri, '/')) {
             $uri = substr($uri, 1);
