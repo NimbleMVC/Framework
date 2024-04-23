@@ -2,6 +2,7 @@
 
 namespace Nimblephp\framework\Interfaces;
 
+use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\framework\Exception\DatabaseException;
 
 /**
@@ -90,5 +91,19 @@ interface ModelInterface
      * @throws DatabaseException
      */
     public function isset(?array $condition = null): int;
+
+    /**
+     * Query
+     * @param string $sql
+     * @return array
+     * @throws DatabaseException
+     */
+    public function query(string $sql): array;
+
+    /**
+     * Get table instance
+     * @return Table
+     */
+    public function getTableInstance(): Table;
 
 }

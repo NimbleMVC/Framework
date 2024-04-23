@@ -225,4 +225,32 @@ abstract class AbstractModel implements ModelInterface
         }
     }
 
+    /**
+     * Query
+     * @param string $sql
+     * @return array
+     * @throws DatabaseException
+     */
+    public function query(string $sql): array
+    {
+        if (!Config::get('DATABASE') || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        try {
+            return $this->table->query($sql);
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
+    }
+
+    /**
+     * Get table instance
+     * @return Table
+     */
+    public function getTableInstance(): Table
+    {
+        return $this->table;
+    }
+
 }
