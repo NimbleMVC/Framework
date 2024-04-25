@@ -18,4 +18,10 @@ interface ControllerInterface
      */
     public function loadModel(string $name): AbstractModel;
 
+    /**
+     * After construct method
+     * @return void
+     */
+    public function afterConstruct(): void;
+
 }
