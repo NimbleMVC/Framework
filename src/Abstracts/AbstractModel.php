@@ -6,6 +6,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\framework\Config;
 use Nimblephp\framework\Exception\DatabaseException;
+use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\ModelInterface;
 
 /**
@@ -25,6 +26,12 @@ abstract class AbstractModel implements ModelInterface
      * @var string
      */
     public string $name;
+
+    /**
+     * Controller instance
+     * @var ControllerInterface
+     */
+    public ControllerInterface $controller;
 
     /**
      * Table instance

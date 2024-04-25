@@ -4,11 +4,12 @@ namespace Nimblephp\framework\Abstracts;
 
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
+use Nimblephp\framework\Interfaces\ControllerInterface;
 
 /**
  * Abstract controller
  */
-abstract class AbstractController
+abstract class AbstractController implements ControllerInterface
 {
 
     /**
@@ -47,6 +48,7 @@ abstract class AbstractController
 
         $model->name = $name;
         $model->prepareTableInstance();
+        $model->controller = $this;
 
         return $model;
     }
