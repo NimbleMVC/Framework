@@ -1,3 +1,9 @@
+<p align="center" dir="auto">
+  <img alt="GitHub License" src="https://img.shields.io/github/license/NimbleMVC/Framework">
+  <img alt="Packagist Dependency Version" src="https://img.shields.io/packagist/dependency-v/nimblephp/framework/php">
+  <img alt="Packagist Version" src="https://img.shields.io/packagist/v/nimblephp/framework">
+</p>
+
 # <h1 align="center">NimblePHP</h1>
 NimblePHP to lekki framework skupiający się na prostocie. Zapewnia wzorzec MVC oraz automatyczne połączenie z bazą danych, dostarczając wszystko, czego potrzebujesz do rozpoczęcia pracy. Jeśli potrzebujesz dodatkowych funkcji, po prostu zainstaluj odpowiedni moduł i zacznij z niego korzystać.
 
