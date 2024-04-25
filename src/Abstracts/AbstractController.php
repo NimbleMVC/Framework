@@ -53,4 +53,12 @@ abstract class AbstractController implements ControllerInterface
         return $model;
     }
 
+    /**
+     * After construct method
+     * @return void
+     */
+    public function afterConstruct(): void
+    {
+    }
+
 }
