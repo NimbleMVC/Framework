@@ -213,6 +213,8 @@ class Kernel implements KernelInterface
 
         $controller->name = str_replace('\src\Controller\\', '', $controllerName);
         $controller->action = $methodName;
+        $controller->request = new Request();
+        $controller->response = new Response();
         $controller->afterConstruct();
 
         call_user_func_array([$controller, $methodName], $params);
