@@ -243,15 +243,6 @@ class Kernel implements KernelInterface
 
         Log::log($message, 'ERR', $data);
 
-        if (Config::get('DEBUG')) {
-            ob_clean();
-            $response = new Response();
-            $response->setStatusCode($exception->getCode() ?? 500);
-            $response->setContent('<pre>' . var_export($exception, true) . '</pre>');
-            $response->send();
-            exit;
-        }
-
         throw $exception;
     }
 
