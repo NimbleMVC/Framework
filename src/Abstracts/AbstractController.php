@@ -5,6 +5,8 @@ namespace Nimblephp\framework\Abstracts;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
+use Nimblephp\framework\Interfaces\RequestInterface;
+use Nimblephp\framework\Interfaces\ResponseInterface;
 
 /**
  * Abstract controller
@@ -23,6 +25,18 @@ abstract class AbstractController implements ControllerInterface
      * @var string
      */
     public string $action;
+
+    /**
+     * Response instance
+     * @var ResponseInterface
+     */
+    public ResponseInterface $response;
+
+    /**
+     * Request instance
+     * @var RequestInterface
+     */
+    public RequestInterface $request;
 
     /**
      * Load model

@@ -50,4 +50,12 @@ interface ResponseInterface
      */
     public function send(): void;
 
+    /**
+     * Redirect
+     * @param string $url
+     * @param int $statusCode
+     * @return never
+     */
+    public function redirect(string $url, int $statusCode = 302): never;
+
 }

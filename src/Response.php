@@ -105,4 +105,16 @@ class Response implements ResponseInterface
         echo $this->content;
     }
 
+    /**
+     * Redirect
+     * @param string $url
+     * @param int $statusCode
+     * @return never
+     */
+    public function redirect(string $url, int $statusCode = 302): never
+    {
+        header('Location: ' . $url, true, $statusCode);
+        exit();
+    }
+
 }
