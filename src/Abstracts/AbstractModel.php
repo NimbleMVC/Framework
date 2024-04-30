@@ -6,6 +6,8 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\framework\Config;
 use Nimblephp\framework\Exception\DatabaseException;
+use Nimblephp\framework\Exception\NimbleException;
+use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\ModelInterface;
 
@@ -258,6 +260,35 @@ abstract class AbstractModel implements ModelInterface
     public function getTableInstance(): Table
     {
         return $this->table;
+    }
+
+    /**
+     * Load model
+     * @param string $name
+     * @return AbstractModel
+     * @throws NimbleException
+     * @throws NotFoundException
+     */
+    public function loadModel(string $name): AbstractModel
+    {
+        $class = '\src\Model\\' . $name;
+
+        if (!class_exists($class)) {
+            throw new NotFoundException();
+        }
+
+        /** @var AbstractModel $model */
+        $model = new $class();
+
+        if (!$model instanceof AbstractModel) {
+            throw new NimbleException('Failed load model');
+        }
+
+        $model->name = $name;
+        $model->prepareTableInstance();
+        $model->controller = $this->controller;
+
+        return $model;
     }
 
 }
