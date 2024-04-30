@@ -158,13 +158,26 @@ class Kernel implements KernelInterface
             }
 
             $connect = DatabaseConnect::create();
-            $connect->setType(DatabaseType::mysql);
+
+            switch (Config::get('DATABASE_TYPE')) {
+                case 'mysql':
+                    $connect->setType(DatabaseType::mysql);
+                    $connect->setHost(Config::get('DATABASE_HOST'));
+                    $connect->setDatabaseName(Config::get('DATABASE_NAME'));
+                    $connect->setUsername(Config::get('DATABASE_USERNAME'));
+                    $connect->setPassword(Config::get('DATABASE_PASSWORD'));
+                    $connect->setPort(Config::get('DATABASE_PORT'));
+                    break;
+                case 'sqlite':
+                    $connect->setType(DatabaseType::sqlite);
+                    $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . Config::get('DATABASE_PATH'));
+                    break;
+                default:
+                    throw new DatabaseException('Invalid database type');
+            }
+
+
             $connect->setCharset(Config::get('DATABASE_CHARSET'));
-            $connect->setHost(Config::get('DATABASE_HOST'));
-            $connect->setDatabaseName(Config::get('DATABASE_NAME'));
-            $connect->setUsername(Config::get('DATABASE_USERNAME'));
-            $connect->setPassword(Config::get('DATABASE_PASSWORD'));
-            $connect->setPort(Config::get('DATABASE_PORT'));
 
             $manager = new DatabaseManager();
             $manager->connect($connect);
