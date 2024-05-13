@@ -31,4 +31,10 @@ interface ConfigInterface
      */
     public static function loadFromEnv(string $filePath): bool;
 
+    /**
+     * Get all config
+     * @return array
+     */
+    public static function getAll(): array;
+
 }

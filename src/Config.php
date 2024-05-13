@@ -32,6 +32,15 @@ class Config implements ConfigInterface
     }
 
     /**
+     * Get all config
+     * @return array
+     */
+    public static function getAll(): array
+    {
+        return self::$config;
+    }
+
+    /**
      * Set config
      * @param string $name
      * @param string $value
