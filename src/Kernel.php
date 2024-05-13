@@ -138,6 +138,7 @@ class Kernel implements KernelInterface
     {
         File::mkdir([
             self::$projectPath . '/public',
+            self::$projectPath . '/public/assets',
             self::$projectPath . '/src/Controller',
             self::$projectPath . '/src/View',
             self::$projectPath . '/src/Model',
