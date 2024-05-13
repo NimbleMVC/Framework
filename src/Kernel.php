@@ -12,6 +12,7 @@ use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
 use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\KernelInterface;
+use Nimblephp\framework\Interfaces\MiddlewareInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
 use Nimblephp\framework\Interfaces\RouteInterface;
@@ -46,6 +47,12 @@ class Kernel implements KernelInterface
      * @var ResponseInterface
      */
     protected ResponseInterface $response;
+
+    /**
+     * Middleware class
+     * @var MiddlewareInterface
+     */
+    protected MiddlewareInterface $middleware;
 
     /**
      * Constructor
@@ -116,6 +123,10 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
+
+        if (isset($this->middleware)) {
+            $this->middleware->afterBootstrap();
+        }
     }
 
     /**
@@ -200,6 +211,10 @@ class Kernel implements KernelInterface
                 require($file);
             }
         });
+
+        if (class_exists('Middleware')) {
+            $this->middleware = new \Middleware();
+        }
     }
 
     /**
@@ -212,6 +227,10 @@ class Kernel implements KernelInterface
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
         $params = $this->router->getParams();
+
+        if (isset($this->middleware)) {
+            $this->middleware->beforeController($controllerName, $methodName, $params);
+        }
 
         if (!class_exists($controllerName)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
@@ -231,6 +250,10 @@ class Kernel implements KernelInterface
         $controller->afterConstruct();
 
         call_user_func_array([$controller, $methodName], $params);
+
+        if (isset($this->middleware)) {
+            $this->middleware->afterController($controllerName, $methodName, $params);
+        }
     }
 
     /**
