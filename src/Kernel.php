@@ -236,12 +236,14 @@ class Kernel implements KernelInterface
             $this->middleware->beforeController($controllerName, $methodName, $params);
         }
 
-        if (!class_exists($controllerName)) {
+        $controllerClass = '\src\Controller\\' . $controllerName;
+
+        if (!class_exists($controllerClass)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
         }
 
         /** @var Controller $controller */
-        $controller = new $controllerName();
+        $controller = new $controllerClass();
 
         if (!method_exists($controller, $methodName)) {
             throw new NotFoundException('Method ' . $methodName . ' does not exist');

@@ -92,7 +92,7 @@ class Route implements RouteInterface
      */
     public function getController(): string
     {
-        return '\src\Controller\\' . ($this->controller ?? Config::get('DEFAULT_CONTROLLER'));
+        return $this->controller ?? Config::get('DEFAULT_CONTROLLER');
     }
 
     /**
