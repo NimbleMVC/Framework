@@ -281,6 +281,10 @@ class Kernel implements KernelInterface
 
         Log::log($message, 'ERR', $data);
 
+        if (isset($this->middleware)) {
+            $this->middleware->handleException($exception);
+        }
+
         throw $exception;
     }
 

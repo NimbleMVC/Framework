@@ -2,6 +2,8 @@
 
 namespace Nimblephp\framework\Interfaces;
 
+use Throwable;
+
 /**
  * Loader interface
  */
@@ -28,5 +30,11 @@ interface MiddlewareInterface
      * Init after bootstrap
      */
     public function afterBootstrap();
+
+    /**
+     * After exception handler
+     * @param Throwable $exception
+     */
+    public function handleException(Throwable $exception);
 
 }
