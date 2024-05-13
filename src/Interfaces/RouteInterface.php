@@ -9,6 +9,21 @@ interface RouteInterface
 {
 
     /**
+     * Add route
+     * @param string $name
+     * @param string|null $controller
+     * @param string|null $method
+     * @return void
+     */
+    public static function addRoute(string $name, ?string $controller = null, ?string $method = null): void;
+
+    /**
+     * Reload routing
+     * @return void
+     */
+    public function reload(): void;
+
+    /**
      * Get controller
      * @return string
      */
