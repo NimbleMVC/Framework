@@ -15,7 +15,7 @@ class Route implements RouteInterface
      * Predefined routes
      * @var array
      */
-    private static array $routes = [];
+    protected static array $routes = [];
 
     /**
      * Controller name
