@@ -106,4 +106,13 @@ interface ModelInterface
      */
     public function getTableInstance(): Table;
 
+    /**
+     * Create log
+     * @param string $message
+     * @param string $level
+     * @param array $content
+     * @return bool
+     */
+    public function log(string $message, string $level = 'INFO', array $content = []): bool;
+
 }
