@@ -2,11 +2,13 @@
 
 namespace Nimblephp\framework\Abstracts;
 
+use Exception;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
+use Nimblephp\framework\Log;
 
 /**
  * Abstract controller
@@ -65,6 +67,19 @@ abstract class AbstractController implements ControllerInterface
         $model->controller = $this;
 
         return $model;
+    }
+
+    /**
+     * Create log
+     * @param string $message
+     * @param string $level
+     * @param array $content
+     * @return bool
+     * @throws Exception
+     */
+    public function log(string $message, string $level = 'INFO', array $content = []): bool
+    {
+        return Log::log($message, $level, $content);
     }
 
     /**
