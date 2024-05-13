@@ -213,7 +213,7 @@ class Kernel implements KernelInterface
             }
         });
 
-        if (class_exists('Middleware', false)) {
+        if (class_exists('Middleware')) {
             $this->middleware = new \Middleware();
         } else {
             $this->middleware = new Middleware();
