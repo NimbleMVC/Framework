@@ -3,6 +3,8 @@
 namespace Nimblephp\framework\Abstracts;
 
 use Exception;
+use krzysztofzylka\DatabaseManager\Condition;
+use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\framework\Config;
@@ -304,6 +306,28 @@ abstract class AbstractModel implements ModelInterface
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
         return Log::log($message, $level, $content);
+    }
+
+    /**
+     * Bind table
+     * @param array|BindType $bind
+     * @param string|null $tableName
+     * @param ?string $primaryKey
+     * @param ?string $foreignKey
+     * @param array|Condition|null $condition
+     * @return $this
+     */
+    public function bind(
+        BindType|array $bind,
+        string $tableName = null,
+        ?string $primaryKey = null,
+        ?string $foreignKey = null,
+        null|array|Condition $condition = null
+    ): self
+    {
+        $this->table->bind($bind, $tableName, $primaryKey, $foreignKey, $condition);
+
+        return $this;
     }
 
 }
