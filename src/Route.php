@@ -12,6 +12,12 @@ class Route implements RouteInterface
 {
 
     /**
+     * Predefined routes
+     * @var array
+     */
+    protected static array $routes = [];
+
+    /**
      * Controller name
      * @var ?string
      */
@@ -28,6 +34,21 @@ class Route implements RouteInterface
      * @var array
      */
     protected array $params = [];
+
+    /**
+     * Add route
+     * @param string $name
+     * @param string|null $controller
+     * @param string|null $method
+     * @return void
+     */
+    public static function addRoute(string $name, ?string $controller = null, ?string $method = null): void
+    {
+        self::$routes[$name] = [
+            'controller' => $controller ?? Config::get('DEFAULT_CONTROLLER'),
+            'method' => $method ?? Config::get('DEFAULT_METHOD')
+        ];
+    }
 
     /**
      * @param RequestInterface $request
@@ -49,6 +70,20 @@ class Route implements RouteInterface
         $this->setController($uri[0] ?? null);
         $this->setMethod($uri[1] ?? null);
         $this->setParams(isset($uri[2]) ? explode('/', $uri[2]) : []);
+    }
+
+    /**
+     * Reload routing
+     * @return void
+     */
+    public function reload(): void
+    {
+        foreach (self::$routes as $route => $parameters) {
+            if (in_array($route, [$this->getController(), $this->getController() . '/' . $this->getMethod()])) {
+                $this->setController($parameters['controller']);
+                $this->setMethod($parameters['method']);
+            }
+        }
     }
 
     /**

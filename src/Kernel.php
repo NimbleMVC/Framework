@@ -226,6 +226,7 @@ class Kernel implements KernelInterface
      */
     protected function loadController(): void
     {
+        $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
         $params = $this->router->getParams();
