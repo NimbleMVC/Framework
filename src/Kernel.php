@@ -2,6 +2,7 @@
 
 namespace Nimblephp\framework;
 
+use ErrorException;
 use Exception;
 use krzysztofzylka\DatabaseManager\DatabaseConnect;
 use krzysztofzylka\DatabaseManager\DatabaseManager;
@@ -117,6 +118,7 @@ class Kernel implements KernelInterface
      */
     protected function bootstrap(): void
     {
+        $this->errorCatcher();
         $this->autoCreator();
         $this->loadConfiguration();
         $this->initializeSession();
@@ -127,6 +129,21 @@ class Kernel implements KernelInterface
         if (isset($this->middleware)) {
             $this->middleware->afterBootstrap();
         }
+    }
+
+    /**
+     * Error catcher
+     * @return void
+     * @throws ErrorException
+     * @throws Exception
+     */
+    protected function errorCatcher(): void
+    {
+        set_error_handler(function($errno, $errstr, $errfile, $errline ){
+            Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
+
+            throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
+        });
     }
 
     /**
