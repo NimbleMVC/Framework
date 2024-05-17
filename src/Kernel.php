@@ -104,8 +104,8 @@ class Kernel implements KernelInterface
             Config::loadFromEnv(self::$projectPath . '/.env');
         }
 
-        if (file_exists(self::$projectPath . '/.env.local')) {
-            Config::loadFromEnv(self::$projectPath . '/.env.local');
+        if (file_exists(self::$projectPath . '/local.env')) {
+            Config::loadFromEnv(self::$projectPath . '/local.env');
         }
     }
 
