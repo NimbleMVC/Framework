@@ -1,6 +1,5 @@
 <?php
 
-use Krzysztofzylka\PdoLite\Condition;
 use Nimblephp\framework\Config;
 use Nimblephp\framework\Request;
 use Nimblephp\framework\Route;
