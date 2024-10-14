@@ -5,7 +5,6 @@ namespace Nimblephp\framework\Interfaces;
 use Nimblephp\framework\Abstracts\AbstractModel;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Log;
 
 interface ControllerInterface
 {
