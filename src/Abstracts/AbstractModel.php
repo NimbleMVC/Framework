@@ -52,6 +52,12 @@ abstract class AbstractModel implements ModelInterface
     protected ?int $id = null;
 
     /**
+     * Models list
+     * @var array
+     */
+    public array $models = [];
+
+    /**
      * Create element
      * @param array $data
      * @return bool
@@ -291,12 +297,13 @@ abstract class AbstractModel implements ModelInterface
         $model->name = $name;
         $model->prepareTableInstance();
         $model->controller = $this->controller;
+        $this->models[implode('', array_map('ucfirst', explode('_', $name)))] = $model;
 
         return $model;
     }
 
     /**
-     * Create log
+     * Create logs
      * @param string $message
      * @param string $level
      * @param array $content
@@ -328,6 +335,22 @@ abstract class AbstractModel implements ModelInterface
         $this->table->bind($bind, $tableName, $primaryKey, $foreignKey, $condition);
 
         return $this;
+    }
+
+    /**
+     * Magic get method
+     * @param string $name
+     * @return mixed
+     * @throws Exception
+     */
+    public function __get(string $name)
+    {
+        if (in_array($name, array_keys($this->models))) {
+            return $this->models[$name];
+        }
+
+        $className = $this::class;
+        throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
 }

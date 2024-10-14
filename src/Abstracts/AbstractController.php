@@ -41,6 +41,12 @@ abstract class AbstractController implements ControllerInterface
     public RequestInterface $request;
 
     /**
+     * Models list
+     * @var array
+     */
+    public array $models = [];
+
+    /**
      * Load model
      * @param string $name
      * @return AbstractModel
@@ -65,12 +71,13 @@ abstract class AbstractController implements ControllerInterface
         $model->name = $name;
         $model->prepareTableInstance();
         $model->controller = $this;
+        $this->models[implode('', array_map('ucfirst', explode('_', $name)))] = $model;
 
         return $model;
     }
 
     /**
-     * Create log
+     * Create logs
      * @param string $message
      * @param string $level
      * @param array $content
@@ -88,6 +95,22 @@ abstract class AbstractController implements ControllerInterface
      */
     public function afterConstruct(): void
     {
+    }
+
+    /**
+     * Magic get method
+     * @param string $name
+     * @return mixed
+     * @throws Exception
+     */
+    public function __get(string $name)
+    {
+        if (in_array($name, array_keys($this->models))) {
+            return $this->models[$name];
+        }
+
+        $className = $this::class;
+        throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
 }
