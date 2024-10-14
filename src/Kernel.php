@@ -9,6 +9,7 @@ use krzysztofzylka\DatabaseManager\DatabaseManager;
 use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\File\File;
+use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
 use Nimblephp\framework\Exception\NotFoundException;
@@ -259,7 +260,7 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
         }
 
-        /** @var Controller $controller */
+        /** @var AbstractController $controller */
         $controller = new $controllerClass();
 
         if (!method_exists($controller, $methodName)) {
