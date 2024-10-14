@@ -140,7 +140,7 @@ class Kernel implements KernelInterface
      */
     protected function errorCatcher(): void
     {
-        set_error_handler(function($errno, $errstr, $errfile, $errline ){
+        set_error_handler(function($errno, $errstr, $errfile, $errline){
             Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
 
             throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
