@@ -126,6 +126,7 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
+        $this->loadModules();
 
         if (isset($this->middleware)) {
             $this->middleware->afterBootstrap();
@@ -325,6 +326,26 @@ class Kernel implements KernelInterface
         ini_set('display_errors', 1);
         ini_set('display_startup_errors', 1);
         error_reporting(E_ALL);
+    }
+
+    /**
+     * Load modules
+     * @return void
+     */
+    protected function loadModules(): void
+    {
+        $moduleRegister = new ModuleRegister();
+        $moduleRegister->autoRegister();
+
+        foreach (ModuleRegister::getAll() as $module) {
+            if (array_key_exists('service_providers', $module['classes'])) {
+                foreach ($module['classes']['service_providers'] as $serviceProvider) {
+                    if (method_exists($serviceProvider, 'register')) {
+                        $serviceProvider->register();
+                    }
+                }
+            }
+        }
     }
 
 }
