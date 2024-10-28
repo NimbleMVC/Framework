@@ -4,6 +4,7 @@ namespace Nimblephp\framework\Interfaces;
 
 /**
  * Config interface
+ * @deprecated see $_ENV
  */
 interface ConfigInterface
 {
@@ -13,27 +14,14 @@ interface ConfigInterface
      * @param string $name
      * @param mixed $default
      * @return mixed
+     * @deprecated see $_ENV
      */
     public static function get(string $name, mixed $default): mixed;
 
     /**
-     * Set config
-     * @param string $name
-     * @param string $value
-     * @return void
-     */
-    public static function set(string $name, string $value): void;
-
-    /**
-     * Load from ENV
-     * @param string $filePath
-     * @return bool
-     */
-    public static function loadFromEnv(string $filePath): bool;
-
-    /**
      * Get all config
      * @return array
+     * @deprecated see $_ENV
      */
     public static function getAll(): array;
 

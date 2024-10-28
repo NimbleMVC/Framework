@@ -8,6 +8,7 @@ use krzysztofzylka\DatabaseManager\DatabaseConnect;
 use krzysztofzylka\DatabaseManager\DatabaseManager;
 use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
+use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
@@ -100,14 +101,16 @@ class Kernel implements KernelInterface
      */
     public function loadConfiguration(): void
     {
-        Config::loadFromEnv(__DIR__ . '/Default/.env');
+        $env = new Env();
+        $env->loadFromSystem();
+        $env->loadFromFile(__DIR__ . '/Default/.env');
 
         if (file_exists(self::$projectPath . '/.env')) {
-            Config::loadFromEnv(self::$projectPath . '/.env');
+            $env->loadFromFile(self::$projectPath . '/.env');
         }
 
         if (file_exists(self::$projectPath . '/.env.local')) {
-            Config::loadFromEnv(self::$projectPath . '/.env.local');
+            $env->loadFromFile(self::$projectPath . '/.env.local');
         }
     }
 
