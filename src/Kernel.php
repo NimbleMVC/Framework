@@ -192,11 +192,11 @@ class Kernel implements KernelInterface
             switch (Config::get('DATABASE_TYPE')) {
                 case 'mysql':
                     $connect->setType(DatabaseType::mysql);
-                    $connect->setHost(Config::get('DATABASE_HOST'));
-                    $connect->setDatabaseName(Config::get('DATABASE_NAME'));
-                    $connect->setUsername(Config::get('DATABASE_USERNAME'));
-                    $connect->setPassword(Config::get('DATABASE_PASSWORD'));
-                    $connect->setPort(Config::get('DATABASE_PORT'));
+                    $connect->setHost(trim(Config::get('DATABASE_HOST')));
+                    $connect->setDatabaseName(trim(Config::get('DATABASE_NAME')));
+                    $connect->setUsername(trim(Config::get('DATABASE_USERNAME')));
+                    $connect->setPassword(trim(Config::get('DATABASE_PASSWORD')));
+                    $connect->setPort((int)Config::get('DATABASE_PORT'));
                     break;
                 case 'sqlite':
                     $connect->setType(DatabaseType::sqlite);
