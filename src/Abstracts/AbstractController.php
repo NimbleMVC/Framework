@@ -71,7 +71,13 @@ abstract class AbstractController implements ControllerInterface
         $model->name = $name;
         $model->prepareTableInstance();
         $model->controller = $this;
-        $this->models[implode('', array_map('ucfirst', explode('_', $name)))] = $model;
+        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
+
+        if (property_exists($this, $modelPropertyName)) {
+            $this->{$modelPropertyName} = $model;
+        }
+
+        $this->models[$modelPropertyName] = $model;
 
         return $model;
     }
@@ -110,6 +116,7 @@ abstract class AbstractController implements ControllerInterface
         }
 
         $className = $this::class;
+
         throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
