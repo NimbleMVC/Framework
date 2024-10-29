@@ -174,7 +174,9 @@ class Kernel implements KernelInterface
      */
     protected function initializeSession(): void
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
     }
 
     /**
