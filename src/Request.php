@@ -162,4 +162,13 @@ class Request implements RequestInterface
         return $this->server[$key] ?? $default;
     }
 
+    /**
+     * Get body
+     * @return string
+     */
+    public function getBody(): string
+    {
+        return file_get_contents('php://input');
+    }
+
 }
