@@ -275,15 +275,13 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
-        $controller->name = str_replace('\src\Controller\\', '', $controllerName);
-
-
         $methodComments = Reflection::getClassMethodComment($controller, $methodName);
 
         if (Reflection::findClassComment($methodComments, 'action', 'disabled')) {
             throw new NotFoundException('Method ' . $methodName . ' is disabled');
         }
 
+        $controller->name = str_replace('\src\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->response = new Response();
