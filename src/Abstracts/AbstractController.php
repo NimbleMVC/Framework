@@ -52,6 +52,7 @@ abstract class AbstractController implements ControllerInterface
      * @return AbstractModel
      * @throws NimbleException
      * @throws NotFoundException
+     * @action disabled
      */
     public function loadModel(string $name): AbstractModel
     {
@@ -89,6 +90,7 @@ abstract class AbstractController implements ControllerInterface
      * @param array $content
      * @return bool
      * @throws Exception
+     * @action disabled
      */
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
@@ -98,6 +100,7 @@ abstract class AbstractController implements ControllerInterface
     /**
      * After construct method
      * @return void
+     * @action disabled
      */
     public function afterConstruct(): void
     {
@@ -108,6 +111,7 @@ abstract class AbstractController implements ControllerInterface
      * @param string $name
      * @return mixed
      * @throws Exception
+     * @action disabled
      */
     public function __get(string $name)
     {
