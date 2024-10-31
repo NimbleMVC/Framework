@@ -10,6 +10,7 @@ use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
+use Krzysztofzylka\Reflection\Reflection;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
@@ -19,6 +20,7 @@ use Nimblephp\framework\Interfaces\MiddlewareInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
 use Nimblephp\framework\Interfaces\RouteInterface;
+use ReflectionException;
 use Throwable;
 
 /**
@@ -247,6 +249,7 @@ class Kernel implements KernelInterface
      * Load controller
      * @return void
      * @throws NotFoundException
+     * @throws ReflectionException
      */
     protected function loadController(): void
     {
@@ -273,6 +276,14 @@ class Kernel implements KernelInterface
         }
 
         $controller->name = str_replace('\src\Controller\\', '', $controllerName);
+
+
+        $methodComments = Reflection::getClassMethodComment($controller, $methodName);
+
+        if (Reflection::findClassComment($methodComments, 'action', 'disabled')) {
+            throw new NotFoundException('Method ' . $methodName . ' is disabled');
+        }
+
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->response = new Response();
