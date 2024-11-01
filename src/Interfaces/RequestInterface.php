@@ -66,4 +66,10 @@ interface RequestInterface
      */
     public function getServer($key, $default = null): mixed;
 
+    /**
+     * Get body
+     * @return string
+     */
+    public function getBody(): string;
+
 }
