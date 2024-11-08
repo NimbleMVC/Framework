@@ -297,7 +297,13 @@ abstract class AbstractModel implements ModelInterface
         $model->name = $name;
         $model->prepareTableInstance();
         $model->controller = $this->controller;
-        $this->models[implode('', array_map('ucfirst', explode('_', $name)))] = $model;
+        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
+
+        if (property_exists($this, $modelPropertyName)) {
+            $this->{$modelPropertyName} = $model;
+        }
+
+        $this->models[$modelPropertyName] = $model;
 
         return $model;
     }

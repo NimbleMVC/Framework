@@ -52,6 +52,7 @@ abstract class AbstractController implements ControllerInterface
      * @return AbstractModel
      * @throws NimbleException
      * @throws NotFoundException
+     * @action disabled
      */
     public function loadModel(string $name): AbstractModel
     {
@@ -71,7 +72,13 @@ abstract class AbstractController implements ControllerInterface
         $model->name = $name;
         $model->prepareTableInstance();
         $model->controller = $this;
-        $this->models[implode('', array_map('ucfirst', explode('_', $name)))] = $model;
+        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
+
+        if (property_exists($this, $modelPropertyName)) {
+            $this->{$modelPropertyName} = $model;
+        }
+
+        $this->models[$modelPropertyName] = $model;
 
         return $model;
     }
@@ -83,6 +90,7 @@ abstract class AbstractController implements ControllerInterface
      * @param array $content
      * @return bool
      * @throws Exception
+     * @action disabled
      */
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
@@ -92,6 +100,7 @@ abstract class AbstractController implements ControllerInterface
     /**
      * After construct method
      * @return void
+     * @action disabled
      */
     public function afterConstruct(): void
     {
@@ -102,6 +111,7 @@ abstract class AbstractController implements ControllerInterface
      * @param string $name
      * @return mixed
      * @throws Exception
+     * @action disabled
      */
     public function __get(string $name)
     {
@@ -110,6 +120,7 @@ abstract class AbstractController implements ControllerInterface
         }
 
         $className = $this::class;
+
         throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 

@@ -8,7 +8,9 @@ use krzysztofzylka\DatabaseManager\DatabaseConnect;
 use krzysztofzylka\DatabaseManager\DatabaseManager;
 use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
+use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
+use Krzysztofzylka\Reflection\Reflection;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
@@ -18,6 +20,7 @@ use Nimblephp\framework\Interfaces\MiddlewareInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
 use Nimblephp\framework\Interfaces\RouteInterface;
+use ReflectionException;
 use Throwable;
 
 /**
@@ -100,14 +103,16 @@ class Kernel implements KernelInterface
      */
     public function loadConfiguration(): void
     {
-        Config::loadFromEnv(__DIR__ . '/Default/.env');
+        $env = new Env();
+        $env->loadFromSystem();
+        $env->loadFromFile(__DIR__ . '/Default/.env');
 
         if (file_exists(self::$projectPath . '/.env')) {
-            Config::loadFromEnv(self::$projectPath . '/.env');
+            $env->loadFromFile(self::$projectPath . '/.env');
         }
 
         if (file_exists(self::$projectPath . '/.env.local')) {
-            Config::loadFromEnv(self::$projectPath . '/.env.local');
+            $env->loadFromFile(self::$projectPath . '/.env.local');
         }
     }
 
@@ -172,7 +177,9 @@ class Kernel implements KernelInterface
      */
     protected function initializeSession(): void
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
     }
 
     /**
@@ -193,11 +200,11 @@ class Kernel implements KernelInterface
             switch (Config::get('DATABASE_TYPE')) {
                 case 'mysql':
                     $connect->setType(DatabaseType::mysql);
-                    $connect->setHost(Config::get('DATABASE_HOST'));
-                    $connect->setDatabaseName(Config::get('DATABASE_NAME'));
-                    $connect->setUsername(Config::get('DATABASE_USERNAME'));
-                    $connect->setPassword(Config::get('DATABASE_PASSWORD'));
-                    $connect->setPort(Config::get('DATABASE_PORT'));
+                    $connect->setHost(trim(Config::get('DATABASE_HOST')));
+                    $connect->setDatabaseName(trim(Config::get('DATABASE_NAME')));
+                    $connect->setUsername(trim(Config::get('DATABASE_USERNAME')));
+                    $connect->setPassword(trim(Config::get('DATABASE_PASSWORD')));
+                    $connect->setPort((int)Config::get('DATABASE_PORT'));
                     break;
                 case 'sqlite':
                     $connect->setType(DatabaseType::sqlite);
@@ -243,6 +250,7 @@ class Kernel implements KernelInterface
      * Load controller
      * @return void
      * @throws NotFoundException
+     * @throws ReflectionException
      */
     protected function loadController(): void
     {
@@ -266,6 +274,12 @@ class Kernel implements KernelInterface
 
         if (!method_exists($controller, $methodName)) {
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
+        }
+
+        $methodComments = Reflection::getClassMethodComment($controller, $methodName);
+
+        if (Reflection::findClassComment($methodComments, 'action', 'disabled')) {
+            throw new NotFoundException('Method ' . $methodName . ' is disabled');
         }
 
         $controller->name = str_replace('\src\Controller\\', '', $controllerName);

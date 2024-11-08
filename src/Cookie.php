@@ -63,7 +63,7 @@ class Cookie implements CookieInterface
      * @param string $path
      * @param string $domain
      * @param ?bool $secure
-     * @param ?bool $httponlya
+     * @param ?bool $httponly
      * @return void
      */
     public function set(
