@@ -27,7 +27,7 @@ class Log
      */
     public static function log(string $message, string $level = 'INFO', array $content = []): bool
     {
-        if (!Config::get('LOG', true)) {
+        if ($_ENV['LOG']) {
             return false;
         }
 
