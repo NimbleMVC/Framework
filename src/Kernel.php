@@ -131,11 +131,12 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
-        $this->loadModules();
 
         if (isset($this->middleware)) {
             $this->middleware->afterBootstrap();
         }
+
+        $this->loadModules();
     }
 
     /**

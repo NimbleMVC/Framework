@@ -50,6 +50,16 @@ class ModuleRegister
     }
 
     /**
+     * Isset module
+     * @param string $name
+     * @return bool
+     */
+    public static function isset(string $name): bool
+    {
+        return array_key_exists($name, self::$modules);
+    }
+
+    /**
      * Get all modules
      * @return array
      */
@@ -76,15 +86,25 @@ class ModuleRegister
             }
 
             $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'Nimblephp'], $package);
+
+            if ($namespace === '\\Nimblephp\\framework') {
+                continue;
+            }
+
             $path = InstalledVersions::getInstallPath($package);
             $serviceProviderClass = $namespace . '\\ServiceProvider';
             $classes = [];
 
             if (class_exists($serviceProviderClass)) {
-                $classes['service_providers'][] = new $serviceProviderClass();
+                $serviceProvider = new $serviceProviderClass();
+                $classes['service_providers'][] = $serviceProvider;
+
+                if (method_exists($serviceProvider, 'register')) {
+                    $serviceProvider->register();
+                }
             }
 
-            $config = ['path' => $path];
+            $config = ['path' => realpath($path)];
 
             self::register(
                 name: $package,
