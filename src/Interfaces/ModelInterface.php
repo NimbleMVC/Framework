@@ -3,13 +3,25 @@
 namespace Nimblephp\framework\Interfaces;
 
 use krzysztofzylka\DatabaseManager\Table;
+use Nimblephp\framework\Abstracts\AbstractModel;
 use Nimblephp\framework\Exception\DatabaseException;
+use Nimblephp\framework\Exception\NimbleException;
+use Nimblephp\framework\Exception\NotFoundException;
 
 /**
  * Model interface
  */
 interface ModelInterface
 {
+
+    /**
+     * Load model
+     * @param string ...$names
+     * @return AbstractModel
+     * @throws NimbleException
+     * @throws NotFoundException
+     */
+    public function loadModel(string ...$names): AbstractModel;
 
     /**
      * Prepare table instance

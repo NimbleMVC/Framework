@@ -11,12 +11,12 @@ interface ControllerInterface
 
     /**
      * Load model
-     * @param string $name
+     * @param string ...$names
      * @return AbstractModel
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public function loadModel(string $name): AbstractModel;
+    public function loadModel(string ...$names): AbstractModel;
 
     /**
      * Create log

@@ -48,37 +48,41 @@ abstract class AbstractController implements ControllerInterface
 
     /**
      * Load model
-     * @param string $name
+     * @param string ...$names
      * @return AbstractModel
      * @throws NimbleException
      * @throws NotFoundException
      * @action disabled
      */
-    public function loadModel(string $name): AbstractModel
+    public function loadModel(string ...$names): AbstractModel
     {
-        $class = '\src\Model\\' . $name;
+        $model = null;
 
-        if (!class_exists($class)) {
-            throw new NotFoundException();
+        foreach ($names as $name) {
+            $class = '\src\Model\\' . $name;
+
+            if (!class_exists($class)) {
+                throw new NotFoundException();
+            }
+
+            /** @var AbstractModel $model */
+            $model = new $class();
+
+            if (!$model instanceof AbstractModel) {
+                throw new NimbleException('Failed load model');
+            }
+
+            $model->name = $name;
+            $model->prepareTableInstance();
+            $model->controller = $this;
+            $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
+
+            if (property_exists($this, $modelPropertyName)) {
+                $this->{$modelPropertyName} = $model;
+            }
+
+            $this->models[$modelPropertyName] = $model;
         }
-
-        /** @var AbstractModel $model */
-        $model = new $class();
-
-        if (!$model instanceof AbstractModel) {
-            throw new NimbleException('Failed load model');
-        }
-
-        $model->name = $name;
-        $model->prepareTableInstance();
-        $model->controller = $this;
-        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
-
-        if (property_exists($this, $modelPropertyName)) {
-            $this->{$modelPropertyName} = $model;
-        }
-
-        $this->models[$modelPropertyName] = $model;
 
         return $model;
     }
