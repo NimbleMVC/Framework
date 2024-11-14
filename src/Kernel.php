@@ -12,6 +12,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use Krzysztofzylka\Reflection\Reflection;
+use Nimblephp\debugbar\Collectors\ModuleCollector;
 use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
@@ -163,6 +164,7 @@ class Kernel implements KernelInterface
         $this->loadModules();
 
         if (self::$activeDebugbar) {
+            Debugbar::$debugBar->addCollector(new ModuleCollector(ModuleRegister::getAll()));
             Debugbar::stopTime('load_modules');
         }
     }
