@@ -2,6 +2,7 @@
 
 namespace Nimblephp\framework;
 
+use DebugBar\DataCollector\PDO\PDOCollector;
 use ErrorException;
 use Exception;
 use krzysztofzylka\DatabaseManager\DatabaseConnect;
@@ -11,6 +12,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use Krzysztofzylka\Reflection\Reflection;
+use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
@@ -60,6 +62,12 @@ class Kernel implements KernelInterface
     protected MiddlewareInterface $middleware;
 
     /**
+     * Active debugbar
+     * @var bool
+     */
+    public static bool $activeDebugbar = false;
+
+    /**
      * Constructor
      * @param RouteInterface $router
      */
@@ -70,6 +78,14 @@ class Kernel implements KernelInterface
         $this->router = $router;
         $this->request = new Request();
         $this->response = new Response();
+
+        $this->loadConfiguration();
+
+        self::$activeDebugbar = $_ENV['DEBUG'] && ModuleRegister::moduleExistsInVendor('nimblephp/debugbar');
+
+        if (self::$activeDebugbar) {
+            (new Debugbar())->init();
+        }
     }
 
     /**
@@ -124,9 +140,12 @@ class Kernel implements KernelInterface
      */
     protected function bootstrap(): void
     {
+        if (self::$activeDebugbar) {
+            Debugbar::startTime('bootstrap', 'Bootstrap');
+        }
+
         $this->errorCatcher();
         $this->autoCreator();
-        $this->loadConfiguration();
         $this->initializeSession();
         $this->debug();
         $this->connectToDatabase();
@@ -136,7 +155,16 @@ class Kernel implements KernelInterface
             $this->middleware->afterBootstrap();
         }
 
+        if (self::$activeDebugbar) {
+            Debugbar::stopTime('bootstrap');
+            Debugbar::startTime('load_modules', 'Load modules');
+        }
+
         $this->loadModules();
+
+        if (self::$activeDebugbar) {
+            Debugbar::stopTime('load_modules');
+        }
     }
 
     /**
@@ -220,6 +248,10 @@ class Kernel implements KernelInterface
 
             $manager = new DatabaseManager();
             $manager->connect($connect);
+
+            if (self::$activeDebugbar && !Debugbar::$debugBar->hasCollector('pdo')) {
+                Debugbar::$debugBar->addCollector(new PDOCollector(DatabaseManager::$connection->getConnection()));
+            }
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -255,6 +287,11 @@ class Kernel implements KernelInterface
      */
     protected function loadController(): void
     {
+        if (self::$activeDebugbar) {
+            $debugbarUuid = Debugbar::uuid();
+            Debugbar::startTime($debugbarUuid, 'Load main controller');
+        }
+
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
@@ -294,6 +331,10 @@ class Kernel implements KernelInterface
         if (isset($this->middleware)) {
             $this->middleware->afterController($controllerName, $methodName, $params);
         }
+
+        if (self::$activeDebugbar) {
+            Debugbar::stopTime($debugbarUuid);
+        }
     }
 
     /**
@@ -325,6 +366,10 @@ class Kernel implements KernelInterface
             $this->middleware->handleException($exception);
         }
 
+        if (self::$activeDebugbar) {
+            Debugbar::addException($exception);
+        }
+
         throw $exception;
     }
 
@@ -334,7 +379,7 @@ class Kernel implements KernelInterface
      */
     protected function debug(): void
     {
-        if (!Config::get('DEBUG')) {
+        if (!$_ENV['DEBUG']) {
             return;
         }
 

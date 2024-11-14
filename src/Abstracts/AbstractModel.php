@@ -7,12 +7,14 @@ use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
+use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Config;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\ModelInterface;
+use Nimblephp\framework\Kernel;
 use Nimblephp\framework\Log;
 
 /**
@@ -281,6 +283,13 @@ abstract class AbstractModel implements ModelInterface
      */
     public function loadModel(string $name): AbstractModel
     {
+        if (Kernel::$activeDebugbar) {
+            try {
+                $debugbarUid = Debugbar::uuid();
+                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
+            } catch (\Throwable) {}
+        }
+
         $class = '\src\Model\\' . $name;
 
         if (!class_exists($class)) {
@@ -304,6 +313,12 @@ abstract class AbstractModel implements ModelInterface
         }
 
         $this->models[$modelPropertyName] = $model;
+
+        if (Kernel::$activeDebugbar) {
+            try {
+                Debugbar::stopTime($debugbarUid);
+            } catch (\Throwable) {}
+        }
 
         return $model;
     }
