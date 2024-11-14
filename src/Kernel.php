@@ -164,7 +164,10 @@ class Kernel implements KernelInterface
         $this->loadModules();
 
         if (self::$activeDebugbar) {
-            Debugbar::$debugBar->addCollector(new ModuleCollector(ModuleRegister::getAll()));
+            if (!Debugbar::$debugBar->hasCollector('module_register')) {
+                Debugbar::$debugBar->addCollector(new ModuleCollector(ModuleRegister::getAll()));
+            }
+
             Debugbar::stopTime('load_modules');
         }
     }
