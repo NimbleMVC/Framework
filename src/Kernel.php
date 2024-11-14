@@ -139,7 +139,7 @@ class Kernel implements KernelInterface
      * @throws DatabaseException
      * @throws Throwable
      */
-    protected function bootstrap(): void
+    public function bootstrap(): void
     {
         if (self::$activeDebugbar) {
             Debugbar::startTime('bootstrap', 'Bootstrap');
