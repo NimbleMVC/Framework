@@ -39,7 +39,7 @@ class Log
         }
 
         $backtrace = debug_backtrace()[1] ?? debug_backtrace()[0];
-        $logPath = Kernel::$projectPath . '/storage/logs/' . date('Y_m_d') . '.log.json';
+        $logPath = realpath(Kernel::$projectPath . '/storage/logs/' . date('Y_m_d') . '.log.json');
         $logContent = [
             'datetime' => DateTime::createFromFormat(
                 'U.u',
