@@ -371,7 +371,7 @@ class Kernel implements KernelInterface
             $this->middleware->handleException($exception);
         }
 
-        if (self::$activeDebugbar) {
+        if (self::$activeDebugbar && $exception instanceof Exception) {
             Debugbar::addException($exception);
         }
 
