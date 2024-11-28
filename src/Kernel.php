@@ -104,7 +104,6 @@ class Kernel implements KernelInterface
     public function loadConfiguration(): void
     {
         $env = new Env();
-        $env->loadFromSystem();
         $env->loadFromFile(__DIR__ . '/Default/.env');
 
         if (file_exists(self::$projectPath . '/.env')) {
@@ -114,6 +113,8 @@ class Kernel implements KernelInterface
         if (file_exists(self::$projectPath . '/.env.local')) {
             $env->loadFromFile(self::$projectPath . '/.env.local');
         }
+
+        $env->loadFromSystem();
     }
 
     /**
