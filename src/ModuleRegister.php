@@ -115,4 +115,22 @@ class ModuleRegister
         }
     }
 
+    /**
+     * Module exists in vendor
+     * @param string $name
+     * @return bool
+     */
+    public static function moduleExistsInVendor(string $name): bool
+    {
+        $packages = InstalledVersions::getInstalledPackages();
+
+        foreach ($packages as $package) {
+            if ($package === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

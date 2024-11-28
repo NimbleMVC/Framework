@@ -3,11 +3,14 @@
 namespace Nimblephp\framework\Abstracts;
 
 use Exception;
+use Krzysztofzylka\Generator\Generator;
+use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
+use Nimblephp\framework\Kernel;
 use Nimblephp\framework\Log;
 
 /**
@@ -56,6 +59,13 @@ abstract class AbstractController implements ControllerInterface
      */
     public function loadModel(string $name): AbstractModel
     {
+        if (Kernel::$activeDebugbar) {
+            try {
+                $debugbarUid = Debugbar::uuid();
+                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
+            } catch (\Throwable) {}
+        }
+
         $class = '\src\Model\\' . $name;
 
         if (!class_exists($class)) {
@@ -79,6 +89,12 @@ abstract class AbstractController implements ControllerInterface
         }
 
         $this->models[$modelPropertyName] = $model;
+
+        if (Kernel::$activeDebugbar) {
+            try {
+                Debugbar::stopTime($debugbarUid);
+            } catch (\Throwable) {}
+        }
 
         return $model;
     }
