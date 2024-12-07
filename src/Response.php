@@ -119,7 +119,7 @@ class Response implements ResponseInterface
             ob_flush();
             $response = new Response();
             $response->addHeader('Content-Type', 'application/json');
-            $response->setContent(json_encode(['type' => 'redirect', 'url' => '/dashboard/index']));
+            $response->setContent(json_encode(['type' => 'redirect', 'url' => $url]));
             $response->send();
             exit;
         }
