@@ -113,8 +113,20 @@ class Response implements ResponseInterface
      */
     public function redirect(string $url, int $statusCode = 302): never
     {
+        $request = new Request();
+
+        if ($request->getQuery('ajax')) {
+            ob_flush();
+            $response = new Response();
+            $response->addHeader('Content-Type', 'application/json');
+            $response->setContent(json_encode(['type' => 'redirect', 'url' => '/dashboard/index']));
+            $response->send();
+            exit;
+        }
+
         header('Location: ' . $url, true, $statusCode);
         exit();
     }
+
 
 }
