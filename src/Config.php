@@ -6,7 +6,7 @@ use Nimblephp\framework\Interfaces\ConfigInterface;
 
 /**
  * Config
- * @deprecated see $_ENV
+ * @deprecated use $_ENV
  */
 class Config implements ConfigInterface
 {

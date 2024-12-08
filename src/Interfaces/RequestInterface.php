@@ -10,27 +10,27 @@ interface RequestInterface
 
     /**
      * Get query
-     * @param $key
-     * @param $default
+     * @param string $key
+     * @param mixed $default
      * @return mixed
      */
-    public function getQuery($key, $default = null): mixed;
+    public function getQuery(string $key, mixed $default = null): mixed;
 
     /**
      * Get post
-     * @param $key
-     * @param $default
+     * @param string $key
+     * @param mixed $default
      * @return mixed
      */
-    public function getPost($key, $default = null): mixed;
+    public function getPost(string $key, mixed $default = null): mixed;
 
     /**
      * Get cookie
-     * @param $key
-     * @param $default
+     * @param string $key
+     * @param mixed $default
      * @return mixed
      */
-    public function getCookie($key, $default = null): mixed;
+    public function getCookie(string $key, mixed $default = null): mixed;
 
     /**
      * Get file
@@ -60,11 +60,11 @@ interface RequestInterface
 
     /**
      * Get server
-     * @param $key
-     * @param $default
+     * @param string $key
+     * @param mixed $default
      * @return mixed
      */
-    public function getServer($key, $default = null): mixed;
+    public function getServer(string $key, mixed $default = null): mixed;
 
     /**
      * Get body
