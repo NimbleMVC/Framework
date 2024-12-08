@@ -67,7 +67,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function create(array $data): bool
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 
@@ -91,7 +91,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function read(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 
@@ -114,7 +114,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function readAll(?array $condition = null, ?array $columns = null, ?string $orderBy = null, ?string $limit = null, ?string $groupBy = null): array
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 
@@ -133,7 +133,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function update(array $data): bool
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         } elseif (is_null($this->getId())) {
             return false;
@@ -153,7 +153,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function delete(): bool
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         } elseif (is_null($this->getId())) {
             return false;
@@ -194,7 +194,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function prepareTableInstance(): void
     {
-        if (!Config::get('DATABASE')) {
+        if (!$_ENV['DATABASE']) {
             return;
         }
 
@@ -216,7 +216,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function count(?array $condition = null, ?string $groupBy = null): int
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 
@@ -235,7 +235,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function isset(?array $condition = null): int
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 
@@ -254,7 +254,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function query(string $sql): array
     {
-        if (!Config::get('DATABASE') || $this->useTable === false) {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
             throw new DatabaseException('Database is disabled');
         }
 

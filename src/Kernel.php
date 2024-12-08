@@ -71,6 +71,7 @@ class Kernel implements KernelInterface
     /**
      * Constructor
      * @param RouteInterface $router
+     * @throws Exception
      */
     public function __construct(RouteInterface $router)
     {
@@ -226,31 +227,31 @@ class Kernel implements KernelInterface
     protected function connectToDatabase(): void
     {
         try {
-            if (!Config::get('DATABASE')) {
+            if (!$_ENV['DATABASE']) {
                 return;
             }
 
             $connect = DatabaseConnect::create();
 
-            switch (Config::get('DATABASE_TYPE')) {
+            switch ($_ENV['DATABASE_TYPE']) {
                 case 'mysql':
                     $connect->setType(DatabaseType::mysql);
-                    $connect->setHost(trim(Config::get('DATABASE_HOST')));
-                    $connect->setDatabaseName(trim(Config::get('DATABASE_NAME')));
-                    $connect->setUsername(trim(Config::get('DATABASE_USERNAME')));
-                    $connect->setPassword(trim(Config::get('DATABASE_PASSWORD')));
-                    $connect->setPort((int)Config::get('DATABASE_PORT'));
+                    $connect->setHost(trim($_ENV['DATABASE_HOST']));
+                    $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
+                    $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
+                    $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
+                    $connect->setPort((int)$_ENV['DATABASE_PORT']);
                     break;
                 case 'sqlite':
                     $connect->setType(DatabaseType::sqlite);
-                    $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . Config::get('DATABASE_PATH'));
+                    $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
                     break;
                 default:
                     throw new DatabaseException('Invalid database type');
             }
 
 
-            $connect->setCharset(Config::get('DATABASE_CHARSET'));
+            $connect->setCharset($_ENV['DATABASE_CHARSET']);
 
             $manager = new DatabaseManager();
             $manager->connect($connect);

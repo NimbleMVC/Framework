@@ -9,7 +9,6 @@ use Composer\InstalledVersions;
  */
 class ModuleRegister
 {
-
     /**
      * Modules list
      * @var array
