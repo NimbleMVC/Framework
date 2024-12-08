@@ -115,20 +115,20 @@ class Request implements RequestInterface
 
     /**
      * Get file
-     * @param $key
+     * @param string $key
      * @return mixed|null
      */
-    public function getFile($key): mixed
+    public function getFile(string $key): mixed
     {
         return $this->files[$key] ?? null;
     }
 
     /**
      * Get header
-     * @param $key
+     * @param string $key
      * @return mixed
      */
-    public function getHeader($key): mixed
+    public function getHeader(string $key): mixed
     {
         return $this->headers[$key] ?? null;
     }

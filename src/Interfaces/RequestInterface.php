@@ -34,17 +34,17 @@ interface RequestInterface
 
     /**
      * Get file
-     * @param $key
+     * @param string $key
      * @return mixed|null
      */
-    public function getFile($key): mixed;
+    public function getFile(string $key): mixed;
 
     /**
      * Get header
-     * @param $key
+     * @param string $key
      * @return mixed
      */
-    public function getHeader($key): mixed;
+    public function getHeader(string $key): mixed;
 
     /**
      * Get method
