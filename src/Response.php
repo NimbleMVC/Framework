@@ -128,5 +128,4 @@ class Response implements ResponseInterface
         exit();
     }
 
-
 }
