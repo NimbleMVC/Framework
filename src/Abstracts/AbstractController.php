@@ -69,7 +69,7 @@ abstract class AbstractController implements ControllerInterface
         $class = '\src\Model\\' . $name;
 
         if (!class_exists($class)) {
-            throw new NotFoundException();
+            throw new NotFoundException('Not found model ' . $name);
         }
 
         /** @var AbstractModel $model */
