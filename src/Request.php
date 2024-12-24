@@ -171,4 +171,14 @@ class Request implements RequestInterface
         return file_get_contents('php://input');
     }
 
+    /**
+     * Check if the request is an AJAX request
+     * @return bool
+     */
+    public function isAjax(): bool
+    {
+        return isset($this->server['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($this->server['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
 }

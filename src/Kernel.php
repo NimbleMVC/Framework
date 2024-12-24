@@ -33,6 +33,12 @@ class Kernel implements KernelInterface
 {
 
     /**
+     * Active debugbar
+     * @var bool
+     */
+    public static bool $activeDebugbar = false;
+
+    /**
      * Project path
      * @var string
      */
@@ -61,12 +67,6 @@ class Kernel implements KernelInterface
      * @var MiddlewareInterface
      */
     protected MiddlewareInterface $middleware;
-
-    /**
-     * Active debugbar
-     * @var bool
-     */
-    public static bool $activeDebugbar = false;
 
     /**
      * Constructor
