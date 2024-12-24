@@ -2,6 +2,7 @@
 
 namespace Nimblephp\framework;
 
+use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
 
 /**
@@ -35,6 +36,20 @@ class Response implements ResponseInterface
     protected string $statusText = '';
 
     /**
+     * Request instance
+     * @var RequestInterface
+     */
+    protected RequestInterface $request;
+
+    /**
+     * Costructor
+     */
+    public function __construct()
+    {
+        $this->request = new Request();
+    }
+
+    /**
      * Get content
      * @return string
      */
@@ -51,6 +66,21 @@ class Response implements ResponseInterface
     public function setContent($content): void
     {
         $this->content = $content;
+    }
+
+    /**
+     * Set json content
+     * @param array $content
+     * @param bool $addHeader
+     * @return void
+     */
+    public function setJsonContent(array $content = [], bool $addHeader = true): void
+    {
+        if ($addHeader) {
+            $this->addHeader('Content-Type', 'application/json');
+        }
+
+        $this->content = json_encode($content);
     }
 
     /**
@@ -90,16 +120,25 @@ class Response implements ResponseInterface
 
     /**
      * Send response
+     * @param bool $flush
      * @return void
      */
-    public function send(): void
+    public function send(bool $flush = false): void
     {
+        if ($flush) {
+            flush();
+        }
+
         if (!headers_sent()) {
             header(sprintf('HTTP/1.1 %s %s', $this->statusCode, $this->statusText), true, $this->statusCode);
 
             foreach ($this->headers as $name => $value) {
                 header(sprintf('%s: %s', $name, $value), false);
             }
+        }
+
+        if ($flush) {
+            die($this->content);
         }
 
         echo $this->content;
@@ -113,15 +152,14 @@ class Response implements ResponseInterface
      */
     public function redirect(string $url, int $statusCode = 302): never
     {
-        $request = new Request();
-
-        if ($request->getQuery('ajax')) {
-            ob_flush();
+        if ($this->request->isAjax()) {
             $response = new Response();
-            $response->addHeader('Content-Type', 'application/json');
-            $response->setContent(json_encode(['type' => 'redirect', 'url' => $url]));
-            $response->send();
-            exit;
+            $response->setStatusCode($statusCode);
+            $response->setJsonContent([
+                'type' => 'redirect',
+                'url' => $url,
+            ]);
+            $response->send(true);
         }
 
         header('Location: ' . $url, true, $statusCode);
