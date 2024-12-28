@@ -12,12 +12,15 @@ use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
 use Nimblephp\framework\Kernel;
 use Nimblephp\framework\Log;
+use Nimblephp\framework\Traits\LoadModelTrait;
 
 /**
  * Abstract controller
  */
 abstract class AbstractController implements ControllerInterface
 {
+
+    use LoadModelTrait;
 
     /**
      * Controller name
@@ -42,62 +45,6 @@ abstract class AbstractController implements ControllerInterface
      * @var RequestInterface
      */
     public RequestInterface $request;
-
-    /**
-     * Models list
-     * @var array
-     */
-    public array $models = [];
-
-    /**
-     * Load model
-     * @param string $name
-     * @return AbstractModel
-     * @throws NimbleException
-     * @throws NotFoundException
-     * @action disabled
-     */
-    public function loadModel(string $name): AbstractModel
-    {
-        if (Kernel::$activeDebugbar) {
-            try {
-                $debugbarUid = Debugbar::uuid();
-                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
-            } catch (\Throwable) {}
-        }
-
-        $class = '\src\Model\\' . $name;
-
-        if (!class_exists($class)) {
-            throw new NotFoundException('Not found model ' . $name);
-        }
-
-        /** @var AbstractModel $model */
-        $model = new $class();
-
-        if (!$model instanceof AbstractModel) {
-            throw new NimbleException('Failed load model');
-        }
-
-        $model->name = $name;
-        $model->prepareTableInstance();
-        $model->controller = $this;
-        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
-
-        if (property_exists($this, $modelPropertyName)) {
-            $this->{$modelPropertyName} = $model;
-        }
-
-        $this->models[$modelPropertyName] = $model;
-
-        if (Kernel::$activeDebugbar) {
-            try {
-                Debugbar::stopTime($debugbarUid);
-            } catch (\Throwable) {}
-        }
-
-        return $model;
-    }
 
     /**
      * Create logs
@@ -131,8 +78,10 @@ abstract class AbstractController implements ControllerInterface
      */
     public function __get(string $name)
     {
-        if (in_array($name, array_keys($this->models))) {
-            return $this->models[$name];
+        $loadModel = $this->__getModel($name);
+
+        if (!is_null($loadModel)) {
+            return $loadModel;
         }
 
         $className = $this::class;

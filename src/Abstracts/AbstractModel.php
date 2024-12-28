@@ -7,14 +7,11 @@ use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
-use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Exception\DatabaseException;
-use Nimblephp\framework\Exception\NimbleException;
-use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\ModelInterface;
-use Nimblephp\framework\Kernel;
 use Nimblephp\framework\Log;
+use Nimblephp\framework\Traits\LoadModelTrait;
 
 /**
  * Abstract model
@@ -22,8 +19,10 @@ use Nimblephp\framework\Log;
 abstract class AbstractModel implements ModelInterface
 {
 
+    use LoadModelTrait;
+
     /**
-     * Use table string / false (no) / null (auto)
+     * Use table string (table name) / false (no) / null (auto)
      * @var string|false|null
      */
     public null|string|false $useTable = null;
@@ -51,12 +50,6 @@ abstract class AbstractModel implements ModelInterface
      * @var ?int
      */
     protected ?int $id = null;
-
-    /**
-     * Models list
-     * @var array
-     */
-    public array $models = [];
 
     /**
      * Create element
@@ -274,55 +267,6 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Load model
-     * @param string $name
-     * @return AbstractModel
-     * @throws NimbleException
-     * @throws NotFoundException
-     */
-    public function loadModel(string $name): AbstractModel
-    {
-        if (Kernel::$activeDebugbar) {
-            try {
-                $debugbarUid = Debugbar::uuid();
-                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
-            } catch (\Throwable) {}
-        }
-
-        $class = '\src\Model\\' . $name;
-
-        if (!class_exists($class)) {
-            throw new NotFoundException('Not found model ' . $name);
-        }
-
-        /** @var AbstractModel $model */
-        $model = new $class();
-
-        if (!$model instanceof AbstractModel) {
-            throw new NimbleException('Failed load model');
-        }
-
-        $model->name = $name;
-        $model->prepareTableInstance();
-        $model->controller = $this->controller;
-        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
-
-        if (property_exists($this, $modelPropertyName)) {
-            $this->{$modelPropertyName} = $model;
-        }
-
-        $this->models[$modelPropertyName] = $model;
-
-        if (Kernel::$activeDebugbar) {
-            try {
-                Debugbar::stopTime($debugbarUid);
-            } catch (\Throwable) {}
-        }
-
-        return $model;
-    }
-
-    /**
      * Create logs
      * @param string $message
      * @param string $level
@@ -365,8 +309,10 @@ abstract class AbstractModel implements ModelInterface
      */
     public function __get(string $name)
     {
-        if (in_array($name, array_keys($this->models))) {
-            return $this->models[$name];
+        $loadModel = $this->__getModel($name);
+
+        if (!is_null($loadModel)) {
+            return $loadModel;
         }
 
         $className = $this::class;
