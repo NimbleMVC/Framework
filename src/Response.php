@@ -126,7 +126,7 @@ class Response implements ResponseInterface
     public function send(bool $flush = false): void
     {
         if ($flush) {
-            flush();
+            ob_clean();
         }
 
         if (!headers_sent()) {
