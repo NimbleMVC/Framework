@@ -89,6 +89,10 @@ class Request implements RequestInterface
             if (is_array($data)) {
                 $data = Arrays::htmlSpecialChars($data);
             } else {
+                if (is_null($data)) {
+                    return null;
+                }
+
                 $data = htmlspecialchars($data);
             }
         }
@@ -125,6 +129,10 @@ class Request implements RequestInterface
             if (is_array($data)) {
                 $data = Arrays::htmlSpecialChars($data);
             } else {
+                if (is_null($data)) {
+                    return null;
+                }
+
                 $data = htmlspecialchars($data);
             }
         }
@@ -147,6 +155,10 @@ class Request implements RequestInterface
             if (is_array($data)) {
                 $data = Arrays::htmlSpecialChars($data);
             } else {
+                if (is_null($data)) {
+                    return null;
+                }
+
                 $data = htmlspecialchars($data);
             }
         }

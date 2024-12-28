@@ -30,9 +30,10 @@ interface RequestInterface
      * Get cookie
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getCookie(string $key, mixed $default = null): mixed;
+    public function getCookie(string $key, mixed $default = null, bool $protect = true): mixed;
 
     /**
      * Get file
