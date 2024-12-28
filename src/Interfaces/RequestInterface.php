@@ -12,17 +12,19 @@ interface RequestInterface
      * Get query
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getQuery(string $key, mixed $default = null): mixed;
+    public function getQuery(string $key, mixed $default = null, bool $protect = true): mixed;
 
     /**
      * Get post
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getPost(string $key, mixed $default = null): mixed;
+    public function getPost(string $key, mixed $default = null, bool $protect = true): mixed;
 
     /**
      * Get cookie
@@ -71,5 +73,19 @@ interface RequestInterface
      * @return string
      */
     public function getBody(): string;
+
+    /**
+     * Get all query
+     * @param bool $protect htmlspecialhars
+     * @return array
+     */
+    public function getAllQuery(bool $protect = true): array;
+
+    /**
+     * Get all post
+     * @param bool $protect htmlspecialhars
+     * @return array
+     */
+    public function getAllPost(bool $protect = true): array;
 
 }
