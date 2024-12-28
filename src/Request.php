@@ -2,6 +2,7 @@
 
 namespace Nimblephp\framework;
 
+use Krzysztofzylka\Arrays\Arrays;
 use Nimblephp\framework\Interfaces\RequestInterface;
 
 /**
@@ -60,57 +61,97 @@ class Request implements RequestInterface
     }
 
     /**
-     * Get all headers
+     * Get all query
+     * @param bool $protect htmlspecialhars
      * @return array
      */
-    private function getAllHeaders(): array
+    public function getAllQuery(bool $protect = true): array
     {
-        if (!function_exists('getallheaders')) {
-            $headers = [];
-
-            foreach ($_SERVER as $name => $value) {
-                if (str_starts_with($name, 'HTTP_')) {
-                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-                }
-            }
-
-            return $headers;
-        } else {
-            return getallheaders();
+        if ($protect) {
+            return Arrays::htmlSpecialChars($this->query ?? []);
         }
+
+        return $this->query ?? [];
     }
 
     /**
      * Get query
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getQuery(string $key, mixed $default = null): mixed
+    public function getQuery(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        return $this->query[$key] ?? $default;
+        $data = $this->query[$key] ?? $default;
+
+        if ($protect) {
+            if (is_array($data)) {
+                $data = Arrays::htmlSpecialChars($data);
+            } else {
+                $data = htmlspecialchars($data);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get all post
+     * @param bool $protect htmlspecialhars
+     * @return array
+     */
+    public function getAllPost(bool $protect = true): array
+    {
+        if ($protect) {
+            return Arrays::htmlSpecialChars($this->post ?? []);
+        }
+
+        return $this->post ?? [];
     }
 
     /**
      * Get post
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getPost(string $key, mixed $default = null): mixed
+    public function getPost(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        return $this->post[$key] ?? $default;
+        $data = $this->post[$key] ?? $default;
+
+        if ($protect) {
+            if (is_array($data)) {
+                $data = Arrays::htmlSpecialChars($data);
+            } else {
+                $data = htmlspecialchars($data);
+            }
+        }
+
+        return $data;
     }
 
     /**
      * Get cookie
      * @param string $key
      * @param mixed $default
+     * @param bool $protect htmlspecialchars
      * @return mixed
      */
-    public function getCookie(string $key, mixed $default = null): mixed
+    public function getCookie(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        return $this->cookies[$key] ?? $default;
+        $data = $this->cookies[$key] ?? $default;
+
+        if ($protect) {
+            if (is_array($data)) {
+                $data = Arrays::htmlSpecialChars($data);
+            } else {
+                $data = htmlspecialchars($data);
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -179,6 +220,27 @@ class Request implements RequestInterface
     {
         return isset($this->server['HTTP_X_REQUESTED_WITH']) &&
             strtolower($this->server['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
+     * Get all headers
+     * @return array
+     */
+    private function getAllHeaders(): array
+    {
+        if (!function_exists('getallheaders')) {
+            $headers = [];
+
+            foreach ($_SERVER as $name => $value) {
+                if (str_starts_with($name, 'HTTP_')) {
+                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                }
+            }
+
+            return $headers;
+        } else {
+            return getallheaders();
+        }
     }
 
 }
