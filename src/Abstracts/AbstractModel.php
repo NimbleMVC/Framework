@@ -8,7 +8,6 @@ use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Config;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\NimbleException;
 use Nimblephp\framework\Exception\NotFoundException;
