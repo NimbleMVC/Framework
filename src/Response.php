@@ -154,7 +154,7 @@ class Response implements ResponseInterface
     {
         if ($this->request->isAjax()) {
             $response = new Response();
-            $response->setStatusCode($statusCode);
+            $response->setStatusCode(200);
             $response->setJsonContent([
                 'type' => 'redirect',
                 'url' => $url,
