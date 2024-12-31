@@ -89,4 +89,10 @@ interface RequestInterface
      */
     public function getAllPost(bool $protect = true): array;
 
+    /**
+     * Check if the request is an AJAX request
+     * @return bool
+     */
+    public function isAjax(): bool;
+
 }
