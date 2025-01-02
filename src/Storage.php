@@ -2,6 +2,8 @@
 
 namespace Nimblephp\framework;
 
+use Nimblephp\framework\Exception\NimbleException;
+
 /**
  * Storage class
  */
@@ -9,105 +11,221 @@ class Storage
 {
 
     /**
-     * Directory
+     * Storage base path
      * @var string
      */
-    private string $directory;
+    private string $basePath;
 
     /**
-     * Init storage
-     * @param string $directory
+     * Init storage class
+     * @throws NimbleException
      */
-    public function __construct(string $directory)
+    public function __construct(string $directory, bool $securePath = true)
     {
-        $this->directory = $directory;
+        $this->basePath = rtrim(Kernel::$projectPath, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR
+            . ($securePath ? trim($directory, DIRECTORY_SEPARATOR) : $directory);
+
+        $this->createBasePath();
     }
 
     /**
-     * Get directory
+     * Put file
+     * @param string $filePath
+     * @param string $content
+     * @return true
+     * @throws NimbleException
+     */
+    public function put(string $filePath, string $content): true
+    {
+        $fullPath = $this->getFullPath($filePath);
+        $this->ensureDirectoryExists(dirname($fullPath));
+
+        if (file_put_contents($fullPath, $content) === false) {
+            throw new NimbleException(sprintf('Failed to write to file "%s"', $fullPath));
+        }
+
+        return true;
+    }
+
+    /**
+     * Append to file
+     * @param string $filePath
+     * @param string $content
+     * @param string $append
+     * @return true
+     * @throws NimbleException
+     */
+    public function append(string $filePath, string $content, string $append = PHP_EOL): true
+    {
+        $fullPath = $this->getFullPath($filePath);
+        $this->ensureDirectoryExists(dirname($fullPath));
+
+        if (file_put_contents($fullPath, $content . $append, FILE_APPEND) === false) {
+            throw new NimbleException(sprintf('Failed to append to file "%s"', $fullPath));
+        }
+
+        return true;
+    }
+
+    /**
+     * Get file content
+     * @param string $filePath
+     * @return string|null
+     */
+    public function get(string $filePath): ?string
+    {
+        if (file_exists($this->getFullPath($filePath))) {
+            return file_get_contents($this->getFullPath($filePath));
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete file
+     * @param string $filePath
+     * @return bool
+     */
+    public function delete(string $filePath): bool
+    {
+        if (file_exists($this->getFullPath($filePath))) {
+            return unlink($this->getFullPath($filePath));
+        }
+
+        return false;
+    }
+
+    /**
+     * Delete file
+     * @param string $filePath
+     * @return bool
+     */
+    public function exists(string $filePath): bool
+    {
+        return file_exists($this->getFullPath($filePath));
+    }
+
+    /**
+     * List files
+     * @return array
+     */
+    public function listFiles(): array
+    {
+        if (is_dir($this->basePath)) {
+            return array_diff(scandir($this->basePath), ['.', '..']);
+        }
+
+        return [];
+    }
+
+    /**
+     * Get full path
+     * @param string $filePath
      * @return string
      */
-    public function getDirectory(): string
+    public function getFullPath(string $filePath): string
     {
-        return $this->directory;
+        return $this->basePath
+            . DIRECTORY_SEPARATOR
+            . ltrim($filePath, DIRECTORY_SEPARATOR);
     }
 
     /**
-     * Is exists
-     * @param string $fileName
+     * Copy a file to a new location
+     * @param string $sourcePath
+     * @param string $destinationPath inside storage
      * @return bool
      */
-    public function isExists(string $fileName): bool
+    public function copy(string $sourcePath, string $destinationPath): bool
     {
-        return file_exists($this->getDirectory() . '/' . $fileName);
-    }
+        $sourceFullPath = $sourcePath;
+        $destinationFullPath = $this->getFullPath($destinationPath);
 
-    /**
-     * Is exists directory
-     * @return bool
-     */
-    public function isExistsDirectory(): bool
-    {
-        return is_dir($this->getDirectory());
-    }
-
-    /**
-     * Write
-     * @param string $fileName
-     * @param string $data
-     * @param bool $append
-     * @return false|int
-     */
-    public function write(string $fileName, string $data, bool $append = false): false|int
-    {
-        $this->createDirectory();
-
-        return file_put_contents(
-            $this->getDirectory() . '/' . $fileName,
-            $data,
-            $append ? FILE_APPEND : 0
-        );
-    }
-
-    /**
-     * Read
-     * @param string $fileName
-     * @return false|string
-     */
-    public function read(string $fileName): false|string
-    {
-        if (!$this->isExists($fileName)) {
+        if (!file_exists($sourceFullPath)) {
             return false;
         }
 
-        return file_get_contents($this->getDirectory() . '/' . $fileName);
+        $directory = dirname($destinationFullPath);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        return copy($sourceFullPath, $destinationFullPath);
     }
 
     /**
-     * Delete
-     * @param string $fileName
+     * Move a file to a new location
+     * @param string $sourcePath
+     * @param string $destinationPath inside storage
      * @return bool
      */
-    public function delete(string $fileName): bool
+    public function move(string $sourcePath, string $destinationPath): bool
     {
-        if (!$this->isExists($fileName)) {
+        $sourceFullPath = $sourcePath;
+        $destinationFullPath = $this->getFullPath($destinationPath);
+
+        if (!file_exists($sourceFullPath)) {
             return false;
         }
 
-        return unlink($this->getDirectory() . '/' . $fileName);
+        $directory = dirname($destinationFullPath);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        return rename($sourceFullPath, $destinationFullPath);
     }
 
     /**
-     * Create directory
-     * @return bool
+     * Get file metadata
+     * @param string $filePath
+     * @return array|null
      */
-    private function createDirectory(): bool
+    public function getMetadata(string $filePath): ?array
     {
-        if ($this->isExistsDirectory()) {
-            return true;
+        if (!file_exists($this->getFullPath($filePath))) {
+            return null;
         }
 
-        return mkdir($this->getDirectory(), 0777, true);
+        return [
+            'size' => filesize($this->getFullPath($filePath)),
+            'modified' => filemtime($this->getFullPath($filePath)),
+            'type' => filetype($this->getFullPath($filePath)),
+        ];
     }
+
+    /**
+     * Create base directory if not exists
+     * @return void
+     * @throws NimbleException
+     */
+    private function createBasePath(): void
+    {
+        if (!is_dir($this->basePath)) {
+            if (!mkdir($this->basePath, 0755, true) && !is_dir($this->basePath)) {
+                throw new NimbleException(sprintf('Directory "%s" was not created', $this->basePath));
+            }
+        }
+    }
+
+    /**
+     * Ensure directory exists
+     * @param string $directory
+     * @return void
+     * @throws NimbleException
+     */
+    private function ensureDirectoryExists(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new NimbleException(sprintf('Directory "%s" was not created', $directory));
+            }
+        }
+    }
+
 
 }
