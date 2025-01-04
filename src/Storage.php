@@ -109,15 +109,26 @@ class Storage
 
     /**
      * List files
+     * @param bool $extend
      * @return array
      */
-    public function listFiles(): array
+    public function listFiles(bool $extend = false): array
     {
-        if (is_dir($this->basePath)) {
+        if (!is_dir($this->basePath)) {
+            return [];
+        }
+
+        if (!$extend) {
             return array_diff(scandir($this->basePath), ['.', '..']);
         }
 
-        return [];
+        $list = [];
+
+        foreach (array_diff(scandir($this->basePath), ['.', '..']) as $name) {
+            $list[$name] = $this->getMetadata($name);
+        }
+
+        return $list;
     }
 
     /**
@@ -195,6 +206,7 @@ class Storage
             'size' => filesize($this->getFullPath($filePath)),
             'modified' => filemtime($this->getFullPath($filePath)),
             'type' => filetype($this->getFullPath($filePath)),
+            'path' => $this->basePath . DIRECTORY_SEPARATOR . basename($filePath)
         ];
     }
 
