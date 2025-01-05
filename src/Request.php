@@ -101,6 +101,16 @@ class Request implements RequestInterface
     }
 
     /**
+     * Isset query
+     * @param string $key
+     * @return bool
+     */
+    public function issetQuery(string $key): bool
+    {
+        return isset($this->query[$key]);
+    }
+
+    /**
      * Get all post
      * @param bool $protect htmlspecialhars
      * @return array
@@ -141,6 +151,16 @@ class Request implements RequestInterface
     }
 
     /**
+     * Isset post
+     * @param string $key
+     * @return bool
+     */
+    public function issetPost(string $key): bool
+    {
+        return isset($this->post[$key]);
+    }
+
+    /**
      * Get cookie
      * @param string $key
      * @param mixed $default
@@ -164,6 +184,16 @@ class Request implements RequestInterface
         }
 
         return $data;
+    }
+
+    /**
+     * Isset cookie
+     * @param string $key
+     * @return bool
+     */
+    public function issetCookie(string $key): bool
+    {
+        return isset($this->cookies[$key]);
     }
 
     /**
