@@ -27,7 +27,7 @@ class Log
      */
     public static function log(string $message, string $level = 'INFO', array $content = []): bool
     {
-        if ($_ENV['LOG']) {
+        if (!$_ENV['LOG']) {
             return false;
         }
 
@@ -104,7 +104,7 @@ class Log
      */
     private static function getLogPath(): string
     {
-        return realpath(Kernel::$projectPath . '/storage/logs/' . date('Y_m_d') . '.log.json');
+        return Kernel::$projectPath . '/storage/logs/' . date('Y_m_d') . '.log.json';
     }
 
     /**
