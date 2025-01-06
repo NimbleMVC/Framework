@@ -95,4 +95,25 @@ interface RequestInterface
      */
     public function isAjax(): bool;
 
+    /**
+     * Isset query
+     * @param string $key
+     * @return bool
+     */
+    public function issetQuery(string $key): bool;
+
+    /**
+     * Isset post
+     * @param string $key
+     * @return bool
+     */
+    public function issetPost(string $key): bool;
+
+    /**
+     * Isset cookie
+     * @param string $key
+     * @return bool
+     */
+    public function issetCookie(string $key): bool;
+
 }
