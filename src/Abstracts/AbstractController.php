@@ -5,12 +5,9 @@ namespace Nimblephp\framework\Abstracts;
 use Exception;
 use Krzysztofzylka\Generator\Generator;
 use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Exception\NimbleException;
-use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;
-use Nimblephp\framework\Kernel;
 use Nimblephp\framework\Log;
 use Nimblephp\framework\Traits\LoadModelTrait;
 
