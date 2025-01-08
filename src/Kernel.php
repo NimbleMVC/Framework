@@ -331,7 +331,17 @@ class Kernel implements KernelInterface
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->response = new Response();
+
+        if (Kernel::$activeDebugbar) {
+            $debugbarUuidAC = Debugbar::uuid();
+            Debugbar::startTime($debugbarUuidAC, 'After construct controller');
+        }
+
         $controller->afterConstruct();
+
+        if (Kernel::$activeDebugbar) {
+            Debugbar::stopTime($debugbarUuidAC);
+        }
 
         call_user_func_array([$controller, $methodName], $params);
 
