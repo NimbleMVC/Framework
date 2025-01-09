@@ -115,4 +115,10 @@ interface ModelInterface
      */
     public function log(string $message, string $level = 'INFO', array $content = []): bool;
 
+    /**
+     * After construct method
+     * @return void
+     */
+    public function afterConstruct(): void;
+
 }

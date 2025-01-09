@@ -52,6 +52,15 @@ abstract class AbstractModel implements ModelInterface
     protected ?int $id = null;
 
     /**
+     * After construct method
+     * @return void
+     * @action disabled
+     */
+    public function afterConstruct(): void
+    {
+    }
+
+    /**
      * Create element
      * @param array $data
      * @return bool
