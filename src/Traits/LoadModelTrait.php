@@ -76,6 +76,7 @@ trait LoadModelTrait
         }
 
         $this->models[$modelPropertyName] = $model;
+        $model->afterConstruct();
 
         if (Kernel::$activeDebugbar) {
             try {
