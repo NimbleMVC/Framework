@@ -16,6 +16,14 @@ interface ResponseInterface
     public function setContent($content): void;
 
     /**
+     * Set json content
+     * @param array $content
+     * @param bool $addHeader
+     * @return void
+     */
+    public function setJsonContent(array $content = [], bool $addHeader = true): void;
+
+    /**
      * Get content
      * @return string
      */
@@ -48,7 +56,7 @@ interface ResponseInterface
      * Send response
      * @return void
      */
-    public function send(): void;
+    public function send(bool $die = false): void;
 
     /**
      * Redirect

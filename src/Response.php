@@ -120,12 +120,12 @@ class Response implements ResponseInterface
 
     /**
      * Send response
-     * @param bool $flush
+     * @param bool $die
      * @return void
      */
-    public function send(bool $flush = false): void
+    public function send(bool $die = false): void
     {
-        if ($flush) {
+        if ($die) {
             ob_clean();
         }
 
@@ -137,7 +137,7 @@ class Response implements ResponseInterface
             }
         }
 
-        if ($flush) {
+        if ($die) {
             die($this->content);
         }
 
