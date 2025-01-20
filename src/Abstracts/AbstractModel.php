@@ -299,7 +299,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function bind(
         BindType|array $bind,
-        string $tableName = null,
+        ?string $tableName = null,
         ?string $primaryKey = null,
         ?string $foreignKey = null,
         null|array|Condition $condition = null
