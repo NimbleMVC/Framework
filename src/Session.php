@@ -64,6 +64,7 @@ class Session implements SessionInterface
      */
     public function destroy(): void
     {
+        session_unset();
         session_destroy();
     }
 
