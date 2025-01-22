@@ -51,6 +51,15 @@ class Route implements RouteInterface
     }
 
     /**
+     * Get routes
+     * @return array
+     */
+    public static function getRoutes(): array
+    {
+        return self::$routes;
+    }
+
+    /**
      * @param RequestInterface $request
      */
     public function __construct(RequestInterface $request)
