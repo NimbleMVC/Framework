@@ -12,32 +12,32 @@ interface SessionInterface
 
     /**
      * Set session
-     * @param $key
-     * @param $value
-     * @return void
+     * @param string $key
+     * @param mixed $value
+     * @return self
      */
-    public function set($key, $value);
+    public function set(string $key, mixed $value): self;
 
     /**
      * Get session
-     * @param $key
+     * @param string $key
      * @return mixed
      */
-    public function get($key): mixed;
+    public function get(string $key): mixed;
 
     /**
      * Exists session
-     * @param $key
+     * @param string $key
      * @return bool
      */
-    public function exists($key): bool;
+    public function exists(string $key): bool;
 
     /**
      * Remove session
-     * @param $key
+     * @param string $key
      * @return void
      */
-    public function remove($key): void;
+    public function remove(string $key): void;
 
     /**
      * Destroy session

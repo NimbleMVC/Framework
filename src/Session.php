@@ -8,52 +8,67 @@ class Session implements SessionInterface
 {
 
     /**
-     * Init session
+     * Initialize session
+     * @return void
      */
-    public function __construct()
+    public static function init(): void
     {
-        if (session_status() == PHP_SESSION_NONE) {
+        if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
     }
 
     /**
-     * Set session
-     * @param $key
-     * @param $value
-     * @return void
+     * Init session
      */
-    public function set($key, $value): void
+    public function __construct()
+    {
+        self::init();
+    }
+
+    /**
+     * Set session
+     * @param string $key
+     * @param mixed $value
+     * @return self
+     */
+    public function set(string $key, mixed $value): self
     {
         $_SESSION[$key] = $value;
+
+        return $this;
     }
 
     /**
      * Get session
-     * @param $key
+     * @param string $key
      * @return mixed
      */
-    public function get($key): mixed
+    public function get(string $key): mixed
     {
+        if (!$this->exists($key)) {
+            throw new \InvalidArgumentException("Session key '{$key}' does not exist.");
+        }
+
         return $_SESSION[$key] ?? null;
     }
 
     /**
      * Exists session
-     * @param $key
+     * @param string $key
      * @return bool
      */
-    public function exists($key): bool
+    public function exists(string $key): bool
     {
         return isset($_SESSION[$key]);
     }
 
     /**
      * Remove session
-     * @param $key
+     * @param string $key
      * @return void
      */
-    public function remove($key): void
+    public function remove(string $key): void
     {
         unset($_SESSION[$key]);
     }
