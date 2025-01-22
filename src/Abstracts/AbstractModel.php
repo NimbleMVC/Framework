@@ -83,6 +83,25 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
+     * Create or update element
+     * @param array $data
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function save(array $data): bool
+    {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        if (is_null($this->getId())) {
+            return $this->create($data);
+        }
+
+        return $this->update($data);
+    }
+
+    /**
      * Read element
      * @param array|null $condition
      * @param array|null $columns

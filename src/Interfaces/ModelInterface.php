@@ -56,6 +56,14 @@ interface ModelInterface
     public function update(array $data): bool;
 
     /**
+     * Create or update element
+     * @param array $data
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function save(array $data): bool;
+
+    /**
      * Delete element by ID
      * @return bool
      * @throws DatabaseException
