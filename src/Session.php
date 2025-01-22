@@ -46,10 +46,6 @@ class Session implements SessionInterface
      */
     public function get(string $key): mixed
     {
-        if (!$this->exists($key)) {
-            throw new \InvalidArgumentException("Session key '{$key}' does not exist.");
-        }
-
         return $_SESSION[$key] ?? null;
     }
 
