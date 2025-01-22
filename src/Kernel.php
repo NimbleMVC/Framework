@@ -327,6 +327,12 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' is disabled');
         }
 
+        if (Reflection::findClassComment($methodComments, 'type', 'ajax')) {
+            if (!$this->request->isAjax()) {
+                throw new NotFoundException('Method ' . $methodName . ' is not allowed for AJAX requests');
+            }
+        }
+
         $controller->name = str_replace('\src\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $controller->request = new Request();
