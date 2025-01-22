@@ -20,5 +20,8 @@
         "krzysztofzylka/file": "^1.0.2",
         "krzysztofzylka/env": "^2.0.0",
         "krzysztofzylka/reflection": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5.3"
     }
 }
