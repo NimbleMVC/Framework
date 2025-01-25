@@ -18,6 +18,27 @@ class Log
     public static string $session;
 
     /**
+     * Storage instance
+     * @var Storage
+     */
+    public static Storage $storage;
+
+    /**
+     * Initialize static variable
+     * @return void
+     */
+    public static function init(): void
+    {
+        if (!isset(self::$session)) {
+            self::generateSession();
+        }
+
+        if (!isset(self::$storage)) {
+            self::$storage = new Storage('logs');
+        }
+    }
+
+    /**
      * Write log
      * @param string $message Log message
      * @param string $level Log level, default INFO
@@ -31,9 +52,7 @@ class Log
             return false;
         }
 
-        if (!isset(self::$session)) {
-            self::generateSession();
-        }
+        self::init();
 
         $backtrace = self::getBacktrace();
 
@@ -57,11 +76,7 @@ class Log
         }
 
         try {
-            return (bool)file_put_contents(
-                self::getLogPath(),
-                $jsonLogData . PHP_EOL,
-                FILE_APPEND
-            );
+            return self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
         } catch (Exception) {
             return false;
         }
@@ -96,15 +111,6 @@ class Log
             'U.u',
             sprintf('%.f', microtime(true))
         )->format('Y-m-d H:i:s.u');
-    }
-
-    /**
-     * Get log path
-     * @return string
-     */
-    private static function getLogPath(): string
-    {
-        return Kernel::$projectPath . '/storage/logs/' . date('Y_m_d') . '.log.json';
     }
 
     /**
