@@ -60,6 +60,7 @@ class Route implements RouteInterface
     }
 
     /**
+     * Constructor
      * @param RequestInterface $request
      */
     public function __construct(RequestInterface $request)
