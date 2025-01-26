@@ -74,7 +74,10 @@ class ModuleRegister
      */
     public function autoRegister(): void
     {
-        Debugbar::startTime('module_auto_register', 'Module auto register');
+        if (class_exists('Debugbar', false)) {
+            Debugbar::startTime('module_auto_register', 'Module auto register');
+        }
+
         $packages = InstalledVersions::getInstalledPackages();
 
         foreach ($packages as $package) {
@@ -94,7 +97,9 @@ class ModuleRegister
 
             $name = str_replace('\\Nimblephp\\', '', $namespace);
 
-            Debugbar::startTime('register_module_' . $namespace, 'Register module ' . $name);
+            if (class_exists('Debugbar', false)) {
+                Debugbar::startTime('register_module_' . $namespace, 'Register module ' . $name);
+            }
 
             $path = InstalledVersions::getInstallPath($package);
             $serviceProviderClass = $namespace . '\\ServiceProvider';
@@ -117,10 +122,15 @@ class ModuleRegister
                 namespace: $namespace,
                 classes: $classes
             );
-            Debugbar::stopTime('register_module_' . $namespace);
+
+            if (class_exists('Debugbar', false)) {
+                Debugbar::stopTime('register_module_' . $namespace);
+            }
         }
 
-        Debugbar::stopTime('module_auto_register');
+        if (class_exists('Debugbar', false)) {
+            Debugbar::stopTime('module_auto_register');
+        }
     }
 
     /**
