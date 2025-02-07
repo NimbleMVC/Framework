@@ -125,7 +125,17 @@ class Log
      */
     private static function getBacktrace(): array
     {
-        return debug_backtrace()[1] ?? debug_backtrace()[0];
+        $next = false;
+
+        foreach (debug_backtrace() as $backtrace) {
+            if (!$next && $backtrace['function'] === 'log') {
+                $next = true;
+            } elseif ($next) {
+                return $backtrace;
+            }
+        }
+
+        return [];
     }
 
 }
