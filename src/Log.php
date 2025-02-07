@@ -76,7 +76,13 @@ class Log
         }
 
         try {
-            return self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
+            $return = self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
+
+            if (Kernel::$middleware) {
+                Kernel::$middleware->afterLog($logContent);
+            }
+
+            return $return;
         } catch (Exception) {
             return false;
         }

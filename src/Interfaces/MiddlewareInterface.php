@@ -37,4 +37,11 @@ interface MiddlewareInterface
      */
     public function handleException(Throwable $exception);
 
+    /**
+     * After log
+     * @param array $logContent
+     * @return mixed
+     */
+    public function afterLog(array $logContent);
+
 }

@@ -45,6 +45,12 @@ class Kernel implements KernelInterface
     public static string $projectPath;
 
     /**
+     * Middleware class
+     * @var MiddlewareInterface
+     */
+    public static MiddlewareInterface $middleware;
+
+    /**
      * Route class
      * @var RouteInterface
      */
@@ -61,12 +67,6 @@ class Kernel implements KernelInterface
      * @var ResponseInterface
      */
     protected ResponseInterface $response;
-
-    /**
-     * Middleware class
-     * @var MiddlewareInterface
-     */
-    protected MiddlewareInterface $middleware;
 
     /**
      * Constructor
@@ -154,8 +154,8 @@ class Kernel implements KernelInterface
         $this->connectToDatabase();
         $this->autoloader();
 
-        if (isset($this->middleware)) {
-            $this->middleware->afterBootstrap();
+        if (isset(self::$middleware)) {
+            self::$middleware->afterBootstrap();
         }
 
         if (self::$activeDebugbar) {
@@ -278,9 +278,9 @@ class Kernel implements KernelInterface
         });
 
         if (class_exists('Middleware')) {
-            $this->middleware = new \Middleware();
+            self::$middleware = new \Middleware();
         } else {
-            $this->middleware = new Middleware();
+            self::$middleware = new Middleware();
         }
     }
 
@@ -302,8 +302,8 @@ class Kernel implements KernelInterface
         $methodName = $this->router->getMethod();
         $params = $this->router->getParams();
 
-        if (isset($this->middleware)) {
-            $this->middleware->beforeController($controllerName, $methodName, $params);
+        if (isset(self::$middleware)) {
+            self::$middleware->beforeController($controllerName, $methodName, $params);
         }
 
         $controllerClass = '\src\Controller\\' . $controllerName;
@@ -349,8 +349,8 @@ class Kernel implements KernelInterface
 
         call_user_func_array([$controller, $methodName], $params);
 
-        if (isset($this->middleware)) {
-            $this->middleware->afterController($controllerName, $methodName, $params);
+        if (isset(self::$middleware)) {
+            self::$middleware->afterController($controllerName, $methodName, $params);
         }
 
         if (self::$activeDebugbar) {
@@ -383,8 +383,8 @@ class Kernel implements KernelInterface
 
         Log::log($message, 'ERR', $data);
 
-        if (isset($this->middleware)) {
-            $this->middleware->handleException($exception);
+        if (isset(self::$middleware)) {
+            self::$middleware->handleException($exception);
         }
 
         if (self::$activeDebugbar && $exception instanceof Exception) {
