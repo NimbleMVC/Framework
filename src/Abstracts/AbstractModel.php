@@ -53,6 +53,12 @@ abstract class AbstractModel implements ModelInterface
     protected ?int $id = null;
 
     /**
+     * Global conditions
+     * @var array
+     */
+    public array $conditions = [];
+
+    /**
      * After construct method
      * @return void
      * @action disabled
@@ -117,6 +123,8 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $condition = $this->prepareCondition($condition);
+
             return $this->table->find($condition, $columns, $orderBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -130,7 +138,6 @@ abstract class AbstractModel implements ModelInterface
      * @param string|null $orderBy
      * @return array
      * @throws DatabaseException
-     * @throws NotFoundException
      */
     public function readSecure(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
@@ -164,6 +171,8 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $condition = $this->prepareCondition($condition);
+
             return $this->table->findAll($condition, $columns, $orderBy, $limit, $groupBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -266,6 +275,8 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $condition = $this->prepareCondition($condition);
+
             return $this->table->findCount($condition, $groupBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -285,6 +296,8 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $condition = $this->prepareCondition($condition);
+
             return $this->table->findIsset($condition);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -355,6 +368,46 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
+     * Set condition
+     * @param Condition|string $key
+     * @param string|null $value
+     * @return self
+     */
+    public function setCondition(Condition|string $key, ?string $value = null): self
+    {
+        if ($key instanceof Condition) {
+            foreach ($this->conditions as $conditionKey => $condition) {
+                if ($condition instanceof Condition) {
+                    if ($condition->getColumn(true) === $key->getColumn(true)) {
+                        $this->conditions[$conditionKey] = $key;
+
+                        return $this;
+                    }
+                }
+            }
+
+            $this->conditions[] = $key;
+
+            return $this;
+        }
+
+        $this->conditions[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Clear conditions
+     * @return $this
+     */
+    public function clearConditions(): self
+    {
+        $this->conditions = [];
+
+        return $this;
+    }
+
+    /**
      * Magic get method
      * @param string $name
      * @return mixed
@@ -370,6 +423,41 @@ abstract class AbstractModel implements ModelInterface
 
         $className = $this::class;
         throw new Exception("Undefined property: {$className}::{$name}", 2);
+    }
+
+    /**
+     * Prepare conditions
+     * @param array|null $conditions
+     * @return array|null
+     */
+    protected function prepareCondition(?array $conditions): ?array
+    {
+        $returnCondition = $this->conditions;
+
+        foreach ($conditions ?? [] as $conditionKey => $conditionValue) {
+            if ($conditionValue instanceof Condition) {
+                $add = false;
+
+                foreach ($returnCondition as $conditionKey2 => $conditionValue2) {
+                    if ($conditionValue2 instanceof Condition) {
+                        if ($conditionValue2->getColumn(true) === $conditionValue->getColumn(true)) {
+                            $returnCondition[$conditionKey2] = $conditionValue;
+                            $add = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if (!$add) {
+                    $returnCondition[] = $conditionValue;
+                }
+            } else {
+                $returnCondition[$conditionKey] = $conditionValue;
+            }
+        }
+
+        return $returnCondition;
     }
 
 }
