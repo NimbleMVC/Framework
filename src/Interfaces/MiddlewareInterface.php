@@ -16,7 +16,7 @@ interface MiddlewareInterface
      * @param string $action
      * @param array $params
      */
-    public function beforeController(string $controllerName, string $action, array $params);
+    public function beforeController(string &$controllerName, string &$action, array &$params);
 
     /**
      * Init after controller
