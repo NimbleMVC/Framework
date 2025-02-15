@@ -15,7 +15,7 @@ class Middleware implements MiddlewareInterface
     {
     }
 
-    public function beforeController(string $controllerName, string $action, array $params)
+    public function beforeController(string &$controllerName, string &$action, array &$params)
     {
     }
 
