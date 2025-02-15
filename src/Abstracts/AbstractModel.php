@@ -8,6 +8,7 @@ use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use Nimblephp\framework\Exception\DatabaseException;
+use Nimblephp\framework\Exception\NotFoundException;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\ModelInterface;
 use Nimblephp\framework\Log;
@@ -120,6 +121,30 @@ abstract class AbstractModel implements ModelInterface
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
+    }
+
+    /**
+     * Read element or throw NotFoundException
+     * @param array|null $condition
+     * @param array|null $columns
+     * @param string|null $orderBy
+     * @return array
+     * @throws DatabaseException
+     * @throws NotFoundException
+     */
+    public function readSecure(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
+    {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        $find = $this->read($condition, $columns, $orderBy);
+
+        if (empty($find)) {
+            throw new NotFoundException();
+        }
+
+        return $find;
     }
 
     /**
