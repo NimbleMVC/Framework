@@ -133,7 +133,7 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
-        Route::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
+        $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
 
         if (isset(self::$middleware)) {
             self::$middleware->afterBootstrap();
