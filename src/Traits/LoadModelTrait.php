@@ -10,7 +10,6 @@ use NimblePHP\framework\Exception\NimbleException;
 use NimblePHP\framework\Exception\NotFoundException;
 use NimblePHP\framework\Interfaces\ControllerInterface;
 use NimblePHP\framework\Interfaces\ModelInterface;
-use NimblePHP\framework\Kernel;
 use NimblePHP\framework\Request;
 use NimblePHP\framework\Response;
 

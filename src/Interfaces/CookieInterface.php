@@ -39,12 +39,12 @@ interface CookieInterface
      */
     public function set(
         string $name,
-        mixed $value,
-        int $expire = 0,
+        mixed  $value,
+        int    $expire = 0,
         string $path = '/',
         string $domain = '',
-        ?bool $secure = null,
-        ?bool $httponly = false
+        ?bool  $secure = null,
+        ?bool  $httponly = false
     ): void;
 
     /**
