@@ -138,6 +138,7 @@ abstract class AbstractModel implements ModelInterface
      * @param string|null $orderBy
      * @return array
      * @throws DatabaseException
+     * @throws NotFoundException
      */
     public function readSecure(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
