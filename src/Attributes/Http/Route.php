@@ -2,6 +2,9 @@
 
 namespace NimblePHP\framework\Attributes\Http;
 
+/**
+ * Routing
+ */
 #[\Attribute]
 class Route
 {
