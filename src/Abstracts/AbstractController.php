@@ -31,12 +31,6 @@ abstract class AbstractController implements ControllerInterface
     public string $action;
 
     /**
-     * Response instance
-     * @var ResponseInterface
-     */
-    public ResponseInterface $response;
-
-    /**
      * Request instance
      * @var RequestInterface
      */
