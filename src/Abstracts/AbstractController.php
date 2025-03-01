@@ -5,7 +5,6 @@ namespace NimblePHP\framework\Abstracts;
 use Exception;
 use NimblePHP\framework\Interfaces\ControllerInterface;
 use NimblePHP\framework\Interfaces\RequestInterface;
-use NimblePHP\framework\Interfaces\ResponseInterface;
 use NimblePHP\framework\Log;
 use NimblePHP\framework\Traits\LoadModelTrait;
 use NimblePHP\framework\Attributes\Http\Action;
@@ -57,26 +56,6 @@ abstract class AbstractController implements ControllerInterface
     #[Action("disabled")]
     public function afterConstruct(): void
     {
-    }
-
-    /**
-     * Magic get method
-     * @param string $name
-     * @return mixed
-     * @throws Exception
-     */
-    #[Action("disabled")]
-    public function __get(string $name)
-    {
-        $loadModel = $this->__getModel($name);
-
-        if (!is_null($loadModel)) {
-            return $loadModel;
-        }
-
-        $className = $this::class;
-
-        throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
 }

@@ -17,12 +17,6 @@ trait LoadModelTrait
 {
 
     /**
-     * Models list
-     * @var array
-     */
-    public array $models = [];
-
-    /**
      * Load model
      * @param string $name
      * @return AbstractModel
@@ -56,7 +50,6 @@ trait LoadModelTrait
             $controller->name = '';
             $controller->action = '';
             $controller->request = new Request();
-            $controller->response = new Response();
             $model->controller = $controller;
         }
 
@@ -66,24 +59,9 @@ trait LoadModelTrait
             $this->{$modelPropertyName} = $model;
         }
 
-        $this->models[$modelPropertyName] = $model;
         $model->afterConstruct();
 
         return $model;
-    }
-
-    /**
-     * Get model helper
-     * @param string $name
-     * @return mixed|null
-     */
-    public function __getModel(string $name): ?ModelInterface
-    {
-        if (in_array($name, array_keys($this->models))) {
-            return $this->models[$name];
-        }
-
-        return null;
     }
 
 }

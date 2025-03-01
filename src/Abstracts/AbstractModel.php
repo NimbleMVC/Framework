@@ -409,24 +409,6 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Magic get method
-     * @param string $name
-     * @return mixed
-     * @throws Exception
-     */
-    public function __get(string $name)
-    {
-        $loadModel = $this->__getModel($name);
-
-        if (!is_null($loadModel)) {
-            return $loadModel;
-        }
-
-        $className = $this::class;
-        throw new Exception("Undefined property: {$className}::{$name}", 2);
-    }
-
-    /**
      * Prepare conditions
      * @param array|null $conditions
      * @return array|null
