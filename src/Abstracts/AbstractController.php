@@ -8,6 +8,7 @@ use NimblePHP\framework\Interfaces\RequestInterface;
 use NimblePHP\framework\Interfaces\ResponseInterface;
 use NimblePHP\framework\Log;
 use NimblePHP\framework\Traits\LoadModelTrait;
+use NimblePHP\framework\Attributes\Http\Action;
 
 /**
  * Abstract controller
@@ -48,8 +49,8 @@ abstract class AbstractController implements ControllerInterface
      * @param array $content
      * @return bool
      * @throws Exception
-     * @action disabled
      */
+    #[Action("disabled")]
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
         return Log::log($message, $level, $content);
@@ -58,8 +59,8 @@ abstract class AbstractController implements ControllerInterface
     /**
      * After construct method
      * @return void
-     * @action disabled
      */
+    #[Action("disabled")]
     public function afterConstruct(): void
     {
     }
@@ -69,8 +70,8 @@ abstract class AbstractController implements ControllerInterface
      * @param string $name
      * @return mixed
      * @throws Exception
-     * @action disabled
      */
+    #[Action("disabled")]
     public function __get(string $name)
     {
         $loadModel = $this->__getModel($name);

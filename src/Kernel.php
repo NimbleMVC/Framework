@@ -10,7 +10,6 @@ use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
-use Krzysztofzylka\Reflection\Reflection;
 use NimblePHP\framework\Abstracts\AbstractController;
 use NimblePHP\framework\Exception\DatabaseException;
 use NimblePHP\framework\Exception\HiddenException;
@@ -20,7 +19,7 @@ use NimblePHP\framework\Interfaces\MiddlewareInterface;
 use NimblePHP\framework\Interfaces\RequestInterface;
 use NimblePHP\framework\Interfaces\ResponseInterface;
 use NimblePHP\framework\Interfaces\RouteInterface;
-use ReflectionException;
+use NimblePHP\framework\Attributes\Http\Action;
 use Throwable;
 
 /**
@@ -252,7 +251,6 @@ class Kernel implements KernelInterface
      * Load controller
      * @return void
      * @throws NotFoundException
-     * @throws ReflectionException
      */
     protected function loadController(): void
     {
@@ -278,15 +276,14 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
-        $methodComments = Reflection::getClassMethodComment($controller, $methodName);
+        $reflection = new \ReflectionMethod($controller, $methodName);
+        $attributes = $reflection->getAttributes(Action::class);
 
-        if (Reflection::findClassComment($methodComments, 'action', 'disabled')) {
-            throw new NotFoundException('Method ' . $methodName . ' is disabled');
-        }
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
 
-        if (Reflection::findClassComment($methodComments, 'actionType', 'ajax')) {
-            if (!$this->request->isAjax()) {
-                throw new NotFoundException('Method ' . $methodName . ' is not allowed for AJAX requests');
+            if (method_exists($instance, 'handle')) {
+                $instance->handle($controller, $methodName, $params);
             }
         }
 
