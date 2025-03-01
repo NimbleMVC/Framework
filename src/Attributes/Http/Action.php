@@ -26,7 +26,8 @@ class Action
      *
      * "ajax" - only ajax action
      */
-    public function __construct(string $type) {
+    public function __construct(string $type)
+    {
         $this->type = $type;
     }
 

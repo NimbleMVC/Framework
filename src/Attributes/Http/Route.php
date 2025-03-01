@@ -2,15 +2,30 @@
 
 namespace NimblePHP\framework\Attributes\Http;
 
-use Attribute;
-
-#[Attribute(Attribute::TARGET_METHOD)]
+#[\Attribute]
 class Route
 {
 
-    public function __construct(
-        public string $path,
-        public string $method = 'GET'
-    ) {}
+    /**
+     * Path
+     * @var string
+     */
+    public string $path;
+
+    /**
+     * Method
+     * @var string
+     */
+    public string $method = 'GET';
+
+    /**
+     * @param string $path
+     * @param string $method
+     */
+    public function __construct(string $path,string $method = 'GET')
+    {
+        $this->path = $path;
+        $this->method = $method;
+    }
 
 }
