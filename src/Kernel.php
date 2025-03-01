@@ -199,9 +199,9 @@ class Kernel implements KernelInterface
         File::mkdir([
             self::$projectPath . '/public',
             self::$projectPath . '/public/assets',
-            self::$projectPath . '/src/Controller',
-            self::$projectPath . '/src/View',
-            self::$projectPath . '/src/Model',
+            self::$projectPath . '/App/Controller',
+            self::$projectPath . '/App/View',
+            self::$projectPath . '/App/Model',
             self::$projectPath . '/storage',
             self::$projectPath . '/storage/logs'
         ]);
@@ -306,7 +306,7 @@ class Kernel implements KernelInterface
             self::$middleware->beforeController($controllerName, $methodName, $params);
         }
 
-        $controllerClass = '\src\Controller\\' . $controllerName;
+        $controllerClass = '\App\Controller\\' . $controllerName;
 
         if (!class_exists($controllerClass)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
@@ -331,7 +331,7 @@ class Kernel implements KernelInterface
             }
         }
 
-        $controller->name = str_replace('\src\Controller\\', '', $controllerName);
+        $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->response = new Response();
