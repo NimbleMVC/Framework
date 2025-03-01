@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\framework;
 
 use DateTime;
 use Exception;

@@ -1,9 +1,9 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\framework;
 
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\ResponseInterface;
+use NimblePHP\framework\Interfaces\RequestInterface;
+use NimblePHP\framework\Interfaces\ResponseInterface;
 
 /**
  * Response

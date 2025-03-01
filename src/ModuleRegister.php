@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\framework;
 
 use Composer\InstalledVersions;
 
@@ -84,9 +84,9 @@ class ModuleRegister
                 continue;
             }
 
-            $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'Nimblephp'], $package);
+            $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'NimblePHP'], $package);
 
-            if ($namespace === '\\Nimblephp\\framework') {
+            if ($namespace === '\\NimblePHP\\framework') {
                 continue;
             }
 

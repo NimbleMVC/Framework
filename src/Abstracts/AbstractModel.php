@@ -1,18 +1,18 @@
 <?php
 
-namespace Nimblephp\framework\Abstracts;
+namespace NimblePHP\framework\Abstracts;
 
 use Exception;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
-use Nimblephp\framework\Exception\DatabaseException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\ModelInterface;
-use Nimblephp\framework\Log;
-use Nimblephp\framework\Traits\LoadModelTrait;
+use NimblePHP\framework\Exception\DatabaseException;
+use NimblePHP\framework\Exception\NotFoundException;
+use NimblePHP\framework\Interfaces\ControllerInterface;
+use NimblePHP\framework\Interfaces\ModelInterface;
+use NimblePHP\framework\Log;
+use NimblePHP\framework\Traits\LoadModelTrait;
 
 /**
  * Abstract model

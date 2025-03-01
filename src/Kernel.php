@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\framework;
 
 use ErrorException;
 use Exception;
@@ -11,15 +11,15 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\framework\Abstracts\AbstractController;
-use Nimblephp\framework\Exception\DatabaseException;
-use Nimblephp\framework\Exception\HiddenException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\KernelInterface;
-use Nimblephp\framework\Interfaces\MiddlewareInterface;
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\ResponseInterface;
-use Nimblephp\framework\Interfaces\RouteInterface;
+use NimblePHP\framework\Abstracts\AbstractController;
+use NimblePHP\framework\Exception\DatabaseException;
+use NimblePHP\framework\Exception\HiddenException;
+use NimblePHP\framework\Exception\NotFoundException;
+use NimblePHP\framework\Interfaces\KernelInterface;
+use NimblePHP\framework\Interfaces\MiddlewareInterface;
+use NimblePHP\framework\Interfaces\RequestInterface;
+use NimblePHP\framework\Interfaces\ResponseInterface;
+use NimblePHP\framework\Interfaces\RouteInterface;
 use ReflectionException;
 use Throwable;
 

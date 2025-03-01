@@ -1,8 +1,8 @@
 <?php
 
-namespace Nimblephp\framework\Interfaces;
+namespace NimblePHP\framework\Interfaces;
 
-use Nimblephp\framework\Exception\NotFoundException;
+use NimblePHP\framework\Exception\NotFoundException;
 
 /**
  * View interface

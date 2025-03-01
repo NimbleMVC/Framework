@@ -1,8 +1,8 @@
 <?php
 
-use Nimblephp\framework\Route;
+use NimblePHP\framework\Route;
 use PHPUnit\Framework\TestCase;
-use Nimblephp\framework\Interfaces\RequestInterface;
+use NimblePHP\framework\Interfaces\RequestInterface;
 
 class RouteTest extends TestCase
 {

@@ -1,13 +1,13 @@
 <?php
 
-namespace Nimblephp\framework\Abstracts;
+namespace NimblePHP\framework\Abstracts;
 
 use Exception;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\ResponseInterface;
-use Nimblephp\framework\Log;
-use Nimblephp\framework\Traits\LoadModelTrait;
+use NimblePHP\framework\Interfaces\ControllerInterface;
+use NimblePHP\framework\Interfaces\RequestInterface;
+use NimblePHP\framework\Interfaces\ResponseInterface;
+use NimblePHP\framework\Log;
+use NimblePHP\framework\Traits\LoadModelTrait;
 
 /**
  * Abstract controller

@@ -1,6 +1,6 @@
 <?php
 
-use Nimblephp\framework\Session;
+use NimblePHP\framework\Session;
 use PHPUnit\Framework\TestCase;
 
 class SessionTest extends TestCase

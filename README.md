@@ -27,8 +27,8 @@ Następnie należy utworzyć folder public a w nim plik index.php o treści:
 
 require('../vendor/autoload.php');
 
-$route = new \Nimblephp\framework\Route(new \Nimblephp\framework\Request());
-$kernel = new \Nimblephp\framework\Kernel($route);
+$route = new \NimblePHP\framework\Route(new \NimblePHP\framework\Request());
+$kernel = new \NimblePHP\framework\Kernel($route);
 $kernel->handle();
 ```
 oraz plik .htaccess z zawartością:

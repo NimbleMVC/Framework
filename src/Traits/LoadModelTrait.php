@@ -1,18 +1,18 @@
 <?php
 
-namespace Nimblephp\framework\Traits;
+namespace NimblePHP\framework\Traits;
 
 
 use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\framework\Abstracts\AbstractController;
-use Nimblephp\framework\Abstracts\AbstractModel;
-use Nimblephp\framework\Exception\NimbleException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\ModelInterface;
-use Nimblephp\framework\Kernel;
-use Nimblephp\framework\Request;
-use Nimblephp\framework\Response;
+use NimblePHP\framework\Abstracts\AbstractController;
+use NimblePHP\framework\Abstracts\AbstractModel;
+use NimblePHP\framework\Exception\NimbleException;
+use NimblePHP\framework\Exception\NotFoundException;
+use NimblePHP\framework\Interfaces\ControllerInterface;
+use NimblePHP\framework\Interfaces\ModelInterface;
+use NimblePHP\framework\Kernel;
+use NimblePHP\framework\Request;
+use NimblePHP\framework\Response;
 
 trait LoadModelTrait
 {

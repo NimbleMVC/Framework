@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Nimblephp\\framework\\": "src/"
+            "NimblePHP\\framework\\": "src/"
         }
     },
     "authors": [
