@@ -2,7 +2,6 @@
 
 namespace Nimblephp\framework;
 
-use DebugBar\DataCollector\PDO\PDOCollector;
 use ErrorException;
 use Exception;
 use krzysztofzylka\DatabaseManager\DatabaseConnect;
@@ -12,8 +11,6 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\debugbar\Collectors\ModuleCollector;
-use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Exception\DatabaseException;
 use Nimblephp\framework\Exception\HiddenException;
@@ -31,12 +28,6 @@ use Throwable;
  */
 class Kernel implements KernelInterface
 {
-
-    /**
-     * Active debugbar
-     * @var bool
-     */
-    public static bool $activeDebugbar = false;
 
     /**
      * Project path
@@ -82,12 +73,6 @@ class Kernel implements KernelInterface
         $this->response = new Response();
 
         $this->loadConfiguration();
-
-        self::$activeDebugbar = $_ENV['DEBUG'] && ModuleRegister::moduleExistsInVendor('nimblephp/debugbar');
-
-        if (self::$activeDebugbar) {
-            (new Debugbar())->init();
-        }
     }
 
     /**
@@ -143,10 +128,6 @@ class Kernel implements KernelInterface
      */
     public function bootstrap(): void
     {
-        if (self::$activeDebugbar) {
-            Debugbar::startTime('bootstrap', 'Bootstrap');
-        }
-
         $this->errorCatcher();
         $this->autoCreator();
         $this->initializeSession();
@@ -158,20 +139,7 @@ class Kernel implements KernelInterface
             self::$middleware->afterBootstrap();
         }
 
-        if (self::$activeDebugbar) {
-            Debugbar::stopTime('bootstrap');
-            Debugbar::startTime('load_modules', 'Load modules');
-        }
-
         $this->loadModules();
-
-        if (self::$activeDebugbar) {
-            if (!Debugbar::$debugBar->hasCollector('module_register')) {
-                Debugbar::$debugBar->addCollector(new ModuleCollector(ModuleRegister::getAll()));
-            }
-
-            Debugbar::stopTime('load_modules');
-        }
     }
 
     /**
@@ -253,10 +221,6 @@ class Kernel implements KernelInterface
 
             $manager = new DatabaseManager();
             $manager->connect($connect);
-
-            if (self::$activeDebugbar && !Debugbar::$debugBar->hasCollector('pdo')) {
-                Debugbar::$debugBar->addCollector(new PDOCollector(DatabaseManager::$connection->getConnection()));
-            }
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -292,11 +256,6 @@ class Kernel implements KernelInterface
      */
     protected function loadController(): void
     {
-        if (self::$activeDebugbar) {
-            $debugbarUuid = Debugbar::uuid();
-            Debugbar::startTime($debugbarUuid, 'Load main controller');
-        }
-
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
@@ -335,26 +294,12 @@ class Kernel implements KernelInterface
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->response = new Response();
-
-        if (Kernel::$activeDebugbar) {
-            $debugbarUuidAC = Debugbar::uuid();
-            Debugbar::startTime($debugbarUuidAC, 'After construct controller');
-        }
-
         $controller->afterConstruct();
-
-        if (Kernel::$activeDebugbar) {
-            Debugbar::stopTime($debugbarUuidAC);
-        }
 
         call_user_func_array([$controller, $methodName], $params);
 
         if (isset(self::$middleware)) {
             self::$middleware->afterController($controllerName, $methodName, $params);
-        }
-
-        if (self::$activeDebugbar) {
-            Debugbar::stopTime($debugbarUuid);
         }
     }
 
@@ -385,10 +330,6 @@ class Kernel implements KernelInterface
 
         if (isset(self::$middleware)) {
             self::$middleware->handleException($exception);
-        }
-
-        if (self::$activeDebugbar && $exception instanceof Exception) {
-            Debugbar::addException($exception);
         }
 
         throw $exception;

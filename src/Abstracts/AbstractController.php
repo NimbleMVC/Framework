@@ -3,7 +3,6 @@
 namespace Nimblephp\framework\Abstracts;
 
 use Exception;
-use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Interfaces\ControllerInterface;
 use Nimblephp\framework\Interfaces\RequestInterface;
 use Nimblephp\framework\Interfaces\ResponseInterface;

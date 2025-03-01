@@ -4,7 +4,6 @@ namespace Nimblephp\framework\Traits;
 
 
 use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\debugbar\Debugbar;
 use Nimblephp\framework\Abstracts\AbstractController;
 use Nimblephp\framework\Abstracts\AbstractModel;
 use Nimblephp\framework\Exception\NimbleException;
@@ -33,13 +32,6 @@ trait LoadModelTrait
      */
     public function loadModel(string $name): AbstractModel
     {
-        if (Kernel::$activeDebugbar) {
-            try {
-                $debugbarUid = Debugbar::uuid();
-                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
-            } catch (\Throwable) {}
-        }
-
         $class = '\src\Model\\' . $name;
 
         if (!class_exists($class)) {
@@ -77,12 +69,6 @@ trait LoadModelTrait
 
         $this->models[$modelPropertyName] = $model;
         $model->afterConstruct();
-
-        if (Kernel::$activeDebugbar) {
-            try {
-                Debugbar::stopTime($debugbarUid);
-            } catch (\Throwable) {}
-        }
 
         return $model;
     }
