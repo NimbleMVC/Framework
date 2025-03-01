@@ -133,6 +133,7 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
+        Route::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
 
         if (isset(self::$middleware)) {
             self::$middleware->afterBootstrap();
@@ -257,6 +258,11 @@ class Kernel implements KernelInterface
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
+
+        if (!$this->router->validate()) {
+            throw new NotFoundException('Route /' . $controllerName  . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
+        }
+
         $params = $this->router->getParams();
 
         if (isset(self::$middleware)) {

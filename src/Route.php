@@ -2,6 +2,7 @@
 
 namespace NimblePHP\framework;
 
+use NimblePHP\framework\Exception\NimbleException;
 use NimblePHP\framework\Interfaces\RequestInterface;
 use NimblePHP\framework\Interfaces\RouteInterface;
 
@@ -34,6 +35,12 @@ class Route implements RouteInterface
      * @var array
      */
     protected array $params = [];
+
+    /**
+     * Cache file
+     * @var string
+     */
+    protected static string $cacheFile = 'framework/route.cache';
 
     /**
      * Add route
@@ -88,12 +95,13 @@ class Route implements RouteInterface
      */
     public function reload(): void
     {
-        foreach (self::$routes as $route => $parameters) {
-            if (in_array($route, [$this->getController(), $this->getController() . '/' . $this->getMethod()])) {
-                $this->setController($parameters['controller']);
-                $this->setMethod($parameters['method']);
-            }
+        if (!array_key_exists('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : ''), self::$routes)) {
+            return;
         }
+
+        $route = self::$routes['/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')];
+        $this->setController($route['controller']);
+        $this->setMethod($route['method']);
     }
 
     /**
@@ -151,6 +159,85 @@ class Route implements RouteInterface
     public function setParams(array $params): void
     {
         $this->params = $params;
+    }
+
+    public function validate(): bool
+    {
+        $url = explode('/', ltrim((new Request())->getUri(), '/'), 3);
+        $routeName = '/';
+
+        if (isset($url[0])) {
+            $routeName .= $url[0];
+        }
+
+        if (isset($url[1])) {
+            $routeName .= '/' . $url[1];
+        }
+
+        if ($routeName === '/') {
+            $routeName .= $_ENV['DEFAULT_CONTROLLER'] . '/' . $_ENV['DEFAULT_METHOD'];
+        }
+
+        return array_key_exists($routeName, self::$routes);
+    }
+
+    /**
+     * Auto register routes
+     * @param string $controllerPath
+     * @param string $namespace
+     * @return void
+     * @throws NimbleException
+     */
+    public static function registerRoutes(string $controllerPath, string $namespace): void {
+        if ($_ENV['CACHE_ROUTE']) {
+            $storage = new Storage('cache');
+
+            if ($storage->exists(self::$cacheFile)) {
+                self::$routes = unserialize($storage->get(self::$cacheFile));
+                return;
+            }
+        }
+
+        $controllers = self::getAllControllers($controllerPath, $namespace);
+
+        foreach ($controllers as $controller) {
+            if (!class_exists($controller)) {
+                continue;
+            }
+
+            $reflection = new \ReflectionClass($controller);
+
+            foreach ($reflection->getMethods() as $method) {
+                foreach ($method->getAttributes(\NimblePHP\framework\Attributes\Http\Route::class) as $attribute) {
+                    $route = $attribute->newInstance();
+                    self::addRoute($route->path, str_replace('App\Controller\\', '', $controller), $method->name);
+                }
+            }
+        }
+
+        if ($_ENV['CACHE_ROUTE']) {
+            $storage->put(self::$cacheFile, serialize(self::$routes));
+        }
+    }
+
+    /**
+     * Get all controllers
+     * @param string $directory
+     * @param string $namespace
+     * @return array
+     */
+    private static function getAllControllers(string $directory, string $namespace): array {
+        $controllers = [];
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+
+        foreach ($files as $file) {
+            if ($file->isFile() && $file->getExtension() === 'php') {
+                $className = $namespace . '\\' . $file->getBasename('.php');
+                $controllers[] = str_replace('/', '\\', $className);
+            }
+        }
+
+        return $controllers;
     }
 
 }

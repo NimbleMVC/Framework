@@ -62,4 +62,10 @@ interface RouteInterface
      */
     public function setParams(array $params): void;
 
+    /**
+     * Validate route
+     * @return bool
+     */
+    public function validate(): bool;
+
 }
