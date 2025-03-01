@@ -6,12 +6,11 @@ namespace NimblePHP\framework\Traits;
 use Krzysztofzylka\Reflection\Reflection;
 use NimblePHP\framework\Abstracts\AbstractController;
 use NimblePHP\framework\Abstracts\AbstractModel;
+use NimblePHP\framework\Attributes\DependencyInjection\Inject;
 use NimblePHP\framework\Exception\NimbleException;
 use NimblePHP\framework\Exception\NotFoundException;
 use NimblePHP\framework\Interfaces\ControllerInterface;
-use NimblePHP\framework\Interfaces\ModelInterface;
 use NimblePHP\framework\Request;
-use NimblePHP\framework\Response;
 
 trait LoadModelTrait
 {
@@ -25,7 +24,7 @@ trait LoadModelTrait
      */
     public function loadModel(string $name): AbstractModel
     {
-        $class = '\src\Model\\' . $name;
+        $class = '\App\Model\\' . $name;
 
         if (!class_exists($class)) {
             throw new NotFoundException('Not found model ' . $name);
@@ -42,21 +41,24 @@ trait LoadModelTrait
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
-            $model->controller = $this;
+            $model->controller = &$this;
         } elseif (Reflection::classHasProperty($this, 'controller')) {
-            $model->controller = $this->controller;
+            $model->controller = &$this->controller;
         } else {
             $controller = new class extends AbstractController {};
             $controller->name = '';
             $controller->action = '';
             $controller->request = new Request();
-            $model->controller = $controller;
+            $model->controller = &$controller;
         }
 
-        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
+        $reflection = new \ReflectionClass($model);
 
-        if (property_exists($this, $modelPropertyName)) {
-            $this->{$modelPropertyName} = $model;
+        foreach ($reflection->getProperties() as $property) {
+            foreach ($property->getAttributes(Inject::class) as $attribute) {
+                $inject = $attribute->newInstance();
+                $inject->handle($model);
+            }
         }
 
         $model->afterConstruct();
