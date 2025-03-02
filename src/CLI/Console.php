@@ -3,6 +3,7 @@
 namespace NimblePHP\framework\CLI;
 
 use NimblePHP\framework\CLI\Commands\ClearCache;
+use NimblePHP\framework\CLI\Commands\ConfigShow;
 use NimblePHP\framework\CLI\Commands\MakeController;
 use NimblePHP\framework\CLI\Commands\MakeModel;
 use NimblePHP\framework\CLI\Commands\Serve;
@@ -14,6 +15,7 @@ class Console
         'make:controller' => MakeController::class,
         'make:model' => MakeModel::class,
         'cache:clear' => ClearCache::class,
+        'config:show' => ConfigShow::class,
         'serve' => Serve::class,
     ];
 
