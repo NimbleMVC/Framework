@@ -2,11 +2,14 @@
 
 namespace NimblePHP\framework\CLI\Commands;
 
+use Krzysztofzylka\Console\Prints;
 use NimblePHP\framework\Route;
 use NimblePHP\framework\Storage;
 
 class ClearCache
 {
+
+    public static string $description = 'Clear cache';
 
     /**
      * Clear cache
@@ -16,7 +19,7 @@ class ClearCache
     {
         $storage = new Storage('cache');
         $storage->delete(Route::$cacheFile);
-        echo "Clear cache!\n";
+        Prints::print(value: 'Cleared cache', exit: true, color: 'green');
     }
 
 }

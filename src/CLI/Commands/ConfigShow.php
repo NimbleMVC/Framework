@@ -2,12 +2,19 @@
 
 namespace NimblePHP\framework\CLI\Commands;
 
+use Exception;
 use Krzysztofzylka\Env\Env;
 use NimblePHP\framework\Kernel;
 
 class ConfigShow
 {
 
+    public static string $description = 'Show configuration';
+
+    /**
+     * @return void
+     * @throws Exception
+     */
     public function handle(): void
     {
         $env = new Env();

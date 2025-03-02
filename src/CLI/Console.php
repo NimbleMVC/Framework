@@ -51,13 +51,14 @@ class Console
      */
     private static function showHelp(): void
     {
-        echo "Commands:\n";
+        $help = new \Krzysztofzylka\Console\Generator\Help();
+        $help->addHeader('Commands');
 
         foreach (self::$commands as $cmd => $class) {
-            echo "  $cmd\n";
+            $help->addHelp($cmd, $class::$description);
         }
 
-        echo "\n";
+        $help->render();
     }
 
 }

@@ -10,6 +10,8 @@ use NimblePHP\framework\Kernel;
 class Serve
 {
 
+    public static string $description = 'Serve the application';
+
     /**
      * Serve
      * @param string $host

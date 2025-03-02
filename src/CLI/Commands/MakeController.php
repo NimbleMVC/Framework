@@ -2,34 +2,41 @@
 
 namespace NimblePHP\framework\CLI\Commands;
 
+use Krzysztofzylka\Console\Form;
+use Krzysztofzylka\Console\Prints;
+
 /**
  * Make controller
  */
 class MakeController
 {
 
+    public static string $description = "Create a new controller class";
+
     /**
      * Make controller
      * @param string $name
      * @return void
      */
-    public function handle(string $name): void
+    public function handle(string $name = ''): void
     {
         if (empty($name)) {
-            echo "Set controller name!\n";
-            return;
+            $name = Form::input('Set controller name:');
+        }
+
+        if (empty($name)) {
+            Prints::print(value: 'Controller name cannot be empty!', exit: true, color: 'red');
         }
 
         $appPath = getcwd();
         $controllerPath = $appPath . "/App/Controller/{$name}.php";
 
         if (file_exists($controllerPath)) {
-            echo "Controller {$controllerPath} exists\n";
-            return;
+            Prints::print(value: "Controller {$controllerPath} exists", exit: true, color: 'red');
         }
 
         file_put_contents($controllerPath, $this->template($name));
-        echo "Controller {$name} created in: {$controllerPath}\n";
+        Prints::print(value: "Controller {$name} created in: {$controllerPath}", exit: true, color: 'green');
     }
 
     /**

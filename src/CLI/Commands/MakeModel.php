@@ -2,21 +2,29 @@
 
 namespace NimblePHP\framework\CLI\Commands;
 
+use Krzysztofzylka\Console\Form;
+use Krzysztofzylka\Console\Prints;
+
 class MakeModel
 {
+
+    public static string $description = 'Create a new model class';
 
     public function handle(string $name = ''): void
     {
         if (empty($name)) {
-            echo "Write model name!\n";
-            return;
+            $name = Form::input('Model name: ');
+
+            if (empty($name)) {
+                Prints::print(value: "No model name specified.", exit: true, color: 'red');
+            }
         }
 
         $appPath = getcwd();
         $path = $appPath . "/App/Model/{$name}.php";
 
         if (file_exists($path)) {
-            echo "Model already exists!\n";
+            Prints::print(value: "Model already exists.", exit: true, color: 'red');
             return;
         }
 
@@ -32,7 +40,7 @@ class {$name} extends AbstractModel {
 PHP;
 
         file_put_contents($path, $template);
-        echo "Model {$name} created!\n";
+        Prints::print(value: "Model {$name} created", exit: true, color: 'green');
     }
 
 }
