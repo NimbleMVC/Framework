@@ -3,12 +3,14 @@
 namespace NimblePHP\framework\CLI;
 
 use NimblePHP\framework\CLI\Commands\ClearCache;
+use NimblePHP\framework\CLI\Commands\Serve;
 
 class Console
 {
 
     private static array $commands = [
-        'cache:clear' => ClearCache::class
+        'cache:clear' => ClearCache::class,
+        'serve' => Serve::class
     ];
 
     /**
@@ -34,7 +36,7 @@ class Console
 
         ConsoleHelper::initProjectPath();
         $commandClass = self::$commands[$command];
-        (new $commandClass())->handle($args);
+        (new $commandClass())->handle(...$args);
     }
 
     /**
