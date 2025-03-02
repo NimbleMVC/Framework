@@ -19,6 +19,12 @@ class Route implements RouteInterface
     protected static array $routes = [];
 
     /**
+     * Cache file
+     * @var string
+     */
+    public static string $cacheFile = 'framework/route.cache';
+
+    /**
      * Controller name
      * @var ?string
      */
@@ -35,12 +41,6 @@ class Route implements RouteInterface
      * @var array
      */
     protected array $params = [];
-
-    /**
-     * Cache file
-     * @var string
-     */
-    protected static string $cacheFile = 'framework/route.cache';
 
     /**
      * Add route
@@ -215,7 +215,7 @@ class Route implements RouteInterface
             }
         }
 
-        if ($_ENV['CACHE_ROUTE']) {
+        if ($_ENV['CACHE_ROUTE'] && isset($storage)) {
             $storage->put(self::$cacheFile, serialize(self::$routes));
         }
     }
