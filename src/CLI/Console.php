@@ -3,6 +3,7 @@
 namespace NimblePHP\framework\CLI;
 
 use NimblePHP\framework\CLI\Commands\ClearCache;
+use NimblePHP\framework\CLI\Commands\MakeController;
 use NimblePHP\framework\CLI\Commands\Serve;
 
 class Console
@@ -10,7 +11,8 @@ class Console
 
     private static array $commands = [
         'cache:clear' => ClearCache::class,
-        'serve' => Serve::class
+        'serve' => Serve::class,
+        'make:controller' => MakeController::class
     ];
 
     /**
