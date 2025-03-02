@@ -40,6 +40,12 @@ RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 ```
 Teraz należy uruchomić plik index.php, pierwsze uruchomienie spowoduje utworzenie folderów wymaganych przez projekt
 
+## CLI
+### Czyszczenie cache
+```shell
+php vendor/bin/nimble cache:clear
+```
+
 ## Współtworzenie
 Zachęcamy do współtworzenia! Masz sugestie, znalazłeś błędy, chcesz pomóc w rozwoju? Otwórz issue lub prześlij pull request.
 
