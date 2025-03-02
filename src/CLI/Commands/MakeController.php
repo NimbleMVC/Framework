@@ -42,11 +42,12 @@ class MakeController
         return <<<PHP
 <?php
 
-namespace App\Controllers;
+namespace App\Controller;
 
+use NimblePHP\\framework\Abstracts\AbstractController;
 use NimblePHP\\framework\Attributes\Http\Route;
 
-class {$name}
+class {$name} extends AbstractController
 {
 
     #[Route('/$name')]
