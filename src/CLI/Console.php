@@ -2,6 +2,7 @@
 
 namespace NimblePHP\framework\CLI;
 
+use Krzysztofzylka\Console\Prints;
 use NimblePHP\framework\CLI\Commands\ClearCache;
 use NimblePHP\framework\CLI\Commands\ConfigShow;
 use NimblePHP\framework\CLI\Commands\MakeController;
@@ -35,7 +36,7 @@ class Console
         $args = array_slice($argv, 2);
 
         if (!array_key_exists($command, self::$commands)) {
-            echo "Unknown command: $command\n";
+            Prints::print('Unknown command: ' . $command, color: 'yellow');
             self::showHelp();
             return;
         }
