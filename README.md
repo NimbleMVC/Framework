@@ -45,6 +45,10 @@ Teraz należy uruchomić plik index.php, pierwsze uruchomienie spowoduje utworze
 ```shell
 php vendor/bin/nimble cache:clear
 ```
+### Uruchamianie wersji developerskiej aplikacji
+```shell
+php vendor/bin/nimble serve <host:127.0.0.1> <port:8080>
+```
 
 ## Współtworzenie
 Zachęcamy do współtworzenia! Masz sugestie, znalazłeś błędy, chcesz pomóc w rozwoju? Otwórz issue lub prześlij pull request.
