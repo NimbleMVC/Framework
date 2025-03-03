@@ -349,13 +349,13 @@ class Kernel implements KernelInterface
      */
     protected function debug(): void
     {
-        if (!$_ENV['DEBUG']) {
-            return;
+        if (!$_ENV['DEBUG']) {ini_set('display_errors', 0);
+            ini_set('display_startup_errors', 0);
+        } else {
+            ini_set('display_errors', 1);
+            ini_set('display_startup_errors', 1);
+            error_reporting(E_ALL);
         }
-
-        ini_set('display_errors', 1);
-        ini_set('display_startup_errors', 1);
-        error_reporting(E_ALL);
     }
 
     /**
