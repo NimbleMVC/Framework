@@ -14,6 +14,14 @@ class Session implements SessionInterface
     public static function init(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            $sessionPath = Kernel::$projectPath . "/storage/session";
+
+            if (!is_dir($sessionPath)) {
+                mkdir($sessionPath, 0777, true);
+            }
+
+            session_save_path($sessionPath);
+
             session_start();
         }
     }
