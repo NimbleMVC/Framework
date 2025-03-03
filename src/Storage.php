@@ -1,8 +1,8 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NimbleException;
 
 /**
  * Storage class

@@ -1,12 +1,12 @@
 <?php
 
-namespace NimblePHP\framework\CLI\Commands;
+namespace NimblePHP\Framework\CLI\Commands;
 
 use Exception;
 use Krzysztofzylka\Env\Env;
-use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
-use NimblePHP\framework\CLI\ConsoleHelper;
-use NimblePHP\framework\Kernel;
+use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\Kernel;
 
 class Config
 {

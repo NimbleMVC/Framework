@@ -1,20 +1,20 @@
 <?php
 
-namespace NimblePHP\framework\CLI;
+namespace NimblePHP\Framework\CLI;
 
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
-use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
-use NimblePHP\framework\CLI\Commands\ClearCache;
-use NimblePHP\framework\CLI\Commands\ConfigShow;
-use NimblePHP\framework\CLI\Commands\LogsClear;
-use NimblePHP\framework\CLI\Commands\MakeController;
-use NimblePHP\framework\CLI\Commands\MakeModel;
-use NimblePHP\framework\CLI\Commands\ProjectInit;
-use NimblePHP\framework\CLI\Commands\ProjectStructure;
-use NimblePHP\framework\CLI\Commands\RoutesGenerate;
-use NimblePHP\framework\CLI\Commands\RoutesList;
-use NimblePHP\framework\CLI\Commands\Serve;
+use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\CLI\Commands\ClearCache;
+use NimblePHP\Framework\CLI\Commands\ConfigShow;
+use NimblePHP\Framework\CLI\Commands\LogsClear;
+use NimblePHP\Framework\CLI\Commands\MakeController;
+use NimblePHP\Framework\CLI\Commands\MakeModel;
+use NimblePHP\Framework\CLI\Commands\ProjectInit;
+use NimblePHP\Framework\CLI\Commands\ProjectStructure;
+use NimblePHP\Framework\CLI\Commands\RoutesGenerate;
+use NimblePHP\Framework\CLI\Commands\RoutesList;
+use NimblePHP\Framework\CLI\Commands\Serve;
 
 class Console
 {
@@ -72,7 +72,7 @@ class Console
      */
     private static function scanCommands(): void
     {
-        foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\framework\CLI\Commands') as $file) {
+        foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\Framework\CLI\Commands') as $file) {
             if (!class_exists($file)) {
                 continue;
             }

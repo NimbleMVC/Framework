@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework\Attributes\Database;
+namespace NimblePHP\Framework\Attributes\Database;
 
 #[\Attribute]
 class DefaultValue

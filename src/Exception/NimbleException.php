@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework\Exception;
+namespace NimblePHP\Framework\Exception;
 
 use Exception;
 use Throwable;

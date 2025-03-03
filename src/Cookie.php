@@ -1,8 +1,8 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Interfaces\CookieInterface;
+use NimblePHP\Framework\Interfaces\CookieInterface;
 
 class Cookie implements CookieInterface
 {

@@ -1,10 +1,10 @@
 <?php
 
-namespace NimblePHP\framework\Attributes\Http;
+namespace NimblePHP\Framework\Attributes\Http;
 
-use NimblePHP\framework\Exception\NotFoundException;
-use NimblePHP\framework\Interfaces\ControllerInterface;
-use NimblePHP\framework\Request;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Request;
 
 /**
  * Set action definition

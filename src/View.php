@@ -1,9 +1,9 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Exception\NotFoundException;
-use NimblePHP\framework\Interfaces\ViewInterface;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ViewInterface;
 
 /**
  * View

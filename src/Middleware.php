@@ -1,8 +1,8 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Interfaces\MiddlewareInterface;
+use NimblePHP\Framework\Interfaces\MiddlewareInterface;
 use Throwable;
 
 /**

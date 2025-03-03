@@ -1,11 +1,11 @@
 <?php
 
-namespace NimblePHP\framework\CLI;
+namespace NimblePHP\Framework\CLI;
 
 use Krzysztofzylka\Env\Env;
-use NimblePHP\framework\Kernel;
-use NimblePHP\framework\Request;
-use NimblePHP\framework\Route;
+use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\Request;
+use NimblePHP\Framework\Route;
 
 class ConsoleHelper
 {
@@ -62,7 +62,7 @@ class ConsoleHelper
     /**
      * Init kernel
      * @return Kernel
-     * @throws \NimblePHP\framework\Exception\DatabaseException
+     * @throws \NimblePHP\Framework\Exception\DatabaseException
      * @throws \Throwable
      */
     public static function initKernel(): Kernel

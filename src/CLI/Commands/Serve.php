@@ -1,9 +1,9 @@
 <?php
 
-namespace NimblePHP\framework\CLI\Commands;
+namespace NimblePHP\Framework\CLI\Commands;
 
-use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
-use NimblePHP\framework\Kernel;
+use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\Kernel;
 
 /**
  * Serve development app

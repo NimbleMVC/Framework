@@ -9,6 +9,6 @@ if (isset($GLOBALS['_composer_autoload_path'])) {
     require_once __DIR__ . '/../../../autoload.php';
 }
 
-use NimblePHP\framework\CLI\Console;
+use NimblePHP\Framework\CLI\Console;
 
 Console::run($argv);

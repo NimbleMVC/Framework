@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
 use Throwable;
 

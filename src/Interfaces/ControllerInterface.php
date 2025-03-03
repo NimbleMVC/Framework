@@ -1,10 +1,10 @@
 <?php
 
-namespace NimblePHP\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
-use NimblePHP\framework\Abstracts\AbstractModel;
-use NimblePHP\framework\Exception\NimbleException;
-use NimblePHP\framework\Exception\NotFoundException;
+use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
 
 interface ControllerInterface
 {

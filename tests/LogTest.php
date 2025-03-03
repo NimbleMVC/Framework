@@ -1,6 +1,6 @@
 <?php
 
-use NimblePHP\framework\Log;
+use NimblePHP\Framework\Log;
 use PHPUnit\Framework\TestCase;
 
 class LogTest extends TestCase

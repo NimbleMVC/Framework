@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework\Attributes\Http;
+namespace NimblePHP\Framework\Attributes\Http;
 
 /**
  * Routing

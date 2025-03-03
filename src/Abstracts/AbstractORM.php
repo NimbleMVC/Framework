@@ -1,12 +1,12 @@
 <?php
 
-namespace NimblePHP\framework\Abstracts;
+namespace NimblePHP\Framework\Abstracts;
 
 use Exception;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
-use Nimblephp\framework\Attributes\Database\DataType;
-use Nimblephp\framework\Attributes\Database\DefaultValue;
+use NimblePHP\Framework\Attributes\Database\DataType;
+use NimblePHP\Framework\Attributes\Database\DefaultValue;
 use ReflectionClass;
 use ReflectionProperty;
 

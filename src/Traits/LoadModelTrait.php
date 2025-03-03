@@ -1,15 +1,15 @@
 <?php
 
-namespace NimblePHP\framework\Traits;
+namespace NimblePHP\Framework\Traits;
 
 
 use Krzysztofzylka\Reflection\Reflection;
-use NimblePHP\framework\Abstracts\AbstractController;
-use NimblePHP\framework\Abstracts\AbstractModel;
-use NimblePHP\framework\Exception\NimbleException;
-use NimblePHP\framework\Exception\NotFoundException;
-use NimblePHP\framework\Interfaces\ControllerInterface;
-use NimblePHP\framework\Request;
+use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Request;
 
 trait LoadModelTrait
 {

@@ -1,10 +1,10 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Exception\NimbleException;
-use NimblePHP\framework\Interfaces\RequestInterface;
-use NimblePHP\framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Interfaces\RouteInterface;
 
 /**
  * Route
@@ -209,7 +209,7 @@ class Route implements RouteInterface
             $reflection = new \ReflectionClass($controller);
 
             foreach ($reflection->getMethods() as $method) {
-                foreach ($method->getAttributes(\NimblePHP\framework\Attributes\Http\Route::class) as $attribute) {
+                foreach ($method->getAttributes(\NimblePHP\Framework\Attributes\Http\Route::class) as $attribute) {
                     $route = $attribute->newInstance();
                     self::addRoute($route->path, str_replace('App\Controller\\', '', $controller), $method->name);
                 }

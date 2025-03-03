@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework\CLI\Attributes;
+namespace NimblePHP\Framework\CLI\Attributes;
 
 /**
  * Console command

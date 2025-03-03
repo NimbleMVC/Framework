@@ -1,9 +1,9 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
 use Krzysztofzylka\Arrays\Arrays;
-use NimblePHP\framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Interfaces\RequestInterface;
 
 /**
  * Request

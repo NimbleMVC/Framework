@@ -1,8 +1,8 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
-use NimblePHP\framework\Interfaces\SessionInterface;
+use NimblePHP\Framework\Interfaces\SessionInterface;
 
 class Session implements SessionInterface
 {

@@ -1,13 +1,13 @@
 <?php
 
-namespace NimblePHP\framework\CLI\Commands;
+namespace NimblePHP\Framework\CLI\Commands;
 
 use Krzysztofzylka\Console\Form;
 use Krzysztofzylka\Console\Prints;
 use Krzysztofzylka\File\File;
-use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
-use NimblePHP\framework\CLI\ConsoleHelper;
-use NimblePHP\framework\Kernel;
+use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\Kernel;
 
 
 class Project

@@ -1,6 +1,6 @@
 <?php
 
-namespace NimblePHP\framework;
+namespace NimblePHP\Framework;
 
 use Composer\InstalledVersions;
 
