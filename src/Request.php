@@ -67,11 +67,9 @@ class Request implements RequestInterface
      */
     public function getAllQuery(bool $protect = true): array
     {
-        if ($protect) {
-            return Arrays::htmlSpecialChars($this->query ?? []);
-        }
-
-        return $this->query ?? [];
+        return $protect
+            ? Arrays::htmlSpecialChars($this->query)
+            : $this->query;
     }
 
     /**
@@ -83,21 +81,7 @@ class Request implements RequestInterface
      */
     public function getQuery(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        $data = $this->query[$key] ?? $default;
-
-        if ($protect) {
-            if (is_array($data)) {
-                $data = Arrays::htmlSpecialChars($data);
-            } else {
-                if (is_null($data)) {
-                    return null;
-                }
-
-                $data = htmlspecialchars($data);
-            }
-        }
-
-        return $data;
+        return $this->getValue($this->query, $key, $default, $protect);
     }
 
     /**
@@ -117,11 +101,9 @@ class Request implements RequestInterface
      */
     public function getAllPost(bool $protect = true): array
     {
-        if ($protect) {
-            return Arrays::htmlSpecialChars($this->post ?? []);
-        }
-
-        return $this->post ?? [];
+        return $protect
+            ? Arrays::htmlSpecialChars($this->post)
+            : $this->post;
     }
 
     /**
@@ -133,21 +115,7 @@ class Request implements RequestInterface
      */
     public function getPost(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        $data = $this->post[$key] ?? $default;
-
-        if ($protect) {
-            if (is_array($data)) {
-                $data = Arrays::htmlSpecialChars($data);
-            } else {
-                if (is_null($data)) {
-                    return null;
-                }
-
-                $data = htmlspecialchars($data);
-            }
-        }
-
-        return $data;
+        return $this->getValue($this->post, $key, $default, $protect);
     }
 
     /**
@@ -169,21 +137,7 @@ class Request implements RequestInterface
      */
     public function getCookie(string $key, mixed $default = null, bool $protect = true): mixed
     {
-        $data = $this->cookies[$key] ?? $default;
-
-        if ($protect) {
-            if (is_array($data)) {
-                $data = Arrays::htmlSpecialChars($data);
-            } else {
-                if (is_null($data)) {
-                    return null;
-                }
-
-                $data = htmlspecialchars($data);
-            }
-        }
-
-        return $data;
+        return $this->getValue($this->cookies, $key, $default, $protect);
     }
 
     /**
@@ -222,7 +176,7 @@ class Request implements RequestInterface
      */
     public function getMethod(): string
     {
-        return $this->server['REQUEST_METHOD'];
+        return $this->server['REQUEST_METHOD'] ?? 'GET';
     }
 
     /**
@@ -260,8 +214,9 @@ class Request implements RequestInterface
      */
     public function isAjax(): bool
     {
-        return isset($this->server['HTTP_X_REQUESTED_WITH']) &&
-            strtolower($this->server['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        return isset($this->server['HTTP_X_REQUESTED_WITH'])
+            && strtolower($this->server['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
     }
 
     /**
@@ -283,6 +238,21 @@ class Request implements RequestInterface
         } else {
             return getallheaders();
         }
+    }
+
+    /**
+     * Get data from array
+     * @param array $source
+     * @param string $key
+     * @param mixed|null $default
+     * @param bool $protect
+     * @return mixed
+     */
+    private function getValue(array $source, string $key, mixed $default = null, bool $protect = true): mixed
+    {
+        $data = $source[$key] ?? $default;
+
+        return $protect ? (is_array($data) ? Arrays::htmlSpecialChars($data) : htmlspecialchars($data)) : $data;
     }
 
 }
