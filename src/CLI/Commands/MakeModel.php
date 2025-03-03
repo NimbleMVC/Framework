@@ -4,12 +4,13 @@ namespace NimblePHP\framework\CLI\Commands;
 
 use Krzysztofzylka\Console\Form;
 use Krzysztofzylka\Console\Prints;
+use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\framework\Kernel;
 
 class MakeModel
 {
 
-    public static string $description = 'Create a new model class';
-
+    #[ConsoleCommand('make:model', 'Create a new controller class')]
     public function handle(string $name = ''): void
     {
         if (empty($name)) {
@@ -20,8 +21,9 @@ class MakeModel
             }
         }
 
-        $appPath = getcwd();
-        $path = $appPath . "/App/Model/{$name}.php";
+        $name = ucfirst($name);
+
+        $path = Kernel::$projectPath . "/App/Model/{$name}.php";
 
         if (file_exists($path)) {
             Prints::print(value: "Model already exists.", exit: true, color: 'red');

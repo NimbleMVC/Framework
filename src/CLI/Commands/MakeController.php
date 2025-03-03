@@ -4,6 +4,8 @@ namespace NimblePHP\framework\CLI\Commands;
 
 use Krzysztofzylka\Console\Form;
 use Krzysztofzylka\Console\Prints;
+use NimblePHP\framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\framework\Kernel;
 
 /**
  * Make controller
@@ -11,32 +13,27 @@ use Krzysztofzylka\Console\Prints;
 class MakeController
 {
 
-    public static string $description = "Create a new controller class";
-
-    /**
-     * Make controller
-     * @param string $name
-     * @return void
-     */
+    #[ConsoleCommand('make:controller', 'Create a new controller class')]
     public function handle(string $name = ''): void
     {
         if (empty($name)) {
-            $name = Form::input('Set controller name:');
+            $name = Form::input('Controller name: ');
+
+            if (empty($name)) {
+                Prints::print(value: "No controller name specified.", exit: true, color: 'red');
+            }
         }
 
-        if (empty($name)) {
-            Prints::print(value: 'Controller name cannot be empty!', exit: true, color: 'red');
-        }
+        $name = ucfirst($name);
 
-        $appPath = getcwd();
-        $controllerPath = $appPath . "/App/Controller/{$name}.php";
+        $controllerPath = Kernel::$projectPath . "/App/Controller/{$name}Controller.php";
 
         if (file_exists($controllerPath)) {
             Prints::print(value: "Controller {$controllerPath} exists", exit: true, color: 'red');
         }
 
         file_put_contents($controllerPath, $this->template($name));
-        Prints::print(value: "Controller {$name} created in: {$controllerPath}", exit: true, color: 'green');
+        Prints::print(value: "Controller {$name} created in: {$controllerPath}", color: 'green');
     }
 
     /**
@@ -46,6 +43,8 @@ class MakeController
      */
     public function template(string $name): string
     {
+        $routeName = lcfirst($name);
+
         return <<<PHP
 <?php
 
@@ -54,10 +53,10 @@ namespace App\Controller;
 use NimblePHP\\framework\Abstracts\AbstractController;
 use NimblePHP\\framework\Attributes\Http\Route;
 
-class {$name} extends AbstractController
+class {$name}Controller extends AbstractController
 {
 
-    #[Route('/$name')]
+    #[Route('/{$routeName}/index')]
     public function index(): void
     {
         echo "Hello in {$name} controller!";
