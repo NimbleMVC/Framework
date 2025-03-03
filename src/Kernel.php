@@ -72,6 +72,12 @@ class Kernel implements KernelInterface
         $this->response = new Response();
 
         $this->loadConfiguration();
+
+        if ($_ENV['DEBUG']) {
+            $whoops = new \Whoops\Run;
+            $whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler);
+            $whoops->register();
+        }
     }
 
     /**

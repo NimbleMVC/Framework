@@ -23,7 +23,8 @@
         "krzysztofzylka/file": "^1.0.5",
         "krzysztofzylka/env": "^2.0.2",
         "krzysztofzylka/reflection": "^1.0.2",
-        "krzysztofzylka/console": "^1.0.5"
+        "krzysztofzylka/console": "^1.0.5",
+        "filp/whoops": "^2.17"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5.3"
