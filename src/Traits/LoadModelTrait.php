@@ -17,14 +17,19 @@ trait LoadModelTrait
 
     /**
      * Load model
-     * @param string $name
-     * @return AbstractModel
+     * @template T
+     * @param class-string<T> $name
+     * @return T
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public function loadModel(string $name): AbstractModel
+    public function loadModel(string $name): object
     {
-        $class = '\App\Model\\' . $name;
+        if (str_starts_with($name, 'App\Model')) {
+            $class = '\\' . $name;
+        } else {
+            $class = '\App\Model\\' . $name;
+        }
 
         if (!class_exists($class)) {
             throw new NotFoundException('Not found model ' . $name);
