@@ -88,7 +88,7 @@ try {
     \$kernel->handle();
 } catch (\\Throwable \$throwable) {
     if (\$_ENV['DEBUG']) {
-        throw $throwable;
+        throw \$throwable;
     } else {
         echo 'Error';
     }
@@ -111,7 +111,6 @@ HTACCESS;
     }
 
     /**
-     * @param string $path
      * @return string
      */
     private function gitignoreTemplate(): string
@@ -123,7 +122,6 @@ storage/session/*
     }
 
     /**
-     * @param string $path
      * @return string
      */
     private function envlocalTemplate(): string
