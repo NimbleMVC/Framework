@@ -78,7 +78,7 @@ class Log
         try {
             $return = self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
 
-            if (Kernel::$middleware) {
+            if (isset(Kernel::$middleware)) {
                 Kernel::$middleware->afterLog($logContent);
             }
 
