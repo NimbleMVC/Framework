@@ -52,6 +52,7 @@ class Route implements RouteInterface
     public static function addRoute(string $name, ?string $controller = null, ?string $method = null): void
     {
         self::$routes[$name] = [
+            'route' => $name,
             'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
             'method' => $method ?? $_ENV['DEFAULT_METHOD']
         ];
@@ -110,7 +111,7 @@ class Route implements RouteInterface
      */
     public function getController(): string
     {
-        return $this->controller ?? $_ENV['DEFAULT_CONTROLLER'];
+        return $this->controller ?? ($_ENV['DEFAULT_CONTROLLER'] . 'Controller');
     }
 
     /**
