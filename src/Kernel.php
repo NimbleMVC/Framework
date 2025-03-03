@@ -74,8 +74,14 @@ class Kernel implements KernelInterface
         $this->loadConfiguration();
 
         if ($_ENV['DEBUG']) {
+            $handler = new \Whoops\Handler\PrettyPageHandler();
+            $handler->setPageTitle('Nimble Exception');
+            $handler->addDataTable('Kernel', [
+                'projectPath' => self::$projectPath
+            ]);
             $whoops = new \Whoops\Run;
-            $whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler);
+            $whoops->allowQuit(false);
+            $whoops->pushHandler($handler);
             $whoops->register();
         }
     }
