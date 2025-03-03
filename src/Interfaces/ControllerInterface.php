@@ -11,12 +11,13 @@ interface ControllerInterface
 
     /**
      * Load model
-     * @param string $name
-     * @return AbstractModel
+     * @template T
+     * @param class-string<T> $name
+     * @return T
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public function loadModel(string $name): AbstractModel;
+    public function loadModel(string $name): object;
 
     /**
      * Create log
