@@ -6,7 +6,6 @@ namespace NimblePHP\framework\Traits;
 use Krzysztofzylka\Reflection\Reflection;
 use NimblePHP\framework\Abstracts\AbstractController;
 use NimblePHP\framework\Abstracts\AbstractModel;
-use NimblePHP\framework\Attributes\DependencyInjection\Inject;
 use NimblePHP\framework\Exception\NimbleException;
 use NimblePHP\framework\Exception\NotFoundException;
 use NimblePHP\framework\Interfaces\ControllerInterface;
@@ -55,15 +54,6 @@ trait LoadModelTrait
             $controller->action = '';
             $controller->request = new Request();
             $model->controller = &$controller;
-        }
-
-        $reflection = new \ReflectionClass($model);
-
-        foreach ($reflection->getProperties() as $property) {
-            foreach ($property->getAttributes(Inject::class) as $attribute) {
-                $inject = $attribute->newInstance();
-                $inject->handle($model);
-            }
         }
 
         $model->afterConstruct();
