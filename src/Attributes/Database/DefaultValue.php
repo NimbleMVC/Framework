@@ -2,7 +2,7 @@
 
 namespace NimblePHP\Framework\Attributes\Database;
 
-#[\Attribute]
+#[\Attribute(\Attribute::TARGET_PROPERTY)]
 class DefaultValue
 {
 

@@ -9,7 +9,7 @@ use NimblePHP\Framework\Request;
 /**
  * Set action definition
  */
-#[\Attribute]
+#[\Attribute(\Attribute::TARGET_METHOD)]
 class Action
 {
 

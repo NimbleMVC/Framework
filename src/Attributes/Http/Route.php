@@ -5,7 +5,7 @@ namespace NimblePHP\Framework\Attributes\Http;
 /**
  * Routing
  */
-#[\Attribute]
+#[\Attribute(\Attribute::TARGET_METHOD)]
 class Route
 {
 
