@@ -6,6 +6,7 @@ namespace NimblePHP\Framework\Traits;
 use Krzysztofzylka\Reflection\Reflection;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\DependencyInjector;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
@@ -56,6 +57,7 @@ trait LoadModelTrait
             $model->controller = &$controller;
         }
 
+        DependencyInjector::inject($model);
         $model->afterConstruct();
 
         return $model;

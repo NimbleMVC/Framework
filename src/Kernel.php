@@ -13,6 +13,7 @@ use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\MiddlewareInterface;
@@ -262,8 +263,6 @@ class Kernel implements KernelInterface
 
     /**
      * Load controller
-     * @return void
-     * @throws NotFoundException
      */
     protected function loadController(): void
     {
@@ -304,6 +303,8 @@ class Kernel implements KernelInterface
                 $instance->handle($controller, $methodName, $params);
             }
         }
+
+        DependencyInjector::inject($controller);
 
         $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
