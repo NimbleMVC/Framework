@@ -22,12 +22,13 @@ Na samym początku należy zaimportować repozytorium composer
 composer require nimblephp/framework
 ```
 Następnie należy utworzyć folder public a w nim plik index.php o treści:
+
 ```php
 <?php
 
 require('../vendor/autoload.php');
 
-$route = new \NimblePHP\Framework\Route(new \NimblePHP\Framework\Request());
+$route = new \NimblePHP\Framework\Routes\Route(new \NimblePHP\Framework\Request());
 $kernel = new \NimblePHP\Framework\Kernel($route);
 $kernel->handle();
 ```

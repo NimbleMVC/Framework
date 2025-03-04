@@ -5,16 +5,6 @@ namespace NimblePHP\Framework\CLI;
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
-use NimblePHP\Framework\CLI\Commands\ClearCache;
-use NimblePHP\Framework\CLI\Commands\ConfigShow;
-use NimblePHP\Framework\CLI\Commands\LogsClear;
-use NimblePHP\Framework\CLI\Commands\MakeController;
-use NimblePHP\Framework\CLI\Commands\MakeModel;
-use NimblePHP\Framework\CLI\Commands\ProjectInit;
-use NimblePHP\Framework\CLI\Commands\ProjectStructure;
-use NimblePHP\Framework\CLI\Commands\RoutesGenerate;
-use NimblePHP\Framework\CLI\Commands\RoutesList;
-use NimblePHP\Framework\CLI\Commands\Serve;
 
 class Console
 {

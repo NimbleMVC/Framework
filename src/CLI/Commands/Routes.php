@@ -4,16 +4,22 @@ namespace NimblePHP\Framework\CLI\Commands;
 
 use Krzysztofzylka\Console\Generator\Table;
 use Krzysztofzylka\Console\Prints;
-use Krzysztofzylka\Env\Env;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Route;
-use NimblePHP\Framework\Storage;
+use NimblePHP\Framework\Routes\Route;
+use Throwable;
 
 class Routes
 {
 
+    /**
+     * @return void
+     * @throws DatabaseException
+     * @throws Throwable
+     */
     #[ConsoleCommand('routes:list', 'List routes')]
     public function routesList(): void
     {
@@ -27,6 +33,12 @@ class Routes
         $table->render();
     }
 
+    /**
+     * @return void
+     * @throws DatabaseException
+     * @throws Throwable
+     * @throws NimbleException
+     */
     #[ConsoleCommand('routes:generate', 'Generate routes')]
     public function routesGenerate(): void
     {

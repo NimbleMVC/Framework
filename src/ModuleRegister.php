@@ -86,7 +86,7 @@ class ModuleRegister
 
             $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'NimblePHP'], $package);
 
-            if ($namespace === '\\NimblePHP\\framework') {
+            if ($namespace === '\\NimblePHP\\Framework') {
                 continue;
             }
 

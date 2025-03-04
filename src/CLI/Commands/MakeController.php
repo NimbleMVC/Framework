@@ -26,7 +26,7 @@ class MakeController
 
         $name = ucfirst($name);
 
-        $controllerPath = Kernel::$projectPath . "/App/Controller/{$name}Controller.php";
+        $controllerPath = Kernel::$projectPath . "/App/Controller/{$name}.php";
 
         if (file_exists($controllerPath)) {
             Prints::print(value: "Controller {$controllerPath} exists", exit: true, color: 'red');
@@ -43,17 +43,21 @@ class MakeController
      */
     public function template(string $name): string
     {
-        $routeName = lcfirst($name);
+        $routeName = $name;
+
+        if ($routeName === 'Index') {
+            $routeName = 'index';
+        }
 
         return <<<PHP
 <?php
 
 namespace App\Controller;
 
-use NimblePHP\\framework\Abstracts\AbstractController;
-use NimblePHP\\framework\Attributes\Http\Route;
+use NimblePHP\\Framework\Abstracts\AbstractController;
+use NimblePHP\\Framework\Attributes\Http\Route;
 
-class {$name}Controller extends AbstractController
+class {$name} extends AbstractController
 {
 
     #[Route('/{$routeName}/index')]

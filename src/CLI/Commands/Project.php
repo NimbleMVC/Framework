@@ -71,8 +71,12 @@ class Project
     {
         $vendorPath = '../';
 
-        if ($path !== '.') {
-            $vendorPath .= str_repeat('../', count(explode($path, '/')));
+        for ($x=0; $x<=10; $x++) {
+            if (file_exists(getcwd() . '/public/' . $vendorPath . 'vendor/autoload.php')) {
+                break;
+            } else {
+                $vendorPath .= '../';
+            }
         }
 
         $vendorPath .= 'vendor/autoload.php';
@@ -83,8 +87,8 @@ class Project
 require('{$vendorPath}');
 
 try {
-    \$route = new \NimblePHP\\framework\Route(new \NimblePHP\\framework\Request());
-    \$kernel = new \NimblePHP\\framework\Kernel(\$route);
+    \$route = new \NimblePHP\\Framework\Routes\Route(new \NimblePHP\\Framework\Request());
+    \$kernel = new \NimblePHP\\Framework\Kernel(\$route);
     \$kernel->handle();
 } catch (\\Throwable \$throwable) {
     if (\$_ENV['DEBUG']) {
@@ -97,7 +101,6 @@ PHP;
     }
 
     /**
-     * @param string $path
      * @return string
      */
     private function htaccessTemplate(): string

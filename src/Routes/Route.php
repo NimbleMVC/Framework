@@ -1,10 +1,12 @@
 <?php
 
-namespace NimblePHP\Framework;
+namespace NimblePHP\Framework\Routes;
 
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Request;
+use NimblePHP\Framework\Storage;
 
 /**
  * Route
@@ -111,7 +113,7 @@ class Route implements RouteInterface
      */
     public function getController(): string
     {
-        return $this->controller ?? ($_ENV['DEFAULT_CONTROLLER'] . 'Controller');
+        return $this->controller ?? ($_ENV['DEFAULT_CONTROLLER']);
     }
 
     /**

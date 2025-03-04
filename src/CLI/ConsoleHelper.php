@@ -3,9 +3,11 @@
 namespace NimblePHP\Framework\CLI;
 
 use Krzysztofzylka\Env\Env;
+use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Request;
-use NimblePHP\Framework\Route;
+use NimblePHP\Framework\Routes\Route;
+use Throwable;
 
 class ConsoleHelper
 {
@@ -62,8 +64,8 @@ class ConsoleHelper
     /**
      * Init kernel
      * @return Kernel
-     * @throws \NimblePHP\Framework\Exception\DatabaseException
-     * @throws \Throwable
+     * @throws DatabaseException
+     * @throws Throwable
      */
     public static function initKernel(): Kernel
     {
