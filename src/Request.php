@@ -250,7 +250,11 @@ class Request implements RequestInterface
      */
     private function getValue(array $source, string $key, mixed $default = null, bool $protect = true): mixed
     {
-        $data = $source[$key] ?? $default;
+        $data = $source[$key];
+
+        if (!isset($source[$key])) {
+            return $default;
+        }
 
         return $protect ? (is_array($data) ? Arrays::htmlSpecialChars($data) : htmlspecialchars($data)) : $data;
     }
