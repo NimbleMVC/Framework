@@ -42,7 +42,7 @@ trait LoadModelTrait
             throw new NimbleException('Failed load model');
         }
 
-        $model->name = $name;
+        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $name);
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
