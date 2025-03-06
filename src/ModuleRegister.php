@@ -84,7 +84,11 @@ class ModuleRegister
                 continue;
             }
 
-            $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'NimblePHP'], $package);
+            $namespace = '\\' . str_replace(
+                    ['Nimblephp'],
+                    ['NimblePHP'],
+                    implode('\\', array_map('ucfirst', explode('/', $package)))
+                );
 
             if ($namespace === '\\NimblePHP\\Framework') {
                 continue;
