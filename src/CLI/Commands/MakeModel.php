@@ -35,7 +35,7 @@ class MakeModel
 
 namespace App\Model;
 
-use NimblePHP\\framework\Abstracts\AbstractModel;
+use NimblePHP\\Framework\Abstracts\AbstractModel;
 
 class {$name} extends AbstractModel {
 }
