@@ -304,12 +304,11 @@ class Kernel implements KernelInterface
             }
         }
 
-        DependencyInjector::inject($controller);
-
         $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $controller->request = new Request();
         $controller->afterConstruct();
+        DependencyInjector::inject($controller);
 
         call_user_func_array([$controller, $methodName], $params);
 

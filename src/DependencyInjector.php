@@ -18,6 +18,11 @@ class DependencyInjector
     use LoadModelTrait;
 
     /**
+     * @var ControllerInterface
+     */
+    public ControllerInterface $controller;
+
+    /**
      * Inject
      * @param object $object
      * @return void
@@ -34,13 +39,15 @@ class DependencyInjector
                 $attribute = $attributes[0]->newInstance();
 
                 if (str_starts_with($attribute->className, 'App\Model')) {
-                    $instance = (new self())->loadModel($attribute->className);
+                    $dependencyInjector = new self();
 
                     if ($object instanceof ControllerInterface) {
-                        $instance->controller = $object;
+                        $dependencyInjector->controller = $object;
                     } elseif ($object instanceof ModelInterface || property_exists($object, 'controller')) {
-                        $instance->controller = $object->controller;
+                        $dependencyInjector->controller = $object->controller;
                     }
+
+                    $instance = $dependencyInjector->loadModel($attribute->className);
                 } else {
                     $instance = new $attribute->className();
                 }
