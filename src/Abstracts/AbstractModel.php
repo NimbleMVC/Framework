@@ -233,9 +233,9 @@ abstract class AbstractModel implements ModelInterface
     /**
      * Set element id
      * @param int|null $id
-     * @return ModelInterface
+     * @return self
      */
-    public function setId(?int $id = null): ModelInterface
+    public function setId(?int $id = null): self
     {
         $this->table->setId($id);
         $this->id = $id;
