@@ -174,7 +174,7 @@ class Route implements RouteInterface
         }
 
         if (isset($url[1])) {
-            $routeName .= '/' . $url[1];
+            $routeName .= '/' . strtok($url[1], '?');
         }
 
         if ($routeName === '/') {
