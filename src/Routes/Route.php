@@ -231,12 +231,17 @@ class Route implements RouteInterface
      */
     private static function getAllControllers(string $directory, string $namespace): array {
         $controllers = [];
-        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
+        );
 
-        foreach ($files as $file) {
+        /** @var \SplFileInfo $file */
+        foreach ($iterator as $file) {
             if ($file->isFile() && $file->getExtension() === 'php') {
-                $className = $namespace . '\\' . $file->getBasename('.php');
-                $controllers[] = str_replace('/', '\\', $className);
+                $relativePath = str_replace($directory, '', $file->getPathname());
+                $className = $namespace . '\\' . trim(str_replace(['/', '\\'], '\\', $relativePath), '\\');
+                $className = preg_replace('/\.php$/', '', $className);
+                $controllers[] = $className;
             }
         }
 
