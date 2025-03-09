@@ -270,17 +270,29 @@ class Kernel implements KernelInterface
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
 
-        if (!$this->router->validate()) {
-            throw new NotFoundException('Route /' . $controllerName  . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
-        }
-
         $params = $this->router->getParams();
 
         if (isset(self::$middleware)) {
             self::$middleware->beforeController($controllerName, $methodName, $params);
+
+            if ($controllerName !== $this->router->getController()) {
+                $this->router->setController($controllerName);
+            }
+
+            if ($methodName !== $this->router->getMethod()) {
+                $this->router->setMethod($methodName);
+            }
+
+            if ($params !== $this->router->getParams()) {
+                $this->router->setParams($params);
+            }
         }
 
-        $controllerClass = '\App\Controller\\' . $controllerName;
+        if (!$this->router->validate()) {
+            throw new NotFoundException('Route /' . $controllerName  . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
+        }
+
+        $controllerClass = str_replace('/', '\\', ('\App\Controller\\' . $controllerName));
 
         if (!class_exists($controllerClass)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');

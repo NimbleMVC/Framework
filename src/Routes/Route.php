@@ -164,24 +164,24 @@ class Route implements RouteInterface
         $this->params = $params;
     }
 
+    /**
+     * Validate route
+     * @return bool
+     */
     public function validate(): bool
     {
-        $url = explode('/', ltrim((new Request())->getUri(), '/'), 3);
-        $routeName = '/';
+        $find = array_key_exists('/' . $this->getController() . '/' . $this->getMethod(), self::$routes);
 
-        if (isset($url[0])) {
-            $routeName .= $url[0];
+        if (!$find) {
+            return false;
         }
 
-        if (isset($url[1])) {
-            $routeName .= '/' . strtok($url[1], '?');
-        }
+        $route = self::$routes['/' . $this->getController() . '/' . $this->getMethod()];
 
-        if ($routeName === '/') {
-            $routeName .= $_ENV['DEFAULT_CONTROLLER'] . '/' . $_ENV['DEFAULT_METHOD'];
-        }
+        $this->setController($route['controller']);
+        $this->setMethod($route['method']);
 
-        return array_key_exists($routeName, self::$routes);
+        return true;
     }
 
     /**
