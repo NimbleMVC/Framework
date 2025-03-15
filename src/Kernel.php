@@ -61,6 +61,8 @@ class Kernel implements KernelInterface
     /**
      * Constructor
      * @param RouteInterface $router
+     * @param RequestInterface|null $request
+     * @param ResponseInterface|null $response
      * @throws Exception
      */
     public function __construct(RouteInterface $router, RequestInterface $request = null, ResponseInterface $response = null)
