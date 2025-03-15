@@ -13,7 +13,6 @@ use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
-use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\MiddlewareInterface;
@@ -64,13 +63,13 @@ class Kernel implements KernelInterface
      * @param RouteInterface $router
      * @throws Exception
      */
-    public function __construct(RouteInterface $router)
+    public function __construct(RouteInterface $router, RequestInterface $request = null, ResponseInterface $response = null)
     {
         self::$projectPath = $this->getProjectPath();
 
         $this->router = $router;
-        $this->request = new Request();
-        $this->response = new Response();
+        $this->request = $request ?? new Request();
+        $this->response = $response ?? new Response();
 
         $this->loadConfiguration();
 
