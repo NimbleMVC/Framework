@@ -339,7 +339,6 @@ abstract class AbstractModel implements ModelInterface
      * @param string $level
      * @param array $content
      * @return bool
-     * @throws Exception
      */
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {

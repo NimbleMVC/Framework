@@ -41,7 +41,6 @@ abstract class AbstractController implements ControllerInterface
      * @param string $level
      * @param array $content
      * @return bool
-     * @throws Exception
      */
     #[Action("disabled")]
     public function log(string $message, string $level = 'INFO', array $content = []): bool
