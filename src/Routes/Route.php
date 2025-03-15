@@ -3,6 +3,7 @@
 namespace NimblePHP\Framework\Routes;
 
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Request;
@@ -95,11 +96,12 @@ class Route implements RouteInterface
     /**
      * Reload routing
      * @return void
+     * @throws NotFoundException
      */
     public function reload(): void
     {
         if (!array_key_exists('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : ''), self::$routes)) {
-            return;
+            throw new NotFoundException('Route ' . ('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')) . ' not found');
         }
 
         $route = self::$routes['/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')];
@@ -170,17 +172,6 @@ class Route implements RouteInterface
      */
     public function validate(): bool
     {
-        $find = array_key_exists('/' . $this->getController() . '/' . $this->getMethod(), self::$routes);
-
-        if (!$find) {
-            return false;
-        }
-
-        $route = self::$routes['/' . $this->getController() . '/' . $this->getMethod()];
-
-        $this->setController($route['controller']);
-        $this->setMethod($route['method']);
-
         return true;
     }
 
