@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\Framework;
 
 use DateTime;
 use Exception;
@@ -44,7 +44,6 @@ class Log
      * @param string $level Log level, default INFO
      * @param array $content Additional content
      * @return bool
-     * @throws Exception
      */
     public static function log(string $message, string $level = 'INFO', array $content = []): bool
     {
@@ -52,33 +51,33 @@ class Log
             return false;
         }
 
-        self::init();
-
-        $backtrace = self::getBacktrace();
-
-        $logContent = [
-            'datetime' => self::getDatetime(),
-            'message' => $message,
-            'level' => $level,
-            'content' => $content,
-            'file' => $backtrace['file'] ?? null,
-            'class' => $backtrace['class'] ?? null,
-            'function' => $backtrace['function'] ?? null,
-            'line' => $backtrace['line'] ?? null,
-            'get' => $_GET,
-            'session' => self::$session
-        ];
-
-        $jsonLogData = json_encode($logContent);
-
-        if (empty(trim($jsonLogData))) {
-            return false;
-        }
-
         try {
+            self::init();
+
+            $backtrace = self::getBacktrace();
+
+            $logContent = [
+                'datetime' => self::getDatetime(),
+                'message' => $message,
+                'level' => $level,
+                'content' => $content,
+                'file' => $backtrace['file'] ?? null,
+                'class' => $backtrace['class'] ?? null,
+                'function' => $backtrace['function'] ?? null,
+                'line' => $backtrace['line'] ?? null,
+                'get' => $_GET,
+                'session' => self::$session
+            ];
+
+            $jsonLogData = json_encode($logContent);
+
+            if (empty(trim($jsonLogData))) {
+                return false;
+            }
+
             $return = self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
 
-            if (Kernel::$middleware) {
+            if (isset(Kernel::$middleware)) {
                 Kernel::$middleware->afterLog($logContent);
             }
 

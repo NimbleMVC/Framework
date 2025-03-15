@@ -1,18 +1,18 @@
 <?php
 
-namespace Nimblephp\framework\Abstracts;
+namespace NimblePHP\Framework\Abstracts;
 
 use Exception;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
-use Nimblephp\framework\Exception\DatabaseException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\ModelInterface;
-use Nimblephp\framework\Log;
-use Nimblephp\framework\Traits\LoadModelTrait;
+use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Interfaces\ModelInterface;
+use NimblePHP\Framework\Log;
+use NimblePHP\Framework\Traits\LoadModelTrait;
 
 /**
  * Abstract model
@@ -138,6 +138,7 @@ abstract class AbstractModel implements ModelInterface
      * @param string|null $orderBy
      * @return array
      * @throws DatabaseException
+     * @throws NotFoundException
      */
     public function readSecure(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
@@ -232,9 +233,9 @@ abstract class AbstractModel implements ModelInterface
     /**
      * Set element id
      * @param int|null $id
-     * @return ModelInterface
+     * @return self
      */
-    public function setId(?int $id = null): ModelInterface
+    public function setId(?int $id = null): self
     {
         $this->table->setId($id);
         $this->id = $id;
@@ -338,7 +339,6 @@ abstract class AbstractModel implements ModelInterface
      * @param string $level
      * @param array $content
      * @return bool
-     * @throws Exception
      */
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
@@ -405,24 +405,6 @@ abstract class AbstractModel implements ModelInterface
         $this->conditions = [];
 
         return $this;
-    }
-
-    /**
-     * Magic get method
-     * @param string $name
-     * @return mixed
-     * @throws Exception
-     */
-    public function __get(string $name)
-    {
-        $loadModel = $this->__getModel($name);
-
-        if (!is_null($loadModel)) {
-            return $loadModel;
-        }
-
-        $className = $this::class;
-        throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
     /**

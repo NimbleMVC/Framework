@@ -1,14 +1,14 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\Framework\Routes;
 
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Interfaces\RouteInterface;
 
 /**
  * Route
  */
-class Route implements RouteInterface
+class SimpleRoute implements RouteInterface
 {
 
     /**
@@ -151,6 +151,15 @@ class Route implements RouteInterface
     public function setParams(array $params): void
     {
         $this->params = $params;
+    }
+
+    /**
+     * Route validate
+     * @return bool
+     */
+    public function validate(): bool
+    {
+        return true;
     }
 
 }

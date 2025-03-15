@@ -22,13 +22,14 @@ Na samym początku należy zaimportować repozytorium composer
 composer require nimblephp/framework
 ```
 Następnie należy utworzyć folder public a w nim plik index.php o treści:
+
 ```php
 <?php
 
 require('../vendor/autoload.php');
 
-$route = new \Nimblephp\framework\Route(new \Nimblephp\framework\Request());
-$kernel = new \Nimblephp\framework\Kernel($route);
+$route = new \NimblePHP\Framework\Routes\Route(new \NimblePHP\Framework\Request());
+$kernel = new \NimblePHP\Framework\Kernel($route);
 $kernel->handle();
 ```
 oraz plik .htaccess z zawartością:
@@ -39,6 +40,16 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 ```
 Teraz należy uruchomić plik index.php, pierwsze uruchomienie spowoduje utworzenie folderów wymaganych przez projekt
+
+## CLI
+### Czyszczenie cache
+```shell
+php vendor/bin/nimble cache:clear
+```
+### Uruchamianie wersji developerskiej aplikacji
+```shell
+php vendor/bin/nimble serve <host:127.0.0.1> <port:8080>
+```
 
 ## Współtworzenie
 Zachęcamy do współtworzenia! Masz sugestie, znalazłeś błędy, chcesz pomóc w rozwoju? Otwórz issue lub prześlij pull request.

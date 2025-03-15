@@ -1,22 +1,23 @@
 <?php
 
-namespace Nimblephp\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
-use Nimblephp\framework\Abstracts\AbstractModel;
-use Nimblephp\framework\Exception\NimbleException;
-use Nimblephp\framework\Exception\NotFoundException;
+use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
 
 interface ControllerInterface
 {
 
     /**
      * Load model
-     * @param string $name
-     * @return AbstractModel
+     * @template T
+     * @param class-string<T> $name
+     * @return T
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public function loadModel(string $name): AbstractModel;
+    public function loadModel(string $name): object;
 
     /**
      * Create log

@@ -1,15 +1,13 @@
 <?php
 
-namespace Nimblephp\framework\Abstracts;
+namespace NimblePHP\Framework\Abstracts;
 
 use Exception;
-use Krzysztofzylka\Generator\Generator;
-use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\ResponseInterface;
-use Nimblephp\framework\Log;
-use Nimblephp\framework\Traits\LoadModelTrait;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Log;
+use NimblePHP\Framework\Traits\LoadModelTrait;
+use NimblePHP\Framework\Attributes\Http\Action;
 
 /**
  * Abstract controller
@@ -32,12 +30,6 @@ abstract class AbstractController implements ControllerInterface
     public string $action;
 
     /**
-     * Response instance
-     * @var ResponseInterface
-     */
-    public ResponseInterface $response;
-
-    /**
      * Request instance
      * @var RequestInterface
      */
@@ -49,9 +41,8 @@ abstract class AbstractController implements ControllerInterface
      * @param string $level
      * @param array $content
      * @return bool
-     * @throws Exception
-     * @action disabled
      */
+    #[Action("disabled")]
     public function log(string $message, string $level = 'INFO', array $content = []): bool
     {
         return Log::log($message, $level, $content);
@@ -60,30 +51,10 @@ abstract class AbstractController implements ControllerInterface
     /**
      * After construct method
      * @return void
-     * @action disabled
      */
+    #[Action("disabled")]
     public function afterConstruct(): void
     {
-    }
-
-    /**
-     * Magic get method
-     * @param string $name
-     * @return mixed
-     * @throws Exception
-     * @action disabled
-     */
-    public function __get(string $name)
-    {
-        $loadModel = $this->__getModel($name);
-
-        if (!is_null($loadModel)) {
-            return $loadModel;
-        }
-
-        $className = $this::class;
-
-        throw new Exception("Undefined property: {$className}::{$name}", 2);
     }
 
 }

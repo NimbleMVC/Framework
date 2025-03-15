@@ -1,10 +1,9 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\Framework;
 
-use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\ViewInterface;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ViewInterface;
 
 /**
  * View
@@ -16,7 +15,7 @@ class View implements ViewInterface
      * View path
      * @var string
      */
-    protected string $viewPath = '/src/View/';
+    protected string $viewPath = '/App/View/';
 
     /**
      * Response code
@@ -51,13 +50,6 @@ class View implements ViewInterface
      */
     public function render(string $viewName, array $data = []): void
     {
-        if (Kernel::$activeDebugbar) {
-            try {
-                $debugbarUid = Debugbar::uuid();
-                Debugbar::startTime($debugbarUid, 'Load view ' . $viewName);
-            } catch (\Throwable) {}
-        }
-
         extract($data);
         $filePath = $this->viewPath . $viewName . '.phtml';
 
@@ -73,12 +65,6 @@ class View implements ViewInterface
         $response->setContent($content);
         $response->setStatusCode($this->responseCode);
         $response->send();
-
-        if (Kernel::$activeDebugbar) {
-            try {
-                Debugbar::stopTime($debugbarUid);
-            } catch (\Throwable) {}
-        }
     }
 
 }

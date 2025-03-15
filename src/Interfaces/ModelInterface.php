@@ -1,9 +1,9 @@
 <?php
 
-namespace Nimblephp\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
 use krzysztofzylka\DatabaseManager\Table;
-use Nimblephp\framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\DatabaseException;
 
 /**
  * Model interface

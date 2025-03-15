@@ -1,9 +1,8 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\Framework;
 
 use Composer\InstalledVersions;
-use Nimblephp\debugbar\Debugbar;
 
 /**
  * Module register
@@ -74,10 +73,6 @@ class ModuleRegister
      */
     public function autoRegister(): void
     {
-        if (class_exists('Debugbar', false)) {
-            Debugbar::startTime('module_auto_register', 'Module auto register');
-        }
-
         $packages = InstalledVersions::getInstalledPackages();
 
         foreach ($packages as $package) {
@@ -89,16 +84,14 @@ class ModuleRegister
                 continue;
             }
 
-            $namespace = '\\' . str_replace(['/', 'nimblephp'], ['\\', 'Nimblephp'], $package);
+            $namespace = '\\' . str_replace(
+                    ['Nimblephp'],
+                    ['NimblePHP'],
+                    implode('\\', array_map('ucfirst', explode('/', $package)))
+                );
 
-            if ($namespace === '\\Nimblephp\\framework') {
+            if ($namespace === '\\NimblePHP\\Framework') {
                 continue;
-            }
-
-            $name = str_replace('\\Nimblephp\\', '', $namespace);
-
-            if (class_exists('Debugbar', false)) {
-                Debugbar::startTime('register_module_' . $namespace, 'Register module ' . $name);
             }
 
             $path = InstalledVersions::getInstallPath($package);
@@ -122,14 +115,6 @@ class ModuleRegister
                 namespace: $namespace,
                 classes: $classes
             );
-
-            if (class_exists('Debugbar', false)) {
-                Debugbar::stopTime('register_module_' . $namespace);
-            }
-        }
-
-        if (class_exists('Debugbar', false)) {
-            Debugbar::stopTime('module_auto_register');
         }
     }
 

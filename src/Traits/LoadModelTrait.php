@@ -1,46 +1,35 @@
 <?php
 
-namespace Nimblephp\framework\Traits;
+namespace NimblePHP\Framework\Traits;
 
 
 use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Abstracts\AbstractController;
-use Nimblephp\framework\Abstracts\AbstractModel;
-use Nimblephp\framework\Exception\NimbleException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\ControllerInterface;
-use Nimblephp\framework\Interfaces\ModelInterface;
-use Nimblephp\framework\Kernel;
-use Nimblephp\framework\Request;
-use Nimblephp\framework\Response;
+use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\DependencyInjector;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Request;
 
 trait LoadModelTrait
 {
 
     /**
-     * Models list
-     * @var array
-     */
-    public array $models = [];
-
-    /**
      * Load model
-     * @param string $name
-     * @return AbstractModel
+     * @template T
+     * @param class-string<T> $name
+     * @return T
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public function loadModel(string $name): AbstractModel
+    public function loadModel(string $name): object
     {
-        if (Kernel::$activeDebugbar) {
-            try {
-                $debugbarUid = Debugbar::uuid();
-                Debugbar::startTime($debugbarUid, 'Load model ' . $name);
-            } catch (\Throwable) {}
+        if (str_starts_with($name, 'App\Model')) {
+            $class = '\\' . $name;
+        } else {
+            $class = '\App\Model\\' . $name;
         }
-
-        $class = '\src\Model\\' . $name;
 
         if (!class_exists($class)) {
             throw new NotFoundException('Not found model ' . $name);
@@ -53,52 +42,25 @@ trait LoadModelTrait
             throw new NimbleException('Failed load model');
         }
 
-        $model->name = $name;
+        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $name);
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
-            $model->controller = $this;
+            $model->controller = &$this;
         } elseif (Reflection::classHasProperty($this, 'controller')) {
-            $model->controller = $this->controller;
+            $model->controller = &$this->controller;
         } else {
             $controller = new class extends AbstractController {};
             $controller->name = '';
             $controller->action = '';
             $controller->request = new Request();
-            $controller->response = new Response();
-            $model->controller = $controller;
+            $model->controller = &$controller;
         }
 
-        $modelPropertyName = implode('', array_map('ucfirst', explode('_', $name)));
-
-        if (property_exists($this, $modelPropertyName)) {
-            $this->{$modelPropertyName} = $model;
-        }
-
-        $this->models[$modelPropertyName] = $model;
+        DependencyInjector::inject($model);
         $model->afterConstruct();
 
-        if (Kernel::$activeDebugbar) {
-            try {
-                Debugbar::stopTime($debugbarUid);
-            } catch (\Throwable) {}
-        }
-
         return $model;
-    }
-
-    /**
-     * Get model helper
-     * @param string $name
-     * @return mixed|null
-     */
-    public function __getModel(string $name): ?ModelInterface
-    {
-        if (in_array($name, array_keys($this->models))) {
-            return $this->models[$name];
-        }
-
-        return null;
     }
 
 }

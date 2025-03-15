@@ -1,8 +1,7 @@
 <?php
 
-namespace Nimblephp\framework;
+namespace NimblePHP\Framework;
 
-use DebugBar\DataCollector\PDO\PDOCollector;
 use ErrorException;
 use Exception;
 use krzysztofzylka\DatabaseManager\DatabaseConnect;
@@ -11,19 +10,16 @@ use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
-use Krzysztofzylka\Reflection\Reflection;
-use Nimblephp\debugbar\Collectors\ModuleCollector;
-use Nimblephp\debugbar\Debugbar;
-use Nimblephp\framework\Abstracts\AbstractController;
-use Nimblephp\framework\Exception\DatabaseException;
-use Nimblephp\framework\Exception\HiddenException;
-use Nimblephp\framework\Exception\NotFoundException;
-use Nimblephp\framework\Interfaces\KernelInterface;
-use Nimblephp\framework\Interfaces\MiddlewareInterface;
-use Nimblephp\framework\Interfaces\RequestInterface;
-use Nimblephp\framework\Interfaces\ResponseInterface;
-use Nimblephp\framework\Interfaces\RouteInterface;
-use ReflectionException;
+use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\HiddenException;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Interfaces\KernelInterface;
+use NimblePHP\Framework\Interfaces\MiddlewareInterface;
+use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Interfaces\ResponseInterface;
+use NimblePHP\Framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Attributes\Http\Action;
 use Throwable;
 
 /**
@@ -31,12 +27,6 @@ use Throwable;
  */
 class Kernel implements KernelInterface
 {
-
-    /**
-     * Active debugbar
-     * @var bool
-     */
-    public static bool $activeDebugbar = false;
 
     /**
      * Project path
@@ -71,22 +61,30 @@ class Kernel implements KernelInterface
     /**
      * Constructor
      * @param RouteInterface $router
+     * @param RequestInterface|null $request
+     * @param ResponseInterface|null $response
      * @throws Exception
      */
-    public function __construct(RouteInterface $router)
+    public function __construct(RouteInterface $router, RequestInterface $request = null, ResponseInterface $response = null)
     {
         self::$projectPath = $this->getProjectPath();
 
         $this->router = $router;
-        $this->request = new Request();
-        $this->response = new Response();
+        $this->request = $request ?? new Request();
+        $this->response = $response ?? new Response();
 
         $this->loadConfiguration();
 
-        self::$activeDebugbar = $_ENV['DEBUG'] && ModuleRegister::moduleExistsInVendor('nimblephp/debugbar');
-
-        if (self::$activeDebugbar) {
-            (new Debugbar())->init();
+        if ($_ENV['DEBUG']) {
+            $handler = new \Whoops\Handler\PrettyPageHandler();
+            $handler->setPageTitle('Nimble Exception');
+            $handler->addDataTable('Kernel', [
+                'projectPath' => self::$projectPath
+            ]);
+            $whoops = new \Whoops\Run;
+            $whoops->allowQuit(false);
+            $whoops->pushHandler($handler);
+            $whoops->register();
         }
     }
 
@@ -143,35 +141,19 @@ class Kernel implements KernelInterface
      */
     public function bootstrap(): void
     {
-        if (self::$activeDebugbar) {
-            Debugbar::startTime('bootstrap', 'Bootstrap');
-        }
-
         $this->errorCatcher();
         $this->autoCreator();
         $this->initializeSession();
         $this->debug();
         $this->connectToDatabase();
         $this->autoloader();
+        $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
 
         if (isset(self::$middleware)) {
             self::$middleware->afterBootstrap();
         }
 
-        if (self::$activeDebugbar) {
-            Debugbar::stopTime('bootstrap');
-            Debugbar::startTime('load_modules', 'Load modules');
-        }
-
         $this->loadModules();
-
-        if (self::$activeDebugbar) {
-            if (!Debugbar::$debugBar->hasCollector('module_register')) {
-                Debugbar::$debugBar->addCollector(new ModuleCollector(ModuleRegister::getAll()));
-            }
-
-            Debugbar::stopTime('load_modules');
-        }
     }
 
     /**
@@ -199,9 +181,9 @@ class Kernel implements KernelInterface
         File::mkdir([
             self::$projectPath . '/public',
             self::$projectPath . '/public/assets',
-            self::$projectPath . '/src/Controller',
-            self::$projectPath . '/src/View',
-            self::$projectPath . '/src/Model',
+            self::$projectPath . '/App/Controller',
+            self::$projectPath . '/App/View',
+            self::$projectPath . '/App/Model',
             self::$projectPath . '/storage',
             self::$projectPath . '/storage/logs'
         ]);
@@ -253,10 +235,6 @@ class Kernel implements KernelInterface
 
             $manager = new DatabaseManager();
             $manager->connect($connect);
-
-            if (self::$activeDebugbar && !Debugbar::$debugBar->hasCollector('pdo')) {
-                Debugbar::$debugBar->addCollector(new PDOCollector(DatabaseManager::$connection->getConnection()));
-            }
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -286,27 +264,36 @@ class Kernel implements KernelInterface
 
     /**
      * Load controller
-     * @return void
-     * @throws NotFoundException
-     * @throws ReflectionException
      */
     protected function loadController(): void
     {
-        if (self::$activeDebugbar) {
-            $debugbarUuid = Debugbar::uuid();
-            Debugbar::startTime($debugbarUuid, 'Load main controller');
-        }
-
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
+
         $params = $this->router->getParams();
 
         if (isset(self::$middleware)) {
             self::$middleware->beforeController($controllerName, $methodName, $params);
+
+            if ($controllerName !== $this->router->getController()) {
+                $this->router->setController($controllerName);
+            }
+
+            if ($methodName !== $this->router->getMethod()) {
+                $this->router->setMethod($methodName);
+            }
+
+            if ($params !== $this->router->getParams()) {
+                $this->router->setParams($params);
+            }
         }
 
-        $controllerClass = '\src\Controller\\' . $controllerName;
+        if (!$this->router->validate()) {
+            throw new NotFoundException('Route /' . $controllerName  . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
+        }
+
+        $controllerClass = str_replace('/', '\\', ('\App\Controller\\' . $controllerName));
 
         if (!class_exists($controllerClass)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
@@ -319,42 +306,27 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
-        $methodComments = Reflection::getClassMethodComment($controller, $methodName);
+        $reflection = new \ReflectionMethod($controller, $methodName);
+        $attributes = $reflection->getAttributes(Action::class);
 
-        if (Reflection::findClassComment($methodComments, 'action', 'disabled')) {
-            throw new NotFoundException('Method ' . $methodName . ' is disabled');
-        }
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
 
-        if (Reflection::findClassComment($methodComments, 'actionType', 'ajax')) {
-            if (!$this->request->isAjax()) {
-                throw new NotFoundException('Method ' . $methodName . ' is not allowed for AJAX requests');
+            if (method_exists($instance, 'handle')) {
+                $instance->handle($controller, $methodName, $params);
             }
         }
 
-        $controller->name = str_replace('\src\Controller\\', '', $controllerName);
+        $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $controller->request = new Request();
-        $controller->response = new Response();
-
-        if (Kernel::$activeDebugbar) {
-            $debugbarUuidAC = Debugbar::uuid();
-            Debugbar::startTime($debugbarUuidAC, 'After construct controller');
-        }
-
         $controller->afterConstruct();
-
-        if (Kernel::$activeDebugbar) {
-            Debugbar::stopTime($debugbarUuidAC);
-        }
+        DependencyInjector::inject($controller);
 
         call_user_func_array([$controller, $methodName], $params);
 
         if (isset(self::$middleware)) {
             self::$middleware->afterController($controllerName, $methodName, $params);
-        }
-
-        if (self::$activeDebugbar) {
-            Debugbar::stopTime($debugbarUuid);
         }
     }
 
@@ -387,10 +359,6 @@ class Kernel implements KernelInterface
             self::$middleware->handleException($exception);
         }
 
-        if (self::$activeDebugbar && $exception instanceof Exception) {
-            Debugbar::addException($exception);
-        }
-
         throw $exception;
     }
 
@@ -400,13 +368,13 @@ class Kernel implements KernelInterface
      */
     protected function debug(): void
     {
-        if (!$_ENV['DEBUG']) {
-            return;
+        if (!$_ENV['DEBUG']) {ini_set('display_errors', 0);
+            ini_set('display_startup_errors', 0);
+        } else {
+            ini_set('display_errors', 1);
+            ini_set('display_startup_errors', 1);
+            error_reporting(E_ALL);
         }
-
-        ini_set('display_errors', 1);
-        ini_set('display_startup_errors', 1);
-        error_reporting(E_ALL);
     }
 
     /**

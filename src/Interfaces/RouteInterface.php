@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
 /**
  * Route interface
@@ -61,5 +61,11 @@ interface RouteInterface
      * @return void
      */
     public function setParams(array $params): void;
+
+    /**
+     * Validate route
+     * @return bool
+     */
+    public function validate(): bool;
 
 }

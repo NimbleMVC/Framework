@@ -1,6 +1,6 @@
 <?php
 
-namespace Nimblephp\framework\Interfaces;
+namespace NimblePHP\Framework\Interfaces;
 
 /**
  * Request interface
