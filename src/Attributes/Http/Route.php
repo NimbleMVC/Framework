@@ -2,10 +2,12 @@
 
 namespace NimblePHP\Framework\Attributes\Http;
 
+use Attribute;
+
 /**
  * Routing
  */
-#[\Attribute(\Attribute::TARGET_METHOD)]
+#[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 class Route
 {
 
