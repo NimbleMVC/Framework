@@ -26,17 +26,17 @@ trait LoadModelTrait
     public function loadModel(string $name): object
     {
         if (str_starts_with($name, 'App\Model')) {
-            $class = '\\' . $name;
+            $modelClassName = '\\' . $name;
         } else {
-            $class = '\App\Model\\' . $name;
+            $modelClassName = '\App\Model\\' . $name;
         }
 
-        if (!class_exists($class)) {
+        if (!class_exists($modelClassName)) {
             throw new NotFoundException('Not found model ' . $name);
         }
 
         /** @var AbstractModel $model */
-        $model = new $class();
+        $model = new $modelClassName();
 
         if (!$model instanceof AbstractModel) {
             throw new NimbleException('Failed load model');
@@ -46,15 +46,16 @@ trait LoadModelTrait
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
-            $model->controller = &$this;
+            $model->controller = $this;
         } elseif (Reflection::classHasProperty($this, 'controller')) {
-            $model->controller = &$this->controller;
+            $model->controller = $this->controller;
         } else {
-            $controller = new class extends AbstractController {};
+            $controller = new class extends AbstractController {
+            };
             $controller->name = '';
             $controller->action = '';
             $controller->request = new Request();
-            $model->controller = &$controller;
+            $model->controller = $controller;
         }
 
         DependencyInjector::inject($model);
