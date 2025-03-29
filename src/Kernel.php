@@ -65,7 +65,7 @@ class Kernel implements KernelInterface
      * @param ResponseInterface|null $response
      * @throws Exception
      */
-    public function __construct(RouteInterface $router, RequestInterface $request = null, ResponseInterface $response = null)
+    public function __construct(RouteInterface $router, ?RequestInterface $request = null, ?ResponseInterface $response = null)
     {
         self::$projectPath = $this->getProjectPath();
 
@@ -74,18 +74,7 @@ class Kernel implements KernelInterface
         $this->response = $response ?? new Response();
 
         $this->loadConfiguration();
-
-        if ($_ENV['DEBUG']) {
-            $handler = new \Whoops\Handler\PrettyPageHandler();
-            $handler->setPageTitle('Nimble Exception');
-            $handler->addDataTable('Kernel', [
-                'projectPath' => self::$projectPath
-            ]);
-            $whoops = new \Whoops\Run;
-            $whoops->allowQuit(false);
-            $whoops->pushHandler($handler);
-            $whoops->register();
-        }
+        $this->initializeDebugHandler();
     }
 
     /**
@@ -395,6 +384,28 @@ class Kernel implements KernelInterface
                 }
             }
         }
+    }
+
+    /**
+     * Initialize dubug handler
+     * @return void
+     */
+    private function initializeDebugHandler(): void
+    {
+        if (!$_ENV['DEBUG']) {
+            return;
+        }
+
+        $handler = new \Whoops\Handler\PrettyPageHandler();
+        $handler->setPageTitle('Nimble Exception');
+        $handler->addDataTable('Kernel', [
+            'projectPath' => self::$projectPath
+        ]);
+
+        $whoops = new \Whoops\Run;
+        $whoops->allowQuit(false);
+        $whoops->pushHandler($handler);
+        $whoops->register();
     }
 
 }
