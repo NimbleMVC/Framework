@@ -100,7 +100,18 @@ class Route implements RouteInterface
      */
     public function reload(): void
     {
-        if (!array_key_exists('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : ''), self::$routes)) {
+        $find = false;
+
+        foreach ($this->params as $key => $param) {
+            if (array_key_exists('/' . $this->controller . '/' . $this->method . '/' . $param, self::$routes)) {
+                $find = '/' . $this->controller . '/' . $this->method . '/' . $param;
+                $this->controller = $this->controller . '/' . $this->method;
+                $this->method = $param;
+                unset($this->params[$key]);
+            }
+        }
+
+        if ($find === false && !array_key_exists('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : ''), self::$routes)) {
             throw new NotFoundException('Route ' . ('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')) . ' not found');
         }
 
