@@ -14,15 +14,33 @@ class Session implements SessionInterface
     public static function init(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
-            $sessionPath = Kernel::$projectPath . "/storage/session";
+            switch ($_ENV['SESSION_DRIVER']) {
+                case 'file':
+                    $sessionPath = Kernel::$projectPath . "/storage/session";
 
-            if (!is_dir($sessionPath)) {
-                mkdir($sessionPath, 0777, true);
+                    if (!is_dir($sessionPath)) {
+                        mkdir($sessionPath, 0777, true);
+                    }
+
+                    session_save_path($sessionPath);
+
+                    session_start();
+                    break;
+                case 'redis':
+                    $redisHost = $_ENV['SESSION_REDIS_HOST'] ?? '127.0.0.1';
+                    $redisPort = 6379;
+                    $redisPassword = $_ENV['SESSION_REDIS_PASSWORD'] ?? null;
+                    ini_set('session.save_handler', 'redis');
+                    $redisConnection = "tcp://{$redisHost}:{$redisPort}";
+
+                    if ($redisPassword) {
+                        $redisConnection .= "?auth={$redisPassword}";
+                    }
+
+                    ini_set('session.save_path', $redisConnection);
+                    session_start();
+                    break;
             }
-
-            session_save_path($sessionPath);
-
-            session_start();
         }
     }
 
