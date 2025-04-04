@@ -23,6 +23,7 @@ class Cron
     #[ConsoleCommand('cron:execute', 'Execute cron scripts')]
     public function execute(): void
     {
+        ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
 
         if (!$_ENV['DATABASE']) {
