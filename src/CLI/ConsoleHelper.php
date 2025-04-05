@@ -71,6 +71,7 @@ class ConsoleHelper
     {
         $kernel = new Kernel(new Route(new Request()));
         self::initProjectPath();
+        $kernel->loadConfiguration();
         $kernel->bootstrap();
 
         return $kernel;
