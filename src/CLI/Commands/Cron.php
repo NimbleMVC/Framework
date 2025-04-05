@@ -37,13 +37,15 @@ class Cron
         $maxDuration = 10 * 60;
 
         try {
+            Prints::print(value: "Run jobs loop");
             do {
                 $cron->runJob();
                 sleep(1);
             } while ((time() - $startTime) < $maxDuration);
-            exit;
+            Prints::print(value: "End run cron jobs", exit: true, color: 'green');
         } catch (DatabaseManagerException $exception) {
             Log::log('Cron error', 'ERR', ['exception' => $exception->getMessage(), 'trace' => $exception->getTraceAsString()]);
+            Prints::print(value: "Cron error", exit: true, color: 'red');
         }
     }
 
