@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Abstracts;
 
+use Exception;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -217,6 +218,25 @@ abstract class AbstractModel implements ModelInterface
 
         try {
             return $this->table->delete($this->getId());
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
+    }
+
+    /**
+     * Delete element\s by conditions
+     * @param array $conditions
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function deleteByConditions(array $conditions): bool
+    {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+
+        try {
+            return $this->table->deleteByConditions($conditions);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
