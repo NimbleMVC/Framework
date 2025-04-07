@@ -8,16 +8,18 @@ use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
 use PDO;
 use PDOException;
+use Throwable;
 
 class Cron
 {
 
     /**
      * @throws NimbleException
-     * @throws \Throwable
+     * @throws Throwable
      * @throws DatabaseException
      */
     #[ConsoleCommand('cron:execute', 'Execute cron scripts')]
@@ -47,6 +49,27 @@ class Cron
             Log::log('Cron error', 'ERR', ['exception' => $exception->getMessage(), 'trace' => $exception->getTraceAsString()]);
             Prints::print(value: "Cron error", exit: true, color: 'red');
         }
+    }
+
+    /**
+     * @throws NimbleException
+     * @throws Throwable
+     * @throws DatabaseException
+     */
+    #[ConsoleCommand('cron:tasks', 'Add cron tasks')]
+    public function tasks(): void
+    {
+        ConsoleHelper::loadConfig();
+        ConsoleHelper::initKernel();
+
+        if (!$_ENV['DATABASE']) {
+            Prints::print(value: 'Database must be enabled', exit: true, color: 'red');
+        }
+
+        $this->waitForDatabase();
+
+        $cron = new \NimblePHP\Framework\Cron();
+        $cron->initTasks(Kernel::$projectPath . '/App/Model', '\App\Model');
     }
 
     /**

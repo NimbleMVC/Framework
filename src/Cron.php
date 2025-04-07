@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework;
 
+use Cron\CronExpression;
 use Exception;
 use krzysztofzylka\DatabaseManager\CreateTable;
 use krzysztofzylka\DatabaseManager\DatabaseLock;
@@ -154,18 +155,50 @@ class Cron
         }
     }
 
+    /**
+     * Init tasks
+     * @param string $modelPath
+     * @param string $namespace
+     * @return void
+     * @throws DatabaseManagerException
+     * @throws NimbleException
+     */
     public function initTasks(string $modelPath, string $namespace): void
     {
         $this->databaseLock->lock('cron_init_tasks');
         $models = $this->getAllClasses($modelPath, $namespace);
 
+        foreach ($models as $model) {
+            if (!class_exists($model)) {
+                continue;
+            }
 
+            $reflection = new \ReflectionClass($model);
+
+            foreach ($reflection->getMethods() as $method) {
+                foreach ($method->getAttributes(\NimblePHP\Framework\Attributes\Cron\Cron::class) as $attribute) {
+                    /** @var \NimblePHP\Framework\Attributes\Cron\Cron $cron */
+                    $cron = $attribute->newInstance();
+                    $cronExpression = CronExpression::factory($cron->time);
+
+                    if ($cronExpression->isDue()) {
+                        $this->addJob(
+                            'model',
+                            str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName()),
+                            $method->getName(),
+                            $cron->parameters,
+                            $cron->priority
+                        );
+                    }
+                }
+            }
+        }
 
         $this->databaseLock->unlock('cron_init_tasks');
     }
 
     /**
-     * Get all controllers
+     * Get all classes
      * @param string $directory
      * @param string $namespace
      * @return array
