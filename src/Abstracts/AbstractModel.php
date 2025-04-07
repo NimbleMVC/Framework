@@ -2,7 +2,6 @@
 
 namespace NimblePHP\Framework\Abstracts;
 
-use Exception;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -13,6 +12,7 @@ use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
 use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Traits\LoadModelTrait;
+use NimblePHP\Framework\Traits\LogTrait;
 
 /**
  * Abstract model
@@ -21,6 +21,7 @@ abstract class AbstractModel implements ModelInterface
 {
 
     use LoadModelTrait;
+    use LogTrait;
 
     /**
      * Use table string (table name) / false (no) / null (auto)
@@ -331,18 +332,6 @@ abstract class AbstractModel implements ModelInterface
     public function getTableInstance(): Table
     {
         return $this->table;
-    }
-
-    /**
-     * Create logs
-     * @param string $message
-     * @param string $level
-     * @param array $content
-     * @return bool
-     */
-    public function log(string $message, string $level = 'INFO', array $content = []): bool
-    {
-        return Log::log($message, $level, $content);
     }
 
     /**
