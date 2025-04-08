@@ -11,9 +11,14 @@ use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Libs\Classes;
+use NimblePHP\Framework\Traits\LogTrait;
+use ReflectionClass;
 
 class Cron
 {
+
+    use LogTrait;
 
     public const PRIORITY_MINIMUM = -255;
 
@@ -73,6 +78,7 @@ class Cron
      * @return void
      * @throws DatabaseManagerException
      * @throws NimbleException
+     * @throws Exception
      */
     public function addJob(string $type, string $name, string $action, array $parameters = [], int $priority = self::PRIORITY_NORMAL): void
     {
@@ -143,7 +149,7 @@ class Cron
             $this->log('End cron job');
 
             return true;
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             if ($job !== null) {
                 $this->updateStatus($job[$this->table->getName()]['id'], 'failed');
             }
@@ -166,18 +172,17 @@ class Cron
     public function initTasks(string $modelPath, string $namespace): void
     {
         $this->databaseLock->lock('cron_init_tasks');
-        $models = $this->getAllClasses($modelPath, $namespace);
 
-        foreach ($models as $model) {
+        foreach (Classes::getAllClasses($modelPath, $namespace) as $model) {
             if (!class_exists($model)) {
                 continue;
             }
 
-            $reflection = new \ReflectionClass($model);
+            $reflection = new ReflectionClass($model);
 
             foreach ($reflection->getMethods() as $method) {
-                foreach ($method->getAttributes(\NimblePHP\Framework\Attributes\Cron\Cron::class) as $attribute) {
-                    /** @var \NimblePHP\Framework\Attributes\Cron\Cron $cron */
+                foreach ($method->getAttributes(Attributes\Cron\Cron::class) as $attribute) {
+                    /** @var Attributes\Cron\Cron $cron */
                     $cron = $attribute->newInstance();
                     $cronExpression = CronExpression::factory($cron->time);
 
@@ -195,31 +200,6 @@ class Cron
         }
 
         $this->databaseLock->unlock('cron_init_tasks');
-    }
-
-    /**
-     * Get all classes
-     * @param string $directory
-     * @param string $namespace
-     * @return array
-     */
-    private function getAllClasses(string $directory, string $namespace): array {
-        $class = [];
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
-        );
-
-        /** @var \SplFileInfo $file */
-        foreach ($iterator as $file) {
-            if ($file->isFile() && $file->getExtension() === 'php') {
-                $relativePath = str_replace($directory, '', $file->getPathname());
-                $className = $namespace . '\\' . trim(str_replace(['/', '\\'], '\\', $relativePath), '\\');
-                $className = preg_replace('/\.php$/', '', $className);
-                $class[] = $className;
-            }
-        }
-
-        return $class;
     }
 
     /**
@@ -270,19 +250,6 @@ class Cron
         $this->table->setId($id)->update([
             'status' => $status
         ]);
-    }
-
-    /**
-     * Create logs
-     * @param string $message
-     * @param string $level
-     * @param array $content
-     * @return bool
-     * @throws Exception
-     */
-    private function log(string $message, string $level = 'INFO', array $content = []): bool
-    {
-        return Log::log($message, $level, $content);
     }
 
 }

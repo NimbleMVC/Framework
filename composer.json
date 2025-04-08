@@ -23,6 +23,7 @@
         "krzysztofzylka/file": "^1.0.5",
         "krzysztofzylka/env": "^2.0.2",
         "krzysztofzylka/console": "^1.0.5",
+        "mtdowling/cron-expression": "^v1.2.3",
         "filp/whoops": "^2.17"
     },
     "require-dev": {

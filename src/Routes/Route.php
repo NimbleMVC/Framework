@@ -6,6 +6,7 @@ use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Libs\Classes;
 use NimblePHP\Framework\Storage;
 
 /**
@@ -202,9 +203,7 @@ class Route implements RouteInterface
             }
         }
 
-        $controllers = self::getAllControllers($controllerPath, $namespace);
-
-        foreach ($controllers as $controller) {
+        foreach (Classes::getAllClasses($controllerPath, $namespace) as $controller) {
             if (!class_exists($controller)) {
                 continue;
             }
@@ -222,31 +221,6 @@ class Route implements RouteInterface
         if ($_ENV['CACHE_ROUTE'] && isset($storage)) {
             $storage->put(self::$cacheFile, serialize(self::$routes));
         }
-    }
-
-    /**
-     * Get all controllers
-     * @param string $directory
-     * @param string $namespace
-     * @return array
-     */
-    private static function getAllControllers(string $directory, string $namespace): array {
-        $controllers = [];
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
-        );
-
-        /** @var \SplFileInfo $file */
-        foreach ($iterator as $file) {
-            if ($file->isFile() && $file->getExtension() === 'php') {
-                $relativePath = str_replace($directory, '', $file->getPathname());
-                $className = $namespace . '\\' . trim(str_replace(['/', '\\'], '\\', $relativePath), '\\');
-                $className = preg_replace('/\.php$/', '', $className);
-                $controllers[] = $className;
-            }
-        }
-
-        return $controllers;
     }
 
 }
