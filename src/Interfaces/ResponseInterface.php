@@ -54,6 +54,7 @@ interface ResponseInterface
 
     /**
      * Send response
+     * @param bool $die
      * @return void
      */
     public function send(bool $die = false): void;

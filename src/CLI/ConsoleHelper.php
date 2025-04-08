@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\CLI;
 
+use Exception;
 use Krzysztofzylka\Env\Env;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Kernel;
@@ -43,6 +44,7 @@ class ConsoleHelper
     /**
      * Load config
      * @return void
+     * @throws Exception
      */
     public static function loadConfig(): void
     {

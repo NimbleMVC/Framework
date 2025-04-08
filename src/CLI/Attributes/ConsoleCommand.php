@@ -22,8 +22,8 @@ class ConsoleCommand
     public string $description;
 
     /**
-     * @param string $path
-     * @param string $method
+     * @param string $command
+     * @param string $description
      */
     public function __construct(string $command, string $description)
     {

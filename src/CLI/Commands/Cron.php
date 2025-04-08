@@ -85,7 +85,7 @@ class Cron
                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 $connected = true;
                 $pdo = null;
-            } catch (PDOException $e) {
+            } catch (PDOException) {
                 echo "Wait for database connection..." . PHP_EOL;
                 sleep(1);
             }
