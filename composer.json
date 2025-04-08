@@ -22,7 +22,6 @@
         "krzysztofzylka/database-manager": "^1.0.40",
         "krzysztofzylka/file": "^1.0.5",
         "krzysztofzylka/env": "^2.0.2",
-        "krzysztofzylka/reflection": "^1.0.2",
         "krzysztofzylka/console": "^1.0.5",
         "filp/whoops": "^2.17"
     },

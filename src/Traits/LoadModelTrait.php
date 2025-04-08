@@ -2,8 +2,6 @@
 
 namespace NimblePHP\Framework\Traits;
 
-
-use Krzysztofzylka\Reflection\Reflection;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Abstracts\AbstractModel;
 use NimblePHP\Framework\DependencyInjector;
@@ -11,6 +9,7 @@ use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Request;
+use ReflectionClass;
 
 trait LoadModelTrait
 {
@@ -47,7 +46,7 @@ trait LoadModelTrait
 
         if ($this instanceof ControllerInterface) {
             $model->controller = $this;
-        } elseif (Reflection::classHasProperty($this, 'controller')) {
+        } elseif ((new ReflectionClass($this))->hasProperty('controller')) {
             $model->controller = $this->controller;
         } else {
             $controller = new class extends AbstractController {
