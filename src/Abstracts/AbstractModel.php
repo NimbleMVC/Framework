@@ -2,7 +2,6 @@
 
 namespace NimblePHP\Framework\Abstracts;
 
-use Exception;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -11,7 +10,6 @@ use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
-use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Traits\LoadModelTrait;
 use NimblePHP\Framework\Traits\LogTrait;
 

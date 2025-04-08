@@ -11,6 +11,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
@@ -19,7 +20,6 @@ use NimblePHP\Framework\Interfaces\MiddlewareInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
-use NimblePHP\Framework\Attributes\Http\Action;
 use Throwable;
 
 /**

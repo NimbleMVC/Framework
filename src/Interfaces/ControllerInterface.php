@@ -2,7 +2,6 @@
 
 namespace NimblePHP\Framework\Interfaces;
 
-use NimblePHP\Framework\Abstracts\AbstractModel;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 

@@ -25,8 +25,8 @@ class Cron
     public array $parameters;
 
     /**
-     * @param string $value
-     * @param int $priority
+     * @param string $time
+     * @param int|null $priority
      * @param array $parameters
      */
     public function __construct(string $time, int $priority = null, array $parameters = [])

@@ -2,12 +2,11 @@
 
 namespace NimblePHP\Framework\Abstracts;
 
-use Exception;
+use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Traits\LoadModelTrait;
-use NimblePHP\Framework\Attributes\Http\Action;
 
 /**
  * Abstract controller

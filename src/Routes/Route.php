@@ -6,7 +6,6 @@ use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
-use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Storage;
 
 /**
