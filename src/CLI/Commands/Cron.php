@@ -2,7 +2,10 @@
 
 namespace NimblePHP\Framework\CLI\Commands;
 
+use Exception;
 use Krzysztofzylka\Console\Prints;
+use krzysztofzylka\DatabaseManager\DatabaseConnect;
+use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
@@ -10,8 +13,6 @@ use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
-use PDO;
-use PDOException;
 use Throwable;
 
 class Cron
@@ -81,11 +82,27 @@ class Cron
 
         while (!$connected) {
             try {
-                $pdo = new PDO('mysql:host=' . $_ENV['DATABASE_HOST'] . ';port=' . $_ENV['DATABASE_PORT'], $_ENV['DATABASE_USERNAME'], $_ENV['DATABASE_PASSWORD']);
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                $connected = true;
-                $pdo = null;
-            } catch (PDOException) {
+                $connect = DatabaseConnect::create();
+
+                switch ($_ENV['DATABASE_TYPE']) {
+                    case 'mysql':
+                        $connect->setType(DatabaseType::mysql);
+                        $connect->setHost(trim($_ENV['DATABASE_HOST']));
+                        $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
+                        $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
+                        $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
+                        $connect->setPort((int)$_ENV['DATABASE_PORT']);
+                        break;
+                    case 'sqlite':
+                        $connect->setType(DatabaseType::sqlite);
+                        $connect->setSqlitePath(Kernel::$projectPath . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
+                        break;
+                    default:
+                        throw new DatabaseException('Invalid database type');
+                }
+
+                $connect->connect(false);
+            } catch (Exception) {
                 echo "Wait for database connection..." . PHP_EOL;
                 sleep(1);
             }

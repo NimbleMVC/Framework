@@ -19,7 +19,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "krzysztofzylka/database-manager": "^1.0.45",
+        "krzysztofzylka/database-manager": "^1.0.46",
         "krzysztofzylka/file": "^1.0.5",
         "krzysztofzylka/env": "^2.0.2",
         "krzysztofzylka/console": "^1.0.5",
