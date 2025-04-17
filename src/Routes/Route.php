@@ -8,61 +8,72 @@ use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Libs\Classes;
 use NimblePHP\Framework\Storage;
+use ReflectionClass;
+use ReflectionMethod;
 
 /**
- * Route
+ * Route management class for handling URI routing
  */
 class Route implements RouteInterface
 {
-
     /**
-     * Predefined routes
+     * Registry of defined routes
      * @var array
      */
-    protected static array $routes = [];
+    public static array $routes = [];
 
     /**
-     * Cache file
+     * Route cache file path
      * @var string
      */
     public static string $cacheFile = 'framework/route.cache';
 
     /**
-     * Controller name
+     * Current controller name
      * @var ?string
      */
     protected ?string $controller;
 
     /**
-     * Method name
+     * Current method name
      * @var ?string
      */
     protected ?string $method;
 
     /**
-     * Parameters list
+     * Current URI parameters
      * @var array
      */
     protected array $params = [];
 
     /**
-     * Add route
-     * @param string $name
-     * @param string|null $controller
-     * @param string|null $method
+     * Request instance
+     * @var RequestInterface
+     */
+    protected RequestInterface $request;
+
+    /**
+     * Register a new route
+     *
+     * @param string $path URI path pattern
+     * @param string|null $controller Controller name
+     * @param string|null $method Method name
+     * @param array $httpMethod Allowed HTTP methods
      * @return void
      */
-    public static function addRoute(string $name, ?string $controller = null, ?string $method = null): void
+    public static function addRoute(string $path, ?string $controller = null, ?string $method = null, array $httpMethod = ['GET', 'POST']): void
     {
-        self::$routes[$name] = [
-            'route' => $name,
+        self::$routes[$path] = [
+            'path' => $path,
             'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
-            'method' => $method ?? $_ENV['DEFAULT_METHOD']
+            'method' => $method ?? $_ENV['DEFAULT_METHOD'],
+            'httpMethod' => implode(',', $httpMethod)
         ];
     }
 
     /**
-     * Get routes
+     * Get all registered routes
+     *
      * @return array
      */
     public static function getRoutes(): array
@@ -71,57 +82,119 @@ class Route implements RouteInterface
     }
 
     /**
-     * Constructor
+     * Initialize route from request
+     *
      * @param RequestInterface $request
      */
     public function __construct(RequestInterface $request)
     {
+        $this->request = $request;
         $uri = strtok($request->getUri(), '?');
 
         if (str_starts_with($uri, '/')) {
             $uri = substr($uri, 1);
         }
 
-        $uri = explode('/', htmlspecialchars($uri), 3);
+        $uri = filter_var($uri, FILTER_SANITIZE_URL);
+        $uriParts = explode('/', $uri, 3);
 
-        if (count($uri) === 1 && $uri[0] === '') {
-            $uri = [];
+        if (count($uriParts) === 1 && $uriParts[0] === '') {
+            $uriParts = [];
         }
 
-        $this->setController($uri[0] ?? null);
-        $this->setMethod($uri[1] ?? null);
-        $this->setParams(isset($uri[2]) ? explode('/', $uri[2]) : []);
+        $this->setController($uriParts[0] ?? null);
+        $this->setMethod($uriParts[1] ?? null);
+        $this->setParams(isset($uriParts[2]) ? explode('/', $uriParts[2]) : []);
     }
 
     /**
-     * Reload routing
+     * Match current URI with registered routes
+     *
      * @return void
      * @throws NotFoundException
      */
     public function reload(): void
     {
-        $find = false;
+        $uriPath = '/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '');
+
+        if (array_key_exists($uriPath, self::$routes)) {
+            $route = self::$routes[$uriPath];
+            $this->setController($route['controller']);
+            $this->setMethod($route['method']);
+            return;
+        }
+
+        $fullPath = $uriPath;
+        foreach ($this->params as $param) {
+            $fullPath .= '/' . $param;
+        }
+
+        if (array_key_exists($fullPath, self::$routes)) {
+            $route = self::$routes[$fullPath];
+            $this->setController($route['controller']);
+            $this->setMethod($route['method']);
+            return;
+        }
 
         foreach ($this->params as $key => $param) {
-            if (array_key_exists('/' . $this->controller . '/' . $this->method . '/' . $param, self::$routes)) {
-                $find = '/' . $this->controller . '/' . $this->method . '/' . $param;
-                $this->controller = $this->controller . '/' . $this->method;
-                $this->method = $param;
+            $paramPath = $uriPath . '/' . $param;
+            if (array_key_exists($paramPath, self::$routes)) {
+                $route = self::$routes[$paramPath];
+                $this->setController($route['controller']);
+                $this->setMethod($route['method']);
                 unset($this->params[$key]);
+                return;
             }
         }
 
-        if ($find === false && !array_key_exists('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : ''), self::$routes)) {
-            throw new NotFoundException('Route ' . ('/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')) . ' not found');
+        $dynamicMatch = $this->matchDynamicRoute($fullPath);
+        if ($dynamicMatch !== null) {
+            $route = $dynamicMatch['route'];
+            $this->setController($route['controller']);
+            $this->setMethod($route['method']);
+            $this->setParams($dynamicMatch['params']);
+            return;
         }
 
-        $route = self::$routes['/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '')];
-        $this->setController($route['controller']);
-        $this->setMethod($route['method']);
+        throw new NotFoundException('Route ' . $uriPath . ' not found');
     }
 
     /**
-     * Get controller
+     * Match URI against dynamic routes with parameters
+     *
+     * @param string $uri
+     * @return array|null
+     */
+    private function matchDynamicRoute(string $uri): ?array
+    {
+        foreach (self::$routes as $pattern => $route) {
+            if (strpos($pattern, '{') === false) {
+                continue;
+            }
+
+            $paramNames = [];
+            preg_match_all('/{([^}]+)}/', $pattern, $matches);
+            if (isset($matches[1])) {
+                $paramNames = $matches[1];
+            }
+
+            $regex = preg_replace('/{([^}]+)}/', '([^/]+)', $pattern);
+            $regex = str_replace('/', '\/', $regex);
+
+            if (preg_match('/^' . $regex . '$/', $uri, $matches)) {
+                array_shift($matches);
+                return [
+                    'route' => $route,
+                    'params' => $matches
+                ];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get controller name
+     *
      * @return string
      */
     public function getController(): string
@@ -130,7 +203,8 @@ class Route implements RouteInterface
     }
 
     /**
-     * Set controller
+     * Set controller name
+     *
      * @param ?string $controller
      * @return void
      */
@@ -140,7 +214,8 @@ class Route implements RouteInterface
     }
 
     /**
-     * Get method
+     * Get method name
+     *
      * @return string
      */
     public function getMethod(): string
@@ -149,7 +224,8 @@ class Route implements RouteInterface
     }
 
     /**
-     * Set method
+     * Set method name
+     *
      * @param ?string $method
      * @return void
      */
@@ -159,7 +235,8 @@ class Route implements RouteInterface
     }
 
     /**
-     * Get params
+     * Get URI parameters
+     *
      * @return array
      */
     public function getParams(): array
@@ -168,7 +245,8 @@ class Route implements RouteInterface
     }
 
     /**
-     * Set params
+     * Set URI parameters
+     *
      * @param array $params
      * @return void
      */
@@ -178,28 +256,42 @@ class Route implements RouteInterface
     }
 
     /**
-     * Validate route
+     * Validate HTTP method against route configuration
+     *
      * @return bool
      */
     public function validate(): bool
     {
+        if (isset(self::$routes['/' . $this->controller . '/' . $this->method])) {
+            $route = self::$routes['/' . $this->controller . '/' . $this->method];
+            $allowedMethods = explode(',', $route['httpMethod']);
+            return in_array($this->request->getMethod(), $allowedMethods);
+        }
         return true;
     }
 
     /**
-     * Auto register routes
+     * Auto-register routes from controller classes
+     *
      * @param string $controllerPath
      * @param string $namespace
      * @return void
      * @throws NimbleException
      */
     public static function registerRoutes(string $controllerPath, string $namespace): void {
-        if ($_ENV['CACHE_ROUTE']) {
+        $cacheEnabled = $_ENV['CACHE_ROUTE'] ?? false;
+
+        if ($cacheEnabled) {
             $storage = new Storage('cache');
 
             if ($storage->exists(self::$cacheFile)) {
-                self::$routes = unserialize($storage->get(self::$cacheFile));
-                return;
+                $cacheTimestamp = filemtime($storage->getFullPath(self::$cacheFile));
+                $controllersDirTimestamp = filemtime($controllerPath);
+
+                if ($cacheTimestamp > $controllersDirTimestamp) {
+                    self::$routes = unserialize($storage->get(self::$cacheFile));
+                    return;
+                }
             }
         }
 
@@ -208,19 +300,23 @@ class Route implements RouteInterface
                 continue;
             }
 
-            $reflection = new \ReflectionClass($controller);
+            $reflection = new ReflectionClass($controller);
 
             foreach ($reflection->getMethods() as $method) {
                 foreach ($method->getAttributes(\NimblePHP\Framework\Attributes\Http\Route::class) as $attribute) {
                     $route = $attribute->newInstance();
-                    self::addRoute($route->path, str_replace('App\Controller\\', '', $controller), $method->name);
+                    self::addRoute(
+                        $route->path,
+                        str_replace('App\Controller\\', '', $controller),
+                        $method->name,
+                        [$route->method]
+                    );
                 }
             }
         }
 
-        if ($_ENV['CACHE_ROUTE'] && isset($storage)) {
+        if ($cacheEnabled && isset($storage)) {
             $storage->put(self::$cacheFile, serialize(self::$routes));
         }
     }
-
 }
