@@ -9,18 +9,18 @@ use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Libs\Classes;
 use NimblePHP\Framework\Storage;
 use ReflectionClass;
-use ReflectionMethod;
 
 /**
  * Route management class for handling URI routing
  */
 class Route implements RouteInterface
 {
+
     /**
      * Registry of defined routes
      * @var array
      */
-    public static array $routes = [];
+    protected static array $routes = [];
 
     /**
      * Route cache file path
@@ -53,37 +53,54 @@ class Route implements RouteInterface
     protected RequestInterface $request;
 
     /**
-     * Register a new route
-     *
+     * Register a new route in the system.
      * @param string $path URI path pattern
      * @param string|null $controller Controller name
      * @param string|null $method Method name
-     * @param array $httpMethod Allowed HTTP methods
+     * @param array|string $httpMethod Allowed HTTP methods
      * @return void
      */
-    public static function addRoute(string $path, ?string $controller = null, ?string $method = null, array $httpMethod = ['GET', 'POST']): void
+    public static function addRoute(string $path, ?string $controller = null, ?string $method = null, array|string $httpMethod = ['GET', 'POST']): void
     {
-        self::$routes[$path] = [
-            'path' => $path,
-            'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
-            'method' => $method ?? $_ENV['DEFAULT_METHOD'],
-            'httpMethod' => implode(',', $httpMethod)
-        ];
+        if (is_string($httpMethod)) {
+            $httpMethod = explode(',', $httpMethod);
+        }
+
+        if (strpos($path, '[') !== false && strpos($path, ']') !== false) {
+            $pathVariants = self::generatePathVariants($path);
+
+            foreach ($pathVariants as $variant) {
+                self::$routes[$variant] = [
+                    'path' => $variant,
+                    'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
+                    'method' => $method ?? $_ENV['DEFAULT_METHOD'],
+                    'httpMethod' => implode(',', $httpMethod)
+                ];
+            }
+        } else {
+            self::$routes[$path] = [
+                'path' => $path,
+                'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
+                'method' => $method ?? $_ENV['DEFAULT_METHOD'],
+                'httpMethod' => implode(',', $httpMethod)
+            ];
+        }
     }
 
     /**
-     * Get all registered routes
-     *
+     * Get all registered routes sorted by path
      * @return array
      */
     public static function getRoutes(): array
     {
-        return self::$routes;
+        $routes = self::$routes;
+        ksort($routes);
+
+        return $routes;
     }
 
     /**
      * Initialize route from request
-     *
      * @param RequestInterface $request
      */
     public function __construct(RequestInterface $request)
@@ -109,7 +126,6 @@ class Route implements RouteInterface
 
     /**
      * Match current URI with registered routes
-     *
      * @return void
      * @throws NotFoundException
      */
@@ -133,6 +149,7 @@ class Route implements RouteInterface
             $route = self::$routes[$fullPath];
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
+
             return;
         }
 
@@ -143,6 +160,7 @@ class Route implements RouteInterface
                 $this->setController($route['controller']);
                 $this->setMethod($route['method']);
                 unset($this->params[$key]);
+
                 return;
             }
         }
@@ -153,6 +171,7 @@ class Route implements RouteInterface
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
             $this->setParams($dynamicMatch['params']);
+
             return;
         }
 
@@ -160,8 +179,7 @@ class Route implements RouteInterface
     }
 
     /**
-     * Match URI against dynamic routes with parameters
-     *
+     * Match URI against dynamic routes with parameters including typed parameters with default values
      * @param string $uri
      * @return array|null
      */
@@ -172,29 +190,261 @@ class Route implements RouteInterface
                 continue;
             }
 
-            $paramNames = [];
-            preg_match_all('/{([^}]+)}/', $pattern, $matches);
-            if (isset($matches[1])) {
-                $paramNames = $matches[1];
+            $paramRegex = '/{([^}:]+)(?::([^=}]+)(?:=([^}]+))?)?}/';
+
+            if (!preg_match_all($paramRegex, $pattern, $paramMatches, PREG_SET_ORDER)) {
+                continue;
             }
 
-            $regex = preg_replace('/{([^}]+)}/', '([^/]+)', $pattern);
-            $regex = str_replace('/', '\/', $regex);
+            $hasDefaultParams = false;
+            foreach ($paramMatches as $match) {
+                if (isset($match[3])) {
+                    $hasDefaultParams = true;
+                    break;
+                }
+            }
 
-            if (preg_match('/^' . $regex . '$/', $uri, $matches)) {
+            if ($hasDefaultParams) {
+                $partialMatch = $this->tryPartialMatch($uri, $pattern, $route, $paramMatches);
+                if ($partialMatch !== null) {
+                    return $partialMatch;
+                }
+            }
+
+            $uriPattern = $pattern;
+            $paramNames = [];
+            $paramTypes = [];
+            $paramDefaults = [];
+
+            foreach ($paramMatches as $match) {
+                $paramName = $match[1];
+                $paramType = $match[2] ?? null;
+                $paramDefault = $match[3] ?? null;
+
+                $paramNames[] = $paramName;
+                if ($paramType !== null) {
+                    $paramTypes[$paramName] = $paramType;
+                }
+
+                if ($paramDefault !== null) {
+                    $paramDefaults[$paramName] = $paramDefault;
+                }
+
+                $typePattern = $this->getTypePattern($paramType);
+                $uriPattern = str_replace($match[0], '(' . $typePattern . ')', $uriPattern);
+            }
+
+            $uriRegex = str_replace('/', '\/', $uriPattern);
+
+            if (preg_match('/^' . $uriRegex . '$/', $uri, $matches)) {
                 array_shift($matches);
+                $params = [];
+
+                foreach ($matches as $i => $value) {
+                    if (isset($paramNames[$i])) {
+                        $paramName = $paramNames[$i];
+                        $type = $paramTypes[$paramName] ?? null;
+
+                        $params[] = $this->convertValueToType($value, $type);
+                    } else {
+                        $params[] = $value;
+                    }
+                }
+
                 return [
                     'route' => $route,
-                    'params' => $matches
+                    'params' => $params
                 ];
             }
         }
+
         return null;
     }
 
     /**
+     * Try to match URI with a partial pattern, filling in default values
+     * @param string $uri
+     * @param string $pattern
+     * @param array $route
+     * @param array $paramMatches
+     * @return array|null
+     */
+    private function tryPartialMatch(string $uri, string $pattern, array $route, array $paramMatches): ?array
+    {
+        $paramInfo = [];
+
+        foreach ($paramMatches as $match) {
+            $paramName = $match[1];
+            $paramType = $match[2] ?? null;
+            $paramDefault = $match[3] ?? null;
+
+            $paramInfo[] = [
+                'name' => $paramName,
+                'type' => $paramType,
+                'default' => $paramDefault,
+                'pattern' => $match[0]
+            ];
+        }
+
+        $patternParts = explode('/', trim($pattern, '/'));
+        $uriParts = explode('/', trim($uri, '/'));
+
+        if (count($uriParts) < count($patternParts)) {
+            $allOptionalHaveDefaults = true;
+            $missingParams = [];
+
+            for ($i = count($uriParts); $i < count($patternParts); $i++) {
+                $segment = $patternParts[$i];
+                $isOptional = false;
+                $defaultValue = null;
+                $paramType = null;
+
+                foreach ($paramInfo as $param) {
+                    if (strpos($segment, $param['pattern']) !== false && $param['default'] !== null) {
+                        $isOptional = true;
+                        $defaultValue = $param['default'];
+                        $paramType = $param['type'];
+                        $missingParams[] = $this->convertValueToType($defaultValue, $paramType);
+                        break;
+                    }
+                }
+
+                if (!$isOptional) {
+                    $allOptionalHaveDefaults = false;
+                    break;
+                }
+            }
+
+            if ($allOptionalHaveDefaults) {
+                $partialPattern = '/' . implode('/', array_slice($patternParts, 0, count($uriParts)));
+                $uriPattern = $partialPattern;
+
+                foreach ($paramInfo as $param) {
+                    if (strpos($uriPattern, $param['pattern']) !== false) {
+                        $typePattern = $this->getTypePattern($param['type']);
+                        $uriPattern = str_replace($param['pattern'], '(' . $typePattern . ')', $uriPattern);
+                    }
+                }
+
+                $uriRegex = str_replace('/', '\/', $uriPattern);
+
+                if (preg_match('/^' . $uriRegex . '$/', $uri, $matches)) {
+                    array_shift($matches);
+                    $matchedParams = [];
+
+                    foreach ($matches as $i => $value) {
+                        $type = null;
+
+                        if (isset($paramInfo[$i])) {
+                            $type = $paramInfo[$i]['type'];
+                        }
+
+                        $matchedParams[] = $this->convertValueToType($value, $type);
+                    }
+
+                    return [
+                        'route' => $route,
+                        'params' => array_merge($matchedParams, $missingParams)
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert string value to appropriate type
+     * @param string $value
+     * @param string|null $type
+     * @return mixed
+     */
+    private function convertValueToType(string $value, ?string $type): mixed
+    {
+        if ($type === null) {
+            return $value;
+        }
+
+        if (strtolower($value) === 'null') {
+            return null;
+        }
+
+        return match ($type) {
+            'int' => (int)$value,
+            'float' => (float)$value,
+            'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            default => $value,
+        };
+    }
+
+    /**
+     * Get regex pattern for parameter type
+     * @param string|null $type
+     * @return string
+    */
+    private function getTypePattern(?string $type): string
+    {
+        return match ($type) {
+            'int' => '[0-9]+',
+            'float' => '[0-9]+(?:\\.[0-9]+)?',
+            'bool' => '(?:true|false|1|0)',
+            default => '[^/]+',
+        };
+    }
+
+    /**
+     * Generate all possible path variants for optional segments
+     * @param string $path Path with optional segments in square brackets
+     * @return array Array of path variants
+     */
+    private static function generatePathVariants(string $path): array
+    {
+        if (strpos($path, '[') === false) {
+            return [$path];
+        }
+
+        $openPos = strpos($path, '[');
+        $level = 0;
+        $closePos = null;
+
+        for ($i = $openPos; $i < strlen($path); $i++) {
+            if ($path[$i] === '[') {
+                $level++;
+            } elseif ($path[$i] === ']') {
+                $level--;
+                if ($level === 0) {
+                    $closePos = $i;
+                    break;
+                }
+            }
+        }
+
+        if ($closePos === null) {
+            return [$path];
+        }
+
+        $prefix = substr($path, 0, $openPos);
+        $optional = substr($path, $openPos + 1, $closePos - $openPos - 1);
+        $suffix = substr($path, $closePos + 1);
+        $suffixVariants = self::generatePathVariants($suffix);
+        $optionalVariants = self::generatePathVariants($optional);
+        $result = [];
+
+        foreach ($suffixVariants as $s) {
+            $result[] = $prefix . $s;
+        }
+
+        foreach ($optionalVariants as $o) {
+            foreach ($suffixVariants as $s) {
+                $result[] = $prefix . $o . $s;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Get controller name
-     *
      * @return string
      */
     public function getController(): string
@@ -204,7 +454,6 @@ class Route implements RouteInterface
 
     /**
      * Set controller name
-     *
      * @param ?string $controller
      * @return void
      */
@@ -215,7 +464,6 @@ class Route implements RouteInterface
 
     /**
      * Get method name
-     *
      * @return string
      */
     public function getMethod(): string
@@ -225,7 +473,6 @@ class Route implements RouteInterface
 
     /**
      * Set method name
-     *
      * @param ?string $method
      * @return void
      */
@@ -236,7 +483,6 @@ class Route implements RouteInterface
 
     /**
      * Get URI parameters
-     *
      * @return array
      */
     public function getParams(): array
@@ -246,7 +492,6 @@ class Route implements RouteInterface
 
     /**
      * Set URI parameters
-     *
      * @param array $params
      * @return void
      */
@@ -257,7 +502,6 @@ class Route implements RouteInterface
 
     /**
      * Validate HTTP method against route configuration
-     *
      * @return bool
      */
     public function validate(): bool
@@ -265,14 +509,15 @@ class Route implements RouteInterface
         if (isset(self::$routes['/' . $this->controller . '/' . $this->method])) {
             $route = self::$routes['/' . $this->controller . '/' . $this->method];
             $allowedMethods = explode(',', $route['httpMethod']);
+
             return in_array($this->request->getMethod(), $allowedMethods);
         }
+
         return true;
     }
 
     /**
      * Auto-register routes from controller classes
-     *
      * @param string $controllerPath
      * @param string $namespace
      * @return void

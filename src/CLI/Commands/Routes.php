@@ -24,11 +24,12 @@ class Routes
     public function routesList(): void
     {
         ConsoleHelper::initKernel();
-        
+
         $table = new Table();
-        $table->addColumn('Route', 'route');
+        $table->addColumn('Route', 'path');
         $table->addColumn('Controller', 'controller');
         $table->addColumn('Method', 'method');
+        $table->addColumn('HTTP', 'httpMethod');
         $table->setData(Route::getRoutes());
         $table->render();
     }
