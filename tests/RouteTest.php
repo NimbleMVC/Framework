@@ -11,7 +11,7 @@ class RouteTest extends TestCase
     {
         $_ENV['DEFAULT_CONTROLLER'] = 'DefaultController';
         $_ENV['DEFAULT_METHOD'] = 'defaultMethod';
-        Route::getRoutes() !== [] ? Route::$routes = [] : null;
+        Route::getRoutes() !== [] ? Route::getRoutes() === [] : null;
     }
 
     public function testAddRoute(): void
