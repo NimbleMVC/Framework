@@ -16,7 +16,7 @@ class Project
     #[ConsoleCommand('project:structure', 'Project structure')]
     public function projectStructure(string $directory = ''): void
     {
-        passthru("tree -L 2");
+        passthru("tree -L 2 " . getcwd());
     }
 
     #[ConsoleCommand('project:size', 'Project size')]
