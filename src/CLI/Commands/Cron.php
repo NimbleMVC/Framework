@@ -42,9 +42,14 @@ class Cron
         try {
             Prints::print(value: "Run jobs loop");
             do {
-                $cron->runJob();
-                sleep(1);
+                $jobsRun = $cron->runJob();
+                if (!$jobsRun) {
+                    sleep(5);
+                } else {
+                    usleep(200000);
+                }
             } while ((time() - $startTime) < $maxDuration);
+
             Prints::print(value: "End run cron jobs", exit: true, color: 'green');
         } catch (DatabaseManagerException $exception) {
             Log::log('Cron error', 'ERR', ['exception' => $exception->getMessage(), 'trace' => $exception->getTraceAsString()]);
@@ -79,8 +84,10 @@ class Cron
     private function waitForDatabase(): void
     {
         $connected = false;
+        $attempts = 0;
+        $maxAttempts = 30;
 
-        while (!$connected) {
+        while (!$connected && $attempts < $maxAttempts) {
             try {
                 $connect = DatabaseConnect::create();
 
@@ -102,10 +109,16 @@ class Cron
                 }
 
                 $connect->connect(false);
+                $connected = true;
             } catch (Exception) {
-                echo "Wait for database connection..." . PHP_EOL;
-                sleep(1);
+                $attempts++;
+                echo "Wait for database connection... (attempt $attempts/$maxAttempts)" . PHP_EOL;
+                sleep(2);
             }
+        }
+
+        if (!$connected) {
+            Prints::print(value: "Failed to connect to database after $maxAttempts attempts", exit: true, color: 'red');
         }
     }
 

@@ -172,6 +172,7 @@ class Cron
     public function initTasks(string $modelPath, string $namespace): void
     {
         $this->databaseLock->lock('cron_init_tasks');
+        $cronCache = [];
 
         foreach (Classes::getAllClasses($modelPath, $namespace) as $model) {
             if (!class_exists($model)) {
@@ -179,17 +180,28 @@ class Cron
             }
 
             $reflection = new ReflectionClass($model);
+            $modelName = str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName());
 
-            foreach ($reflection->getMethods() as $method) {
-                foreach ($method->getAttributes(Attributes\Cron\Cron::class) as $attribute) {
+            foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+                $attributes = $method->getAttributes(Attributes\Cron\Cron::class);
+
+                if (empty($attributes)) {
+                    continue;
+                }
+
+                foreach ($attributes as $attribute) {
                     /** @var Attributes\Cron\Cron $cron */
                     $cron = $attribute->newInstance();
-                    $cronExpression = CronExpression::factory($cron->time);
+                    $timeKey = $cron->time;
 
-                    if ($cronExpression->isDue()) {
+                    if (!isset($cronCache[$timeKey])) {
+                        $cronCache[$timeKey] = CronExpression::factory($timeKey);
+                    }
+
+                    if ($cronCache[$timeKey]->isDue()) {
                         $this->addJob(
                             'model',
-                            str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName()),
+                            $modelName,
                             $method->getName(),
                             $cron->parameters,
                             $cron->priority
@@ -201,7 +213,6 @@ class Cron
 
         $this->databaseLock->unlock('cron_init_tasks');
     }
-
     /**
      * Get controller
      * @return ControllerInterface
