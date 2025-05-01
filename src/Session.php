@@ -23,8 +23,6 @@ class Session implements SessionInterface
                     }
 
                     session_save_path($sessionPath);
-
-                    session_start();
                     break;
                 case 'redis':
                     $redisHost = $_ENV['SESSION_REDIS_HOST'] ?? '127.0.0.1';
@@ -38,12 +36,10 @@ class Session implements SessionInterface
                     }
 
                     ini_set('session.save_path', $redisConnection);
-                    session_start();
-                    break;
-                default:
-                    session_start();
                     break;
             }
+
+            session_start();
         }
     }
 
