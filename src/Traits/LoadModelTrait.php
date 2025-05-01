@@ -4,6 +4,7 @@ namespace NimblePHP\Framework\Traits;
 
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Abstracts\AbstractModel;
+use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\DependencyInjector;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
@@ -22,6 +23,7 @@ trait LoadModelTrait
      * @throws NimbleException
      * @throws NotFoundException
      */
+    #[Action('disabled')]
     public function loadModel(string $name): object
     {
         if (str_starts_with($name, 'App\Model')) {
