@@ -8,7 +8,7 @@ use NimblePHP\Framework\Interfaces\RequestInterface;
 /**
  * Request
  */
-class Request implements RequestInterface
+readonly class Request implements RequestInterface
 {
 
     /**
