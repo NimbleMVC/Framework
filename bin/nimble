@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+use NimblePHP\Framework\CLI\Commands\Completion;
+use NimblePHP\Framework\CLI\Console;
+
 if (isset($argv[1]) && $argv[1] === '--complete') {
     if (isset($GLOBALS['_composer_autoload_path'])) {
         require_once $GLOBALS['_composer_autoload_path'];
@@ -31,9 +34,6 @@ if (isset($GLOBALS['_composer_autoload_path'])) {
 } elseif (file_exists(__DIR__ . '/../../../autoload.php')) {
     require_once __DIR__ . '/../../../autoload.php';
 }
-
-use NimblePHP\Framework\CLI\Commands\Completion;
-use NimblePHP\Framework\CLI\Console;
 
 if (isset($argv[1]) && $argv[1] === '--generate-completion') {
     (new Completion())->generate();
