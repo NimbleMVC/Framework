@@ -40,6 +40,9 @@ class Session implements SessionInterface
                     ini_set('session.save_path', $redisConnection);
                     session_start();
                     break;
+                default:
+                    session_start();
+                    break;
             }
         }
     }
