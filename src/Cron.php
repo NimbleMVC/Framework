@@ -14,6 +14,7 @@ use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Libs\Classes;
 use NimblePHP\Framework\Traits\LogTrait;
 use ReflectionClass;
+use ReflectionMethod;
 
 class Cron
 {
@@ -182,7 +183,7 @@ class Cron
             $reflection = new ReflectionClass($model);
             $modelName = str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName());
 
-            foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
                 $attributes = $method->getAttributes(Attributes\Cron\Cron::class);
 
                 if (empty($attributes)) {
@@ -213,6 +214,7 @@ class Cron
 
         $this->databaseLock->unlock('cron_init_tasks');
     }
+
     /**
      * Get controller
      * @return ControllerInterface

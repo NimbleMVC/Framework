@@ -16,7 +16,8 @@ class Classes
      * @param string $namespace
      * @return array
      */
-    public static function getAllClasses(string $directory, string $namespace): array {
+    public static function getAllClasses(string $directory, string $namespace): array
+    {
         $class = [];
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)

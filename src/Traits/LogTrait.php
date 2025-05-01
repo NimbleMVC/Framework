@@ -20,5 +20,5 @@ trait LogTrait
     {
         return Log::log($message, $level, $content);
     }
-    
+
 }

@@ -33,7 +33,7 @@ class ConsoleHelper
         $paths = ['App', 'public', 'storage'];
 
         foreach ($paths as $value) {
-            if (file_exists($path. '/' . $value)) {
+            if (file_exists($path . '/' . $value)) {
                 return true;
             }
         }

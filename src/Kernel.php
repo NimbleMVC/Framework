@@ -20,7 +20,10 @@ use NimblePHP\Framework\Interfaces\MiddlewareInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
+use ReflectionMethod;
 use Throwable;
+use Whoops\Handler\PrettyPageHandler;
+use Whoops\Run;
 
 /**
  * Kernel
@@ -279,7 +282,7 @@ class Kernel implements KernelInterface
         }
 
         if (!$this->router->validate()) {
-            throw new NotFoundException('Route /' . $controllerName  . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
+            throw new NotFoundException('Route /' . $controllerName . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
         }
 
         $controllerClass = str_replace('/', '\\', ('\App\Controller\\' . $controllerName));
@@ -295,7 +298,7 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
-        $reflection = new \ReflectionMethod($controller, $methodName);
+        $reflection = new ReflectionMethod($controller, $methodName);
         $attributes = $reflection->getAttributes(Action::class);
 
         foreach ($attributes as $attribute) {
@@ -357,7 +360,8 @@ class Kernel implements KernelInterface
      */
     protected function debug(): void
     {
-        if (!$_ENV['DEBUG']) {ini_set('display_errors', 0);
+        if (!$_ENV['DEBUG']) {
+            ini_set('display_errors', 0);
             ini_set('display_startup_errors', 0);
         } else {
             ini_set('display_errors', 1);
@@ -396,13 +400,13 @@ class Kernel implements KernelInterface
             return;
         }
 
-        $handler = new \Whoops\Handler\PrettyPageHandler();
+        $handler = new PrettyPageHandler();
         $handler->setPageTitle('Nimble Exception');
         $handler->addDataTable('Kernel', [
             'projectPath' => self::$projectPath
         ]);
 
-        $whoops = new \Whoops\Run;
+        $whoops = new Run;
         $whoops->allowQuit(false);
         $whoops->pushHandler($handler);
         $whoops->register();

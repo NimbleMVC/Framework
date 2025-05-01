@@ -5,6 +5,9 @@ namespace NimblePHP\Framework\CLI;
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ReflectionClass;
 
 class Console
 {
@@ -19,7 +22,7 @@ class Console
     public static function run(array $argv): void
     {
         self::scanCommands();
-        
+
         if (!isset($argv[1])) {
             self::showHelp();
             return;
@@ -67,17 +70,18 @@ class Console
                 continue;
             }
 
-            $reflection = new \ReflectionClass($file);
+            $reflection = new ReflectionClass($file);
 
             foreach ($reflection->getMethods() as $method) {
                 foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
                     $class = $attribute->newInstance();
-                    
+
                     self::$commands[$class->command] = [
                         'class' => $method->class,
                         'description' => $class->description,
                         'method' => $method->name
-                    ];}
+                    ];
+                }
             }
         }
     }
@@ -87,9 +91,10 @@ class Console
      * @param string $namespace
      * @return array
      */
-    private static function getAllCommandFiles(string $directory, string $namespace): array {
+    private static function getAllCommandFiles(string $directory, string $namespace): array
+    {
         $list = [];
-        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
 
         foreach ($files as $file) {
             if ($file->isFile() && $file->getExtension() === 'php') {

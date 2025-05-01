@@ -2,16 +2,18 @@
 
 namespace NimblePHP\Framework\CLI\Attributes;
 
+use Attribute;
+
 /**
  * Console command
  */
-#[\Attribute]
+#[Attribute]
 class ConsoleCommand
 {
 
     /**
      * Command
-     * @var string 
+     * @var string
      */
     public string $command;
 

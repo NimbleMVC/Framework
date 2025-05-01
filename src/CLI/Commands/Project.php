@@ -71,7 +71,7 @@ class Project
     {
         $vendorPath = '../';
 
-        for ($x=0; $x<=10; $x++) {
+        for ($x = 0; $x <= 10; $x++) {
             if (file_exists(getcwd() . '/public/' . $vendorPath . 'vendor/autoload.php')) {
                 break;
             } else {

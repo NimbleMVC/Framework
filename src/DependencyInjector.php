@@ -8,6 +8,7 @@ use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
 use NimblePHP\Framework\Traits\LoadModelTrait;
+use ReflectionObject;
 
 /**
  * Dependency injector
@@ -29,8 +30,9 @@ class DependencyInjector
      * @throws NimbleException
      * @throws NotFoundException
      */
-    public static function inject(object $object): void {
-        $reflection = new \ReflectionObject($object);
+    public static function inject(object $object): void
+    {
+        $reflection = new ReflectionObject($object);
 
         foreach ($reflection->getProperties() as $property) {
             $attributes = $property->getAttributes(Inject::class);

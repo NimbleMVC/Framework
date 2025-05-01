@@ -2,7 +2,9 @@
 
 namespace NimblePHP\Framework\Attributes\Cron;
 
-#[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
+use Attribute;
+
+#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class Cron
 {
 
@@ -20,7 +22,7 @@ class Cron
 
     /**
      * Parameters
-     * @var array 
+     * @var array
      */
     public array $parameters;
 

@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Attributes\Http;
 
+use Attribute;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Request;
@@ -9,7 +10,7 @@ use NimblePHP\Framework\Request;
 /**
  * Set action definition
  */
-#[\Attribute(\Attribute::TARGET_METHOD)]
+#[Attribute(Attribute::TARGET_METHOD)]
 class Action
 {
 

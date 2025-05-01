@@ -381,7 +381,7 @@ class Route implements RouteInterface
      * Get regex pattern for parameter type
      * @param string|null $type
      * @return string
-    */
+     */
     private function getTypePattern(?string $type): string
     {
         return match ($type) {
@@ -523,7 +523,8 @@ class Route implements RouteInterface
      * @return void
      * @throws NimbleException
      */
-    public static function registerRoutes(string $controllerPath, string $namespace): void {
+    public static function registerRoutes(string $controllerPath, string $namespace): void
+    {
         $cacheEnabled = $_ENV['CACHE_ROUTE'] ?? false;
 
         if ($cacheEnabled) {
