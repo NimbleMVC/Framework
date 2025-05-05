@@ -331,7 +331,11 @@ class Kernel implements KernelInterface
     protected function handleException(Throwable $exception): void
     {
         $message = $exception->getMessage();
-        $data = ['exception' => $exception->getMessage(), 'file' => $exception->getFile()];
+        $data = [
+            'exception' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'backtrace' => $exception->getTraceAsString()
+        ];
 
         if ($exception instanceof HiddenException) {
             $message = $exception->getHiddenMessage();
@@ -339,13 +343,14 @@ class Kernel implements KernelInterface
 
         if ($exception->getPrevious()) {
             $data['previous_message'] = $exception->getPrevious()->getMessage();
+            $data['previous_backtrace'] = $exception->getPrevious()->getTraceAsString();
 
             if (method_exists($exception->getPrevious(), 'getHiddenMessage')) {
                 $data['previous_hidden_message'] = $exception->getPrevious()->getHiddenMessage();
             }
         }
 
-        Log::log($message, 'ERR', $data);
+        Log::log($message, 'FATAL_ERR', $data);
 
         if (isset(self::$middleware)) {
             self::$middleware->handleException($exception);
