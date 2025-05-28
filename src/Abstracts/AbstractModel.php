@@ -377,10 +377,10 @@ abstract class AbstractModel implements ModelInterface
     /**
      * Set condition
      * @param Condition|string $key
-     * @param string|null $value
+     * @param string|array|null $value
      * @return self
      */
-    public function setCondition(Condition|string $key, ?string $value = null): self
+    public function setCondition(Condition|string $key, null|string|array $value = null): self
     {
         if ($key instanceof Condition) {
             foreach ($this->conditions as $conditionKey => $condition) {
