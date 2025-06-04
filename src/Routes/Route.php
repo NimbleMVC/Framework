@@ -141,6 +141,7 @@ class Route implements RouteInterface
         }
 
         $fullPath = $uriPath;
+
         foreach ($this->params as $param) {
             $fullPath .= '/' . $param;
         }
