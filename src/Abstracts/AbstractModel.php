@@ -359,6 +359,7 @@ abstract class AbstractModel implements ModelInterface
      * @param ?string $primaryKey
      * @param ?string $foreignKey
      * @param array|Condition|null $condition
+     * @param ?string $tableAlias
      * @return $this
      */
     public function bind(
@@ -366,10 +367,11 @@ abstract class AbstractModel implements ModelInterface
         ?string $tableName = null,
         ?string $primaryKey = null,
         ?string $foreignKey = null,
-        null|array|Condition $condition = null
+        null|array|Condition $condition = null,
+        ?string $tableAlias = null
     ): self
     {
-        $this->table->bind($bind, $tableName, $primaryKey, $foreignKey, $condition);
+        $this->table->bind($bind, $tableName, $primaryKey, $foreignKey, $condition, $tableAlias);
 
         return $this;
     }

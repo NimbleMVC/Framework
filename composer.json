@@ -19,10 +19,10 @@
     ],
     "require": {
         "php": ">=8.2",
-        "krzysztofzylka/database-manager": "^1.0.46",
+        "krzysztofzylka/database-manager": "^1.1.3",
         "krzysztofzylka/file": "^1.0.5",
         "krzysztofzylka/env": "^2.0.2",
-        "krzysztofzylka/console": "^1.0.5",
+        "krzysztofzylka/console": "^1.0.8",
         "mtdowling/cron-expression": "^v1.2.3",
         "filp/whoops": "^2.17"
     },
