@@ -38,6 +38,13 @@ interface MiddlewareInterface
     public function handleException(Throwable $exception);
 
     /**
+     * Modify log content
+     * @param array $logContent
+     * @return mixed
+     */
+    public function log(array &$logContent);
+
+    /**
      * After log
      * @param array $logContent
      * @return mixed

@@ -69,6 +69,10 @@ class Log
                 'session' => self::$session
             ];
 
+            if (isset(Kernel::$middleware)) {
+                Kernel::$middleware->log($logContent);
+            }
+
             $jsonLogData = json_encode($logContent);
 
             if (empty(trim($jsonLogData))) {
