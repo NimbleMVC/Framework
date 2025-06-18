@@ -27,6 +27,10 @@ class Middleware implements MiddlewareInterface
     {
     }
 
+    public function log(array &$logContent)
+    {
+    }
+
     public function afterLog(array $logContent)
     {
     }
