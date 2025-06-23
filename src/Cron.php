@@ -156,7 +156,14 @@ class Cron
             }
 
             $this->databaseLock->unlock('cron_run_jobs');
-            $this->log('Cron job failed', 'ERR', ['job' => $job, 'exception' => $exception]);
+            $this->log('Cron job failed', 'ERR', [
+                'job' => $job,
+                'exception' => [
+                    'message' => $exception->getMessage(),
+                    'code' => $exception->getCode(),
+                    'trace' => $exception->getTraceAsString()
+                ]
+            ]);
 
             throw $exception;
         }
