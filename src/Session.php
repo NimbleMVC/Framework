@@ -13,6 +13,10 @@ class Session implements SessionInterface
      */
     public static function init(): void
     {
+        if ($_ENV['SESSION_DRIVER'] === 'none') {
+            return;
+        }
+
         if (session_status() === PHP_SESSION_NONE) {
             switch ($_ENV['SESSION_DRIVER']) {
                 case 'file':
