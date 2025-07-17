@@ -11,7 +11,7 @@ interface MiddlewareInterface
      * Handle the request
      * @param \NimblePHP\Framework\Interfaces\RequestInterface $request
      * @param callable $next
-     * @return void
+     * @return \NimblePHP\Framework\Interfaces\ResponseInterface
      */
     public function handle(RequestInterface $request, callable $next): ResponseInterface;
 

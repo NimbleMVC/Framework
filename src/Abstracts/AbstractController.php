@@ -4,6 +4,7 @@ namespace NimblePHP\Framework\Abstracts;
 
 use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Interfaces\ControllerMiddlewareInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Traits\LoadModelTrait;
@@ -35,6 +36,18 @@ abstract class AbstractController implements ControllerInterface
     public RequestInterface $request;
 
     /**
+     * Controller middleware
+     * @var array
+     */
+    protected array $middleware = [];
+
+    /**
+     * Global controller middleware - applied to all controllers
+     * @var array
+     */
+    protected static array $globalMiddleware = [];
+
+    /**
      * Create logs
      * @param string $message
      * @param string $level
@@ -54,6 +67,50 @@ abstract class AbstractController implements ControllerInterface
     #[Action("disabled")]
     public function afterConstruct(): void
     {
+        // Merge global middleware with instance middleware
+        $this->middleware = array_merge(static::$globalMiddleware, $this->middleware);
+
+        // Run afterConstruct middleware
+        $this->runMiddleware('afterConstruct', $this->name, $this);
     }
 
+    /**
+     * Run controller middleware
+     * @param string $method
+     * @param mixed ...$args
+     * @return void
+     */
+    public function runMiddleware(string $method, ...$args): void
+    {
+        foreach ($this->middleware as $middlewareClass) {
+            if (class_exists($middlewareClass)) {
+                $middleware = new $middlewareClass();
+
+                if ($middleware instanceof ControllerMiddlewareInterface && method_exists($middleware, $method)) {
+                    $middleware->$method(...$args);
+                }
+            }
+        }
+    }
+
+    /**
+     * Add global middleware that will be applied to all controllers
+     * @param string $middlewareClass
+     * @return void
+     */
+    public static function addGlobalMiddleware(string $middlewareClass): void
+    {
+        if (!in_array($middlewareClass, static::$globalMiddleware)) {
+            static::$globalMiddleware[] = $middlewareClass;
+        }
+    }
+
+    /**
+     * Get global middleware
+     * @return array
+     */
+    public static function getGlobalMiddleware(): array
+    {
+        return static::$globalMiddleware;
+    }
 }

@@ -31,7 +31,7 @@ class Cron
      * @param int|null $priority
      * @param array $parameters
      */
-    public function __construct(string $time, int $priority = null, array $parameters = [])
+    public function __construct(string $time, ?int $priority = null, array $parameters = [])
     {
         $this->time = $time;
         $this->priority = $priority ?? \NimblePHP\Framework\Cron::PRIORITY_NORMAL;
