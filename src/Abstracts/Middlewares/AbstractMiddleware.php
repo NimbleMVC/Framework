@@ -19,28 +19,6 @@ abstract class AbstractMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Before controller
-     * @param string &$controllerName
-     * @param string &$action
-     * @param array &$params
-     * @return void
-     */
-    public function beforeController(string &$controllerName, string &$action, array &$params): void
-    {
-    }
-
-    /**
-     * After controller
-     * @param string $controllerName
-     * @param string $action
-     * @param array $params
-     * @return void
-     */
-    public function afterController(string $controllerName, string $action, array $params): void
-    {
-    }
-
-    /**
      * Handle exception
      * @param \Throwable $exception
      * @return void
