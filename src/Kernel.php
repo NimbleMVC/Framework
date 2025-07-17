@@ -61,12 +61,6 @@ class Kernel implements KernelInterface
     protected ResponseInterface $response;
 
     /**
-     * Auto loader initialized
-     * @var bool
-     */
-    protected static bool $autoLoaderInitialized = false;
-
-    /**
      * Constructor
      * @param RouteInterface $router
      * @param RequestInterface|null $request
@@ -83,7 +77,6 @@ class Kernel implements KernelInterface
 
         $this->loadConfiguration();
         $this->initializeDebugHandler();
-        $this->autoloader();
     }
 
     /**
@@ -156,6 +149,7 @@ class Kernel implements KernelInterface
         $this->initializeSession();
         $this->debug();
         $this->connectToDatabase();
+        $this->autoloader();
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
 
         if (isset(self::$middlewareManager)) {
@@ -255,12 +249,8 @@ class Kernel implements KernelInterface
      * Class auto loader
      * @return void
      */
-    public function autoloader(): void
+    protected function autoloader(): void
     {
-        if (self::$autoLoaderInitialized) {
-            return;
-        }
-
         spl_autoload_register(function ($className) {
             $className = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $className);
             $file = self::$projectPath . '/' . $className . '.php';
@@ -271,7 +261,6 @@ class Kernel implements KernelInterface
         });
 
         self::$middlewareManager = new MiddlewareManager();
-        self::$autoLoaderInitialized = true;
     }
 
     /**
@@ -303,9 +292,6 @@ class Kernel implements KernelInterface
             }
         }
 
-        // Run beforeController middleware for controllers
-        $this->runControllerMiddleware('beforeController', $controllerName, $methodName, $params);
-
         if (!$this->router->validate()) {
             throw new NotFoundException('Route /' . $controllerName . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
         }
@@ -315,9 +301,6 @@ class Kernel implements KernelInterface
         if (!class_exists($controllerClass)) {
             throw new NotFoundException('Controller ' . $controllerName . ' not found');
         }
-
-        // Run beforeConstruct middleware
-        $this->runControllerMiddleware('beforeConstruct', $controllerName);
 
         /** @var AbstractController $controller */
         $controller = new $controllerClass();
@@ -343,49 +326,12 @@ class Kernel implements KernelInterface
         $controller->afterConstruct();
         DependencyInjector::inject($controller);
 
-        // Run beforeAction middleware
-        $this->runControllerMiddleware('beforeAction', $controllerName, $methodName, $params);
-
-        $result = call_user_func_array([$controller, $methodName], $params);
-
-        // Run afterAction middleware
-        $this->runControllerMiddleware('afterAction', $controllerName, $methodName, $params, $result);
-
-        // Run afterController middleware for controllers
-        $this->runControllerMiddleware('afterController', $controllerName, $methodName, $params);
+        call_user_func_array([$controller, $methodName], $params);
 
         if (isset(self::$middlewareManager)) {
             foreach (self::$middlewareManager->getMiddlewares() as $middleware) {
                 $middleware->afterController($controllerName, $methodName, $params);
             }
-        }
-    }
-
-    /**
-     * Run controller middleware
-     * @param string $method
-     * @param mixed ...$args
-     * @return void
-     */
-    protected function runControllerMiddleware(string $method, ...$args): void
-    {
-        // Get controller class name from args
-        $controllerName = $args[0] ?? '';
-        if (empty($controllerName)) {
-            return;
-        }
-
-        $controllerClass = str_replace('/', '\\', ('\App\Controller\\' . $controllerName));
-
-        if (!class_exists($controllerClass)) {
-            return;
-        }
-
-        // Create temporary controller instance to access middleware
-        $tempController = new $controllerClass();
-
-        if (method_exists($tempController, 'runMiddleware')) {
-            $tempController->runMiddleware($method, ...$args);
         }
     }
 
@@ -409,13 +355,11 @@ class Kernel implements KernelInterface
         }
 
         if ($exception->getPrevious()) {
-            $previousException = $exception->getPrevious();
-            $data['previous_message'] = $previousException->getMessage();
-            $data['previous_backtrace'] = $previousException->getTraceAsString();
+            $data['previous_message'] = $exception->getPrevious()->getMessage();
+            $data['previous_backtrace'] = $exception->getPrevious()->getTraceAsString();
 
-            if (method_exists($previousException, 'getHiddenMessage')) {
-                /** @var HiddenException $previousException */
-                $data['previous_hidden_message'] = $previousException->getHiddenMessage();
+            if (method_exists($exception->getPrevious(), 'getHiddenMessage')) {
+                $data['previous_hidden_message'] = $exception->getPrevious()->getHiddenMessage();
             }
         }
 

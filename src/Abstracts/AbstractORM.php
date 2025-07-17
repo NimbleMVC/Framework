@@ -10,9 +10,6 @@ use NimblePHP\Framework\Attributes\Database\DefaultValue;
 use ReflectionClass;
 use ReflectionProperty;
 
-/**
- * @property int $id
- */
 abstract class AbstractORM
 {
 
