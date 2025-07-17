@@ -4,6 +4,7 @@ namespace NimblePHP\Framework;
 
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ViewInterface;
+use NimblePHP\Framework\Interfaces\ViewMiddlewareInterface;
 
 /**
  * View
@@ -22,6 +23,12 @@ class View implements ViewInterface
      * @var int
      */
     protected int $responseCode = 200;
+
+    /**
+     * View middleware
+     * @var array
+     */
+    protected array $middleware = [];
 
     /**
      * Define variable
@@ -50,6 +57,8 @@ class View implements ViewInterface
      */
     public function render(string $viewName, array $data = []): void
     {
+        $this->runMiddleware('beforeRender', $viewName, $data);
+
         extract($data);
         $filePath = $this->viewPath . $viewName . '.phtml';
 
@@ -61,10 +70,31 @@ class View implements ViewInterface
         include($filePath);
         $content = ob_get_clean();
 
+        $this->runMiddleware('afterRender', $viewName, $data, $content);
+
         $response = new Response();
         $response->setContent($content);
         $response->setStatusCode($this->responseCode);
         $response->send();
+    }
+
+    /**
+     * Run view middleware
+     * @param string $method
+     * @param mixed ...$args
+     * @return void
+     */
+    protected function runMiddleware(string $method, ...$args): void
+    {
+        foreach ($this->middleware as $middlewareClass) {
+            if (class_exists($middlewareClass)) {
+                $middleware = new $middlewareClass();
+
+                if ($middleware instanceof ViewMiddlewareInterface && method_exists($middleware, $method)) {
+                    $middleware->$method(...$args);
+                }
+            }
+        }
     }
 
 }

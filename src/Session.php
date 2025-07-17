@@ -3,9 +3,15 @@
 namespace NimblePHP\Framework;
 
 use NimblePHP\Framework\Interfaces\SessionInterface;
+use NimblePHP\Framework\Interfaces\SessionMiddlewareInterface;
 
 class Session implements SessionInterface
 {
+    /**
+     * Session middleware
+     * @var array
+     */
+    protected array $middleware = [];
 
     /**
      * Initialize session
@@ -63,7 +69,9 @@ class Session implements SessionInterface
      */
     public function set(string $key, mixed $value): self
     {
+        $this->runMiddleware('beforeSet', $key, $value);
         $_SESSION[$key] = $value;
+        $this->runMiddleware('afterSet', $key, $value);
 
         return $this;
     }
@@ -75,7 +83,10 @@ class Session implements SessionInterface
      */
     public function get(string $key): mixed
     {
-        return $_SESSION[$key] ?? null;
+        $value = $_SESSION[$key] ?? null;
+        $this->runMiddleware('beforeGet', $key, $value);
+        $this->runMiddleware('afterGet', $key, $value);
+        return $value;
     }
 
     /**
@@ -104,8 +115,10 @@ class Session implements SessionInterface
      */
     public function destroy(): void
     {
+        $this->runMiddleware('beforeDestroy');
         session_unset();
         session_destroy();
+        $this->runMiddleware('afterDestroy');
     }
 
     /**
@@ -115,7 +128,27 @@ class Session implements SessionInterface
      */
     public function regenerate(?bool $removeOldSession = false): void
     {
+        $this->runMiddleware('beforeRegenerate');
         session_regenerate_id($removeOldSession);
+        $this->runMiddleware('afterRegenerate');
     }
 
+    /**
+     * Run session middleware
+     * @param string $method
+     * @param mixed ...$args
+     * @return void
+     */
+    protected function runMiddleware(string $method, ...$args): void
+    {
+        foreach ($this->middleware as $middlewareClass) {
+            if (class_exists($middlewareClass)) {
+                $middleware = new $middlewareClass();
+                
+                if ($middleware instanceof SessionMiddlewareInterface && method_exists($middleware, $method)) {
+                    $middleware->$method(...$args);
+                }
+            }
+        }
+    }
 }

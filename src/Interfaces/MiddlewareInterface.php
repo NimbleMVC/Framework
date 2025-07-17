@@ -4,51 +4,60 @@ namespace NimblePHP\Framework\Interfaces;
 
 use Throwable;
 
-/**
- * Loader interface
- */
 interface MiddlewareInterface
 {
 
     /**
-     * Init before controller
+     * Handle the request
+     * @param \NimblePHP\Framework\Interfaces\RequestInterface $request
+     * @param callable $next
+     * @return void
+     */
+    public function handle(RequestInterface $request, callable $next): ResponseInterface;
+
+    /**
+     * After bootstrap
+     * @return void
+     */
+    public function afterBootstrap(): void;
+
+    /**
+     * Before controller
+     * @param string &$controllerName
+     * @param string &$action
+     * @param array &$params
+     * @return void
+     */
+    public function beforeController(string &$controllerName, string &$action, array &$params): void;
+
+    /**
+     * After controller
      * @param string $controllerName
      * @param string $action
      * @param array $params
+     * @return void
      */
-    public function beforeController(string &$controllerName, string &$action, array &$params);
+    public function afterController(string $controllerName, string $action, array $params): void;
 
     /**
-     * Init after controller
-     * @param string $controllerName
-     * @param string $action
-     * @param array $params
+     * Handle exception
+     * @param \Throwable $exception
+     * @return void
      */
-    public function afterController(string $controllerName, string $action, array $params);
+    public function handleException(Throwable $exception): void;
 
     /**
-     * Init after bootstrap
+     * Log the request
+     * @param array &$logContent
+     * @return void
      */
-    public function afterBootstrap();
-
-    /**
-     * After exception handler
-     * @param Throwable $exception
-     */
-    public function handleException(Throwable $exception);
-
-    /**
-     * Modify log content
-     * @param array $logContent
-     * @return mixed
-     */
-    public function log(array &$logContent);
+    public function log(array &$logContent): void;
 
     /**
      * After log
      * @param array $logContent
-     * @return mixed
+     * @return void
      */
-    public function afterLog(array $logContent);
+    public function afterLog(array $logContent): void;
 
 }

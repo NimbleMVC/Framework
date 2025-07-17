@@ -69,8 +69,10 @@ class Log
                 'session' => self::$session
             ];
 
-            if (isset(Kernel::$middleware)) {
-                Kernel::$middleware->log($logContent);
+            if (isset(Kernel::$middlewareManager)) {
+                foreach (Kernel::$middlewareManager->getMiddlewares() as $middleware) {
+                    $middleware->log($logContent);
+                }
             }
 
             $jsonLogData = json_encode($logContent);
@@ -81,8 +83,10 @@ class Log
 
             $return = self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
 
-            if (isset(Kernel::$middleware)) {
-                Kernel::$middleware->afterLog($logContent);
+            if (isset(Kernel::$middlewareManager)) {
+                foreach (Kernel::$middlewareManager->getMiddlewares() as $middleware) {
+                    $middleware->afterLog($logContent);
+                }
             }
 
             return $return;

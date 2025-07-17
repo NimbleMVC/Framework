@@ -16,7 +16,6 @@ use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
-use NimblePHP\Framework\Interfaces\MiddlewareInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
@@ -38,10 +37,10 @@ class Kernel implements KernelInterface
     public static string $projectPath;
 
     /**
-     * Middleware class
-     * @var MiddlewareInterface
+     * Middleware manager
+     * @var MiddlewareManager
      */
-    public static MiddlewareInterface $middleware;
+    public static MiddlewareManager $middlewareManager;
 
     /**
      * Route class
@@ -98,7 +97,19 @@ class Kernel implements KernelInterface
     {
         try {
             $this->bootstrap();
-            $this->loadController();
+
+            if (isset(self::$middlewareManager)) {
+                $response = self::$middlewareManager->run($this->request, function (RequestInterface $request) {
+                    $this->loadController();
+                    return $this->response;
+                });
+
+                if ($response instanceof ResponseInterface) {
+                    $this->response = $response;
+                }
+            } else {
+                $this->loadController();
+            }
         } catch (Throwable $e) {
             $this->handleException($e);
         }
@@ -141,8 +152,10 @@ class Kernel implements KernelInterface
         $this->autoloader();
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
 
-        if (isset(self::$middleware)) {
-            self::$middleware->afterBootstrap();
+        if (isset(self::$middlewareManager)) {
+            foreach (self::$middlewareManager->getGlobalMiddlewares() as $middleware) {
+                $middleware->afterBootstrap();
+            }
         }
 
         $this->loadModules();
@@ -247,11 +260,7 @@ class Kernel implements KernelInterface
             }
         });
 
-        if (class_exists('Middleware')) {
-            self::$middleware = new \Middleware();
-        } else {
-            self::$middleware = new Middleware();
-        }
+        self::$middlewareManager = new MiddlewareManager();
     }
 
     /**
@@ -265,8 +274,10 @@ class Kernel implements KernelInterface
 
         $params = $this->router->getParams();
 
-        if (isset(self::$middleware)) {
-            self::$middleware->beforeController($controllerName, $methodName, $params);
+        if (isset(self::$middlewareManager)) {
+            foreach (self::$middlewareManager->getMiddlewares() as $middleware) {
+                $middleware->beforeController($controllerName, $methodName, $params);
+            }
 
             if ($controllerName !== $this->router->getController()) {
                 $this->router->setController($controllerName);
@@ -317,8 +328,10 @@ class Kernel implements KernelInterface
 
         call_user_func_array([$controller, $methodName], $params);
 
-        if (isset(self::$middleware)) {
-            self::$middleware->afterController($controllerName, $methodName, $params);
+        if (isset(self::$middlewareManager)) {
+            foreach (self::$middlewareManager->getMiddlewares() as $middleware) {
+                $middleware->afterController($controllerName, $methodName, $params);
+            }
         }
     }
 
@@ -352,8 +365,10 @@ class Kernel implements KernelInterface
 
         Log::log($message, 'FATAL_ERR', $data);
 
-        if (isset(self::$middleware)) {
-            self::$middleware->handleException($exception);
+        if (isset(self::$middlewareManager)) {
+            foreach (self::$middlewareManager->getMiddlewares() as $middleware) {
+                $middleware->handleException($exception);
+            }
         }
 
         throw $exception;

@@ -46,6 +46,7 @@ class DependencyInjector
                     if ($object instanceof ControllerInterface) {
                         $dependencyInjector->controller = $object;
                     } elseif ($object instanceof ModelInterface || property_exists($object, 'controller')) {
+                        /** @var \NimblePHP\Framework\Abstracts\AbstractModel $object */
                         $dependencyInjector->controller = $object->controller;
                     }
 
