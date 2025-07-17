@@ -68,12 +68,4 @@ interface RouteInterface
      */
     public function validate(): bool;
 
-    /**
-     * Register routes
-     * @param string $controllerPath
-     * @param string $namespace
-     * @return void
-     */
-    public static function registerRoutes(string $controllerPath, string $namespace): void;
-
 }

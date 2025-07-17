@@ -4,6 +4,10 @@ use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Routes\Route;
 use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Response;
+use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Middleware;
 use PHPUnit\Framework\TestCase;
 
 /**

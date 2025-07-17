@@ -4,60 +4,51 @@ namespace NimblePHP\Framework\Interfaces;
 
 use Throwable;
 
+/**
+ * Loader interface
+ */
 interface MiddlewareInterface
 {
 
     /**
-     * Handle the request
-     * @param \NimblePHP\Framework\Interfaces\RequestInterface $request
-     * @param callable $next
-     * @return void
-     */
-    public function handle(RequestInterface $request, callable $next): ResponseInterface;
-
-    /**
-     * After bootstrap
-     * @return void
-     */
-    public function afterBootstrap(): void;
-
-    /**
-     * Before controller
-     * @param string &$controllerName
-     * @param string &$action
-     * @param array &$params
-     * @return void
-     */
-    public function beforeController(string &$controllerName, string &$action, array &$params): void;
-
-    /**
-     * After controller
+     * Init before controller
      * @param string $controllerName
      * @param string $action
      * @param array $params
-     * @return void
      */
-    public function afterController(string $controllerName, string $action, array $params): void;
+    public function beforeController(string &$controllerName, string &$action, array &$params);
 
     /**
-     * Handle exception
-     * @param \Throwable $exception
-     * @return void
+     * Init after controller
+     * @param string $controllerName
+     * @param string $action
+     * @param array $params
      */
-    public function handleException(Throwable $exception): void;
+    public function afterController(string $controllerName, string $action, array $params);
 
     /**
-     * Log the request
-     * @param array &$logContent
-     * @return void
+     * Init after bootstrap
      */
-    public function log(array &$logContent): void;
+    public function afterBootstrap();
+
+    /**
+     * After exception handler
+     * @param Throwable $exception
+     */
+    public function handleException(Throwable $exception);
+
+    /**
+     * Modify log content
+     * @param array $logContent
+     * @return mixed
+     */
+    public function log(array &$logContent);
 
     /**
      * After log
      * @param array $logContent
-     * @return void
+     * @return mixed
      */
-    public function afterLog(array $logContent): void;
+    public function afterLog(array $logContent);
 
 }

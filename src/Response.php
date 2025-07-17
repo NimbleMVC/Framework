@@ -4,7 +4,6 @@ namespace NimblePHP\Framework;
 
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
-use NimblePHP\Framework\Interfaces\ResponseMiddlewareInterface;
 
 /**
  * Response
@@ -43,12 +42,6 @@ class Response implements ResponseInterface
     protected RequestInterface $request;
 
     /**
-     * Response middleware
-     * @var array
-     */
-    protected array $middleware = [];
-
-    /**
      * Costructor
      */
     public function __construct()
@@ -72,9 +65,7 @@ class Response implements ResponseInterface
      */
     public function setContent($content): void
     {
-        $this->runMiddleware('beforeSetContent', $this, $content);
         $this->content = $content;
-        $this->runMiddleware('afterSetContent', $this, $content);
     }
 
     /**
@@ -109,13 +100,11 @@ class Response implements ResponseInterface
      */
     public function setStatusCode(int $code, string $text = ''): void
     {
-        $this->runMiddleware('beforeSetStatusCode', $this, $code);
         $this->statusCode = $code;
 
         if (!empty($text)) {
             $this->statusText = $text;
         }
-        $this->runMiddleware('afterSetStatusCode', $this, $code);
     }
 
     /**
@@ -126,9 +115,7 @@ class Response implements ResponseInterface
      */
     public function addHeader(string $name, string $value): void
     {
-        $this->runMiddleware('beforeSetHeader', $this, $name, $value);
         $this->headers[$name] = $value;
-        $this->runMiddleware('afterSetHeader', $this, $name, $value);
     }
 
     /**
@@ -138,8 +125,6 @@ class Response implements ResponseInterface
      */
     public function send(bool $die = false): void
     {
-        $this->runMiddleware('beforeSend', $this);
-        
         if ($die) {
             ob_clean();
         }
@@ -157,8 +142,6 @@ class Response implements ResponseInterface
         }
 
         echo $this->content;
-        
-        $this->runMiddleware('afterSend', $this);
     }
 
     /**
@@ -183,22 +166,4 @@ class Response implements ResponseInterface
         exit();
     }
 
-    /**
-     * Run response middleware
-     * @param string $method
-     * @param mixed ...$args
-     * @return void
-     */
-    protected function runMiddleware(string $method, ...$args): void
-    {
-        foreach ($this->middleware as $middlewareClass) {
-            if (class_exists($middlewareClass)) {
-                $middleware = new $middlewareClass();
-                
-                if ($middleware instanceof ResponseMiddlewareInterface && method_exists($middleware, $method)) {
-                    $middleware->$method(...$args);
-                }
-            }
-        }
-    }
 }

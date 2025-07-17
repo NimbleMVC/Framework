@@ -12,7 +12,6 @@ use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
 use NimblePHP\Framework\Traits\LoadModelTrait;
 use NimblePHP\Framework\Traits\LogTrait;
-use NimblePHP\Framework\Interfaces\ModelMiddlewareInterface;
 
 /**
  * Abstract model
@@ -60,12 +59,6 @@ abstract class AbstractModel implements ModelInterface
     public array $conditions = [];
 
     /**
-     * Model middleware
-     * @var array
-     */
-    protected array $middleware = [];
-
-    /**
      * After construct method
      * @return void
      * @action disabled
@@ -86,13 +79,10 @@ abstract class AbstractModel implements ModelInterface
             throw new DatabaseException('Database is disabled');
         }
 
-        $this->runMiddleware('beforeInsert', $data);
-
         try {
             $create = $this->table->insert($data);
             $this->setId($this->table->getId());
 
-            $this->runMiddleware('afterInsert', $data, $create);
             return $create;
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -111,16 +101,11 @@ abstract class AbstractModel implements ModelInterface
             throw new DatabaseException('Database is disabled');
         }
 
-        $this->runMiddleware('beforeSave', $data);
-
         if (is_null($this->getId())) {
-            $result = $this->create($data);
-        } else {
-            $result = $this->update($data);
+            return $this->create($data);
         }
 
-        $this->runMiddleware('afterSave', $data, $result);
-        return $result;
+        return $this->update($data);
     }
 
     /**
@@ -137,14 +122,10 @@ abstract class AbstractModel implements ModelInterface
             throw new DatabaseException('Database is disabled');
         }
 
-        $this->runMiddleware('beforeFind', $condition);
-
         try {
             $condition = $this->prepareCondition($condition);
-            $result = $this->table->find($condition, $columns, $orderBy);
 
-            $this->runMiddleware('afterFind', $condition, $result);
-            return $result;
+            return $this->table->find($condition, $columns, $orderBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -190,14 +171,10 @@ abstract class AbstractModel implements ModelInterface
             throw new DatabaseException('Database is disabled');
         }
 
-        $this->runMiddleware('beforeFind', $condition);
-
         try {
             $condition = $this->prepareCondition($condition);
-            $result = $this->table->findAll($condition, $columns, $orderBy, $limit, $groupBy);
 
-            $this->runMiddleware('afterFind', $condition, $result);
-            return $result;
+            return $this->table->findAll($condition, $columns, $orderBy, $limit, $groupBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -217,13 +194,8 @@ abstract class AbstractModel implements ModelInterface
             return false;
         }
 
-        $conditions = ['id' => $this->getId()];
-        $this->runMiddleware('beforeUpdate', $data, $conditions);
-
         try {
-            $result = $this->table->update($data);
-            $this->runMiddleware('afterUpdate', $data, $conditions, $result);
-            return $result;
+            return $this->table->update($data);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -242,13 +214,8 @@ abstract class AbstractModel implements ModelInterface
             return false;
         }
 
-        $conditions = ['id' => $this->getId()];
-        $this->runMiddleware('beforeDelete', $conditions);
-
         try {
-            $result = $this->table->delete($this->getId());
-            $this->runMiddleware('afterDelete', $conditions, $result);
-            return $result;
+            return $this->table->delete($this->getId());
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -266,12 +233,8 @@ abstract class AbstractModel implements ModelInterface
             throw new DatabaseException('Database is disabled');
         }
 
-        $this->runMiddleware('beforeDelete', $conditions);
-
         try {
-            $result = $this->table->deleteByConditions($conditions);
-            $this->runMiddleware('afterDelete', $conditions, $result);
-            return $result;
+            return $this->table->deleteByConditions($conditions);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -289,7 +252,7 @@ abstract class AbstractModel implements ModelInterface
     /**
      * Set element id
      * @param int|null $id
-     * @return static
+     * @return self
      */
     public function setId(?int $id = null): self
     {
@@ -488,22 +451,4 @@ abstract class AbstractModel implements ModelInterface
         return $returnCondition;
     }
 
-    /**
-     * Run model middleware
-     * @param string $method
-     * @param mixed ...$args
-     * @return void
-     */
-    protected function runMiddleware(string $method, ...$args): void
-    {
-        foreach ($this->middleware as $middlewareClass) {
-            if (class_exists($middlewareClass)) {
-                $middleware = new $middlewareClass();
-
-                if ($middleware instanceof ModelMiddlewareInterface && method_exists($middleware, $method)) {
-                    $middleware->$method(...$args);
-                }
-            }
-        }
-    }
 }
