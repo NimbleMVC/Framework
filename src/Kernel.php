@@ -342,11 +342,13 @@ class Kernel implements KernelInterface
         }
 
         if ($exception->getPrevious()) {
-            $data['previous_message'] = $exception->getPrevious()->getMessage();
-            $data['previous_backtrace'] = $exception->getPrevious()->getTraceAsString();
+            $previous = $exception->getPrevious();
+            $data['previous_message'] = $previous->getMessage();
+            $data['previous_backtrace'] = $previous->getTraceAsString();
 
-            if (method_exists($exception->getPrevious(), 'getHiddenMessage')) {
-                $data['previous_hidden_message'] = $exception->getPrevious()->getHiddenMessage();
+            if (method_exists($previous, 'getHiddenMessage')) {
+                /** @var HiddenException $previous */
+                $data['previous_hidden_message'] = $previous->getHiddenMessage();
             }
         }
 

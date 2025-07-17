@@ -162,4 +162,14 @@ class SimpleRoute implements RouteInterface
         return true;
     }
 
+    /**
+     * Register routes
+     * @param string $controllerPath
+     * @param string $namespace
+     * @return void
+     */
+    public static function registerRoutes(string $controllerPath, string $namespace): void
+    {
+    }
+
 }
