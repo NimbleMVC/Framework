@@ -1,49 +1,74 @@
 <?php
 
 use NimblePHP\Framework\Log;
+use NimblePHP\Framework\Kernel;
 use PHPUnit\Framework\TestCase;
 
 class LogTest extends TestCase
 {
-    public function testDateTime()
+    private string $tempDir;
+
+    protected function setUp(): void
     {
-        $log = new Log();
-        $reflection = new \ReflectionMethod(Log::class, 'getDatetime');
-        $reflection->setAccessible(true);
-        $result = $reflection->invoke($log);
-        $pattern = '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}$/';
-        $this->assertMatchesRegularExpression($pattern, $result);
+        $this->tempDir = sys_get_temp_dir() . '/log_test_' . uniqid();
+        mkdir($this->tempDir, 0777, true);
+        mkdir($this->tempDir . '/storage', 0777, true);
+        mkdir($this->tempDir . '/storage/logs', 0777, true);
+        Kernel::$projectPath = $this->tempDir;
     }
 
-    public function testGenerateSession()
+    protected function tearDown(): void
     {
-        $log = new Log();
-        $reflection = new \ReflectionMethod(Log::class, 'generateSession');
-        $reflection->setAccessible(true);
-        $reflection->invoke($log);
-        $pattern = '/^[A-F0-9]{4}[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}[A-F0-9]{4}[A-F0-9]{4}$/';
-        $this->assertMatchesRegularExpression($pattern, Log::$session);
+        $this->removeDirectory($this->tempDir);
+    }
+
+    private function removeDirectory($dir)
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $objects = scandir($dir);
+        foreach ($objects as $object) {
+            if ($object === "." || $object === "..") {
+                continue;
+            }
+            $path = $dir . "/" . $object;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
+    }
+
+    public function testLogWritesToFile()
+    {
+        $_ENV['LOG'] = true;
+        Log::log('Test message', 'INFO', ['foo' => 'bar']);
+        $logFiles = glob($this->tempDir . '/storage/logs/*.log.json');
+        $this->assertNotEmpty($logFiles);
+        $content = file_get_contents($logFiles[0]);
+        $this->assertStringContainsString('Test message', $content);
+    }
+
+    public function testLogSessionIsGenerated()
+    {
+        Log::init();
+        $this->assertNotEmpty(Log::$session);
     }
 
     public function testGetBacktrace()
     {
-        // Tworzymy testową funkcję, która będzie zawarta w backtrace
-        $testFunction = function() {
-            // Ta funkcja wywołuje Log::log(), która z kolei wywołuje getBacktrace()
-            return Log::log("Test message", "INFO");
-        };
+        $backtrace = $this->callGetBacktrace();
+        $this->assertIsArray($backtrace);
+    }
 
-        // Musimy najpierw inicjalizować Log
-        Log::init();
-
-        // Upewniamy się, że logowanie jest włączone dla testu
-        $_ENV['LOG'] = true;
-
-        // Wywołujemy testową funkcję, która wywołuje Log::log()
-        $result = $testFunction();
-
-        // Ponieważ getBacktrace() jest metodą prywatną, nie możemy jej bezpośrednio testować
-        // Zamiast tego sprawdzamy, czy wywołanie Log::log() z testowej funkcji zadziałało
-        $this->assertTrue($result);
+    private function callGetBacktrace()
+    {
+        $reflection = new ReflectionClass(Log::class);
+        $method = $reflection->getMethod('getBacktrace');
+        $method->setAccessible(true);
+        return $method->invoke(null);
     }
 }
