@@ -37,13 +37,13 @@ class LogTestExtended extends TestCase
         if ($reflectionClass->hasProperty('session')) {
             $sessionProperty = $reflectionClass->getProperty('session');
             $sessionProperty->setAccessible(true);
-            $sessionProperty->setValue(null);
+            $sessionProperty->setValue(null, null);
         }
 
         if ($reflectionClass->hasProperty('storage')) {
             $storageProperty = $reflectionClass->getProperty('storage');
             $storageProperty->setAccessible(true);
-            $storageProperty->setValue(null);
+            $storageProperty->setValue(null, null);
         }
     }
 
