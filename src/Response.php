@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework;
 
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 
@@ -73,6 +74,7 @@ class Response implements ResponseInterface
      * @param array $content
      * @param bool $addHeader
      * @return void
+     * @throws NimbleException
      */
     public function setJsonContent(array $content = [], bool $addHeader = true): void
     {
@@ -80,7 +82,13 @@ class Response implements ResponseInterface
             $this->addHeader('Content-Type', 'application/json');
         }
 
-        $this->content = json_encode($content);
+        $jsonContent = json_encode($content);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new NimbleException('JSON encoding failed: ' . json_last_error_msg());
+        }
+
+        $this->content = $jsonContent;
     }
 
     /**
