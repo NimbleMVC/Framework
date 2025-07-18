@@ -14,8 +14,8 @@ class Cache
     #[ConsoleCommand('cache:clear', 'Clear cache')]
     public function cacheClear(): void
     {
-        $storage = new Storage('cache');
-        $storage->delete(Route::$cacheFile);
+        $cache = new \NimblePHP\Framework\Cache();
+        $cache->delete(Route::$cacheKey);
 
         foreach (glob(Kernel::$projectPath . "/storage/session/sess_*") as $file) {
             unlink($file);
