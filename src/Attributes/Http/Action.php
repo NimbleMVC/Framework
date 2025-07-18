@@ -47,8 +47,9 @@ class Action
                 throw new NotFoundException('Method ' . $method . ' is disabled');
             case 'ajax':
                 if (!(new Request())->isAjax()) {
-                    throw new NotFoundException('Method ' . $method . ' is not allowed for AJAX requests');
+                    throw new NotFoundException('Method ' . $method . ' is allowed only for AJAX requests');
                 }
+
                 break;
         }
     }

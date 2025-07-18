@@ -12,14 +12,15 @@ use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Attributes\Http\Action;
+use NimblePHP\Framework\Container\ServiceContainer;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
-use NimblePHP\Framework\Interfaces\MiddlewareInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Middleware\MiddlewareManager;
 use ReflectionMethod;
 use Throwable;
 use Whoops\Handler\PrettyPageHandler;
@@ -38,10 +39,16 @@ class Kernel implements KernelInterface
     public static string $projectPath;
 
     /**
-     * Middleware class
-     * @var MiddlewareInterface
+     * Middleware manager
+     * @var MiddlewareManager
      */
-    public static MiddlewareInterface $middleware;
+    public static MiddlewareManager $middlewareManager;
+
+    /**
+     * Service container
+     * @var ServiceContainer
+     */
+    public static ServiceContainer $serviceContainer;
 
     /**
      * Route class
@@ -78,6 +85,24 @@ class Kernel implements KernelInterface
 
         $this->loadConfiguration();
         $this->initializeDebugHandler();
+        $this->autoloader();
+        self::$middlewareManager = new MiddlewareManager();
+        self::$serviceContainer = ServiceContainer::getInstance();
+
+        $this->registerServices();
+    }
+
+    /**
+     * Register services
+     * @return void
+     */
+    protected function registerServices(): void
+    {
+        self::$serviceContainer->set('kernel.router', $this->router);
+        self::$serviceContainer->set('kernel.request', $this->request);
+        self::$serviceContainer->set('kernel.response', $this->response);
+        self::$serviceContainer->set('kernel.session', new Session());
+        self::$serviceContainer->set('kernel.cache', new Cache());
     }
 
     /**
@@ -138,13 +163,8 @@ class Kernel implements KernelInterface
         $this->initializeSession();
         $this->debug();
         $this->connectToDatabase();
-        $this->autoloader();
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
-
-        if (isset(self::$middleware)) {
-            self::$middleware->afterBootstrap();
-        }
-
+        self::$middlewareManager->runHook('afterBootstrap');
         $this->loadModules();
     }
 
@@ -246,12 +266,6 @@ class Kernel implements KernelInterface
                 require($file);
             }
         });
-
-        if (class_exists('Middleware')) {
-            self::$middleware = new \Middleware();
-        } else {
-            self::$middleware = new Middleware();
-        }
     }
 
     /**
@@ -262,24 +276,16 @@ class Kernel implements KernelInterface
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
-
         $params = $this->router->getParams();
 
-        if (isset(self::$middleware)) {
-            self::$middleware->beforeController($controllerName, $methodName, $params);
-
-            if ($controllerName !== $this->router->getController()) {
-                $this->router->setController($controllerName);
-            }
-
-            if ($methodName !== $this->router->getMethod()) {
-                $this->router->setMethod($methodName);
-            }
-
-            if ($params !== $this->router->getParams()) {
-                $this->router->setParams($params);
-            }
-        }
+        $controllerMiddlewareContext = ['controllerName' => $controllerName, 'methodName' => $methodName, 'params' => $params];
+        Kernel::$middlewareManager->runHookWithReference('beforeController', $controllerMiddlewareContext);
+        $this->router->setController($controllerMiddlewareContext['controllerName']);
+        $this->router->setMethod($controllerMiddlewareContext['methodName']);;
+        $this->router->setParams($controllerMiddlewareContext['params']);
+        $controllerName = $this->router->getController();
+        $methodName = $this->router->getMethod();
+        $params = $this->router->getParams();
 
         if (!$this->router->validate()) {
             throw new NotFoundException('Route /' . $controllerName . (!is_null($methodName) ? '/' . $methodName : '') . ' does not exist');
@@ -317,9 +323,7 @@ class Kernel implements KernelInterface
 
         call_user_func_array([$controller, $methodName], $params);
 
-        if (isset(self::$middleware)) {
-            self::$middleware->afterController($controllerName, $methodName, $params);
-        }
+        Kernel::$middlewareManager->runHook('afterController', [$controllerName, $methodName, $params]);
     }
 
     /**
@@ -353,10 +357,6 @@ class Kernel implements KernelInterface
         }
 
         Log::log($message, 'FATAL_ERR', $data);
-
-        if (isset(self::$middleware)) {
-            self::$middleware->handleException($exception);
-        }
 
         throw $exception;
     }
