@@ -95,14 +95,6 @@ class Cron
             throw new NimbleException('Type must be "model"');
         }
 
-        $this->log('Add cron job', 'INFO', [
-            'type' => $type,
-            'name' => $name,
-            'action' => $action,
-            'parameters' => $parameters,
-            'priority' => $priority
-        ]);
-
         $this->table->setId(null)->insert([
             'type' => $type,
             'name' => $name,
@@ -132,7 +124,6 @@ class Cron
                 return false;
             }
 
-            $this->log('Run cron job', 'INFO', ['job' => $job]);
             $this->updateStatus($job[$this->table->getName()]['id'], 'processing');
             $this->databaseLock->unlock('cron_run_jobs');
 
@@ -147,7 +138,6 @@ class Cron
             }
 
             $this->table->delete($job[$this->table->getName()]['id']);
-            $this->log('End cron job');
 
             return true;
         } catch (Exception $exception) {
