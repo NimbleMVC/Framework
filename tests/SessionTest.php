@@ -23,6 +23,11 @@ class SessionTest extends TestCase
             mkdir(Kernel::$projectPath . '/storage/session', 0777, true);
         }
 
+        // Jeżeli istnieje już sesja, zamykamy ją przed zmianą ini_set
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         // Ustawiamy driver sesji na 'file'
         $_ENV['SESSION_DRIVER'] = 'file';
 
@@ -31,11 +36,6 @@ class SessionTest extends TestCase
         ini_set('session.use_only_cookies', 0);
         ini_set('session.use_trans_sid', 0);
         ini_set('session.cache_limiter', '');
-
-        // Jeśli istnieje już sesja, zamykamy ją
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-        }
     }
 
     protected function tearDown(): void

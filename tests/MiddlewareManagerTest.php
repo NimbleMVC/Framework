@@ -90,7 +90,8 @@ class MiddlewareManagerTest extends TestCase
         $middleware = new TestHookMiddleware();
         $this->middlewareManager->add($middleware);
 
-        $this->middlewareManager->runHook('testHook', ['arg1', 'arg2']);
+        $context = ['arg1', 'arg2'];
+        $this->middlewareManager->runHook('testHook', [&$context]);
         $this->assertTrue($middleware->hookCalled);
     }
 
@@ -100,7 +101,7 @@ class MiddlewareManagerTest extends TestCase
         $middleware = new TestHookMiddleware();
         $this->middlewareManager->add($middleware);
 
-        $this->middlewareManager->runHookWithReference('testHook', $data);
+        $this->middlewareManager->runHookWithReference('testHook', $data); // &$data
         $this->assertTrue($data['modified']);
     }
 

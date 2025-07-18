@@ -11,7 +11,7 @@ class ModuleRegisterTest extends TestCase
         $reflectionClass = new ReflectionClass(ModuleRegister::class);
         $modulesProperty = $reflectionClass->getProperty('modules');
         $modulesProperty->setAccessible(true);
-        $modulesProperty->setValue([]);
+        $modulesProperty->setValue(null, []);
     }
 
     public function testRegisterAndGet()

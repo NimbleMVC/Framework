@@ -19,7 +19,7 @@ class SimpleRouteTest extends TestCase
         $reflectionClass = new ReflectionClass(SimpleRoute::class);
         $routesProperty = $reflectionClass->getProperty('routes');
         $routesProperty->setAccessible(true);
-        $routesProperty->setValue([]);
+        $routesProperty->setValue(null, []);
     }
 
     public function testAddAndGetRoutes()
