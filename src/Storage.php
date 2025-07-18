@@ -144,6 +144,15 @@ class Storage
     }
 
     /**
+     * Get base path
+     * @return string
+     */
+    public function getPath(): string
+    {
+        return $this->basePath;
+    }
+
+    /**
      * Copy a file to a new location
      * @param string $sourcePath
      * @param string $destinationPath inside storage

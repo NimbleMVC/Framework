@@ -7,7 +7,7 @@ use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Libs\Classes;
-use NimblePHP\Framework\Storage;
+use NimblePHP\Framework\Cache;
 use ReflectionClass;
 
 /**
@@ -23,10 +23,10 @@ class Route implements RouteInterface
     protected static array $routes = [];
 
     /**
-     * Route cache file path
+     * Route cache key
      * @var string
      */
-    public static string $cacheFile = 'framework/route.cache';
+    public static string $cacheKey = 'framework_routes';
 
     /**
      * Current controller name
@@ -522,21 +522,19 @@ class Route implements RouteInterface
      * @param string $controllerPath
      * @param string $namespace
      * @return void
-     * @throws NimbleException
      */
     public static function registerRoutes(string $controllerPath, string $namespace): void
     {
         $cacheEnabled = $_ENV['CACHE_ROUTE'] ?? false;
+        $cache = new Cache();
 
         if ($cacheEnabled) {
-            $storage = new Storage('cache');
-
-            if ($storage->exists(self::$cacheFile)) {
-                $cacheTimestamp = filemtime($storage->getFullPath(self::$cacheFile));
+            if ($cache->has(self::$cacheKey)) {
+                $cachedData = $cache->get(self::$cacheKey);
                 $controllersDirTimestamp = filemtime($controllerPath);
 
-                if ($cacheTimestamp > $controllersDirTimestamp) {
-                    self::$routes = unserialize($storage->get(self::$cacheFile));
+                if (isset($cachedData['timestamp']) && $cachedData['timestamp'] >= $controllersDirTimestamp) {
+                    self::$routes = $cachedData['routes'];
                     return;
                 }
             }
@@ -562,8 +560,11 @@ class Route implements RouteInterface
             }
         }
 
-        if ($cacheEnabled && isset($storage)) {
-            $storage->put(self::$cacheFile, serialize(self::$routes));
+        if ($cacheEnabled) {
+            $cache->set(self::$cacheKey, [
+                'routes' => self::$routes,
+                'timestamp' => time()
+            ]);
         }
     }
 }

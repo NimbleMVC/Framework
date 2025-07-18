@@ -51,6 +51,23 @@ class Log
             return false;
         }
 
+        if (isset(Kernel::$middlewareManager)) {
+            Kernel::$middlewareManager->runHookWithReference('beforeLog', $message);
+        }
+
+        if ($level === 'ERR') {
+            $level = 'ERROR';
+        } elseif ($level === 'FATAL_ERR' || $level === 'FATAL_ERROR') {
+            $level = 'CRITICAL';
+        }
+
+        $allowedLevels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+        $level = strtoupper($level);
+
+        if (!in_array($level, $allowedLevels)) {
+            $level = 'INFO';
+        }
+
         try {
             self::init();
 
@@ -69,8 +86,8 @@ class Log
                 'session' => self::$session
             ];
 
-            if (isset(Kernel::$middleware)) {
-                Kernel::$middleware->log($logContent);
+            if (isset(Kernel::$middlewareManager)) {
+                Kernel::$middlewareManager->runHookWithReference('afterLog', $logContent);
             }
 
             $jsonLogData = json_encode($logContent);
@@ -79,15 +96,44 @@ class Log
                 return false;
             }
 
-            $return = self::$storage->append(date('Y_m_d') . '.log.json', $jsonLogData);
+            $filename = date('Y_m_d') . '.log.json';
+            $return = self::$storage->append($filename, $jsonLogData);
 
-            if (isset(Kernel::$middleware)) {
-                Kernel::$middleware->afterLog($logContent);
-            }
+            self::rotateLogs($filename);
 
             return $return;
         } catch (Exception) {
             return false;
+        }
+    }
+
+    /**
+     * Rotate logs
+     * @param string $currentFile
+     * @return void
+     */
+    private static function rotateLogs(string $currentFile): void
+    {
+        $maxSize = 10 * 1024 * 1024;
+        $maxFiles = 30;
+
+        $filePath = self::$storage->getPath() . '/' . $currentFile;
+
+        if (file_exists($filePath) && filesize($filePath) > $maxSize) {
+            $backupFile = $filePath . '.' . time();
+            rename($filePath, $backupFile);
+        }
+
+        $logFiles = glob(self::$storage->getPath() . '/*.log.json.*');
+        if (count($logFiles) > $maxFiles) {
+            usort($logFiles, function($a, $b) {
+                return filemtime($a) - filemtime($b);
+            });
+
+            $filesToDelete = array_slice($logFiles, 0, count($logFiles) - $maxFiles);
+            foreach ($filesToDelete as $file) {
+                unlink($file);
+            }
         }
     }
 

@@ -259,4 +259,36 @@ readonly class Request implements RequestInterface
         return $protect ? (is_array($data) ? Arrays::htmlSpecialChars($data) : htmlspecialchars($data)) : $data;
     }
 
+    /**
+     * Validate input
+     * @param string $key
+     * @param string $type
+     * @param array $options
+     * @return mixed
+     */
+    public function validateInput(string $key, string $type = 'string', array $options = []): mixed
+    {
+        $value = $this->getQuery($key) ?? $this->getPost($key);
+
+        if ($value === null) {
+            return null;
+        }
+
+        switch ($type) {
+            case 'email':
+                return filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : null;
+            case 'int':
+                return filter_var($value, FILTER_VALIDATE_INT) !== false ? (int)$value : null;
+            case 'float':
+                return filter_var($value, FILTER_VALIDATE_FLOAT) !== false ? (float)$value : null;
+            case 'url':
+                return filter_var($value, FILTER_VALIDATE_URL) ? $value : null;
+            case 'ip':
+                return filter_var($value, FILTER_VALIDATE_IP) ? $value : null;
+            case 'string':
+            default:
+                return is_string($value) ? $value : null;
+        }
+    }
+
 }

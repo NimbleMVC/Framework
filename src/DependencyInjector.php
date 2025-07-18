@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework;
 
+use NimblePHP\Framework\Abstracts\AbstractModel;
 use NimblePHP\Framework\Attributes\DependencyInjection\Inject;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
@@ -46,6 +47,7 @@ class DependencyInjector
                     if ($object instanceof ControllerInterface) {
                         $dependencyInjector->controller = $object;
                     } elseif ($object instanceof ModelInterface || property_exists($object, 'controller')) {
+                        /** @var AbstractModel $object */
                         $dependencyInjector->controller = $object->controller;
                     }
 
