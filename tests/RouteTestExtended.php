@@ -16,7 +16,7 @@ class RouteTestExtended extends TestCase
         $reflectionClass = new ReflectionClass(Route::class);
         $routesProperty = $reflectionClass->getProperty('routes');
         $routesProperty->setAccessible(true);
-        $routesProperty->setValue([]);
+        $routesProperty->setValue(null, []);
     }
 
     public function testAddRouteWithSpecificHttpMethods()
