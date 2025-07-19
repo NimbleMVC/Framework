@@ -6,7 +6,6 @@ use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Routes\Route;
-use NimblePHP\Framework\Storage;
 
 class Cache
 {

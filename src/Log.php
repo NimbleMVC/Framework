@@ -126,7 +126,7 @@ class Log
 
         $logFiles = glob(self::$storage->getPath() . '/*.log.json.*');
         if (count($logFiles) > $maxFiles) {
-            usort($logFiles, function($a, $b) {
+            usort($logFiles, function ($a, $b) {
                 return filemtime($a) - filemtime($b);
             });
 

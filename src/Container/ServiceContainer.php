@@ -96,7 +96,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
 
         $this->resolving[$resolvedId] = true;
 
-                try {
+        try {
             if (isset($this->factories[$resolvedId])) {
                 return call_user_func($this->factories[$resolvedId], $this);
             } elseif (isset($this->services[$resolvedId])) {
