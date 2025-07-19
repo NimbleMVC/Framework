@@ -1,7 +1,7 @@
 <?php
 
-use NimblePHP\Framework\Routes\SimpleRoute;
 use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Routes\SimpleRoute;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -1,9 +1,9 @@
 <?php
 
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Routes\Route;
 use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Response;
+use NimblePHP\Framework\Routes\Route;
 use PHPUnit\Framework\TestCase;
 
 class KernelTest extends TestCase

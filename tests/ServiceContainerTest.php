@@ -25,7 +25,7 @@ class ServiceContainerTest extends TestCase
 
     public function testSetAndGetFactory()
     {
-        $this->container->setFactory('response', function($container) {
+        $this->container->setFactory('response', function ($container) {
             return new Response();
         });
 
@@ -47,7 +47,9 @@ class ServiceContainerTest extends TestCase
 
     public function testHasFactory()
     {
-        $this->container->setFactory('test', function() { return 'value'; });
+        $this->container->setFactory('test', function () {
+            return 'value';
+        });
         $this->assertTrue($this->container->has('test'));
     }
 
@@ -62,7 +64,9 @@ class ServiceContainerTest extends TestCase
 
     public function testRemoveFactory()
     {
-        $this->container->setFactory('test', function() { return 'value'; });
+        $this->container->setFactory('test', function () {
+            return 'value';
+        });
         $this->assertTrue($this->container->has('test'));
 
         $this->container->remove('test');
@@ -101,7 +105,9 @@ class ServiceContainerTest extends TestCase
     public function testGetRegisteredServices()
     {
         $this->container->set('service1', 'value1');
-        $this->container->setFactory('factory1', function() { return 'value'; });
+        $this->container->setFactory('factory1', function () {
+            return 'value';
+        });
 
         $registered = $this->container->getRegisteredServices();
         $this->assertContains('service1', $registered);
@@ -111,7 +117,9 @@ class ServiceContainerTest extends TestCase
     public function testClear()
     {
         $this->container->set('service1', 'value1');
-        $this->container->setFactory('factory1', function() { return 'value'; });
+        $this->container->setFactory('factory1', function () {
+            return 'value';
+        });
         $this->container->setAlias('alias1', 'service1');
 
         $this->container->clear();
@@ -133,7 +141,9 @@ class ServiceContainerTest extends TestCase
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Service ID cannot be empty');
-        $this->container->setFactory('', function() { return 'value'; });
+        $this->container->setFactory('', function () {
+            return 'value';
+        });
     }
 
     public function testGetEmptyIdThrowsException()
@@ -173,11 +183,11 @@ class ServiceContainerTest extends TestCase
 
     public function testCircularDependencyDetection()
     {
-        $this->container->setFactory('service1', function($container) {
+        $this->container->setFactory('service1', function ($container) {
             return $container->get('service2');
         });
 
-        $this->container->setFactory('service2', function($container) {
+        $this->container->setFactory('service2', function ($container) {
             return $container->get('service1');
         });
 
@@ -189,7 +199,7 @@ class ServiceContainerTest extends TestCase
     public function testFactoryWithContainerDependency()
     {
         $this->container->set('dependency', 'dep_value');
-        $this->container->setFactory('service', function($container) {
+        $this->container->setFactory('service', function ($container) {
             return $container->get('dependency');
         });
 
@@ -207,15 +217,21 @@ class ServiceContainerTest extends TestCase
 
     public function testFactoryOverwrite()
     {
-        $this->container->setFactory('test', function() { return 'value1'; });
-        $this->container->setFactory('test', function() { return 'value2'; });
+        $this->container->setFactory('test', function () {
+            return 'value1';
+        });
+        $this->container->setFactory('test', function () {
+            return 'value2';
+        });
 
         $this->assertEquals('value2', $this->container->get('test'));
     }
 
     public function testServiceOverwritesFactory()
     {
-        $this->container->setFactory('test', function() { return 'factory_value'; });
+        $this->container->setFactory('test', function () {
+            return 'factory_value';
+        });
         $this->container->set('test', 'service_value');
 
         $this->assertEquals('factory_value', $this->container->get('test'));
@@ -224,7 +240,9 @@ class ServiceContainerTest extends TestCase
     public function testFactoryOverwritesService()
     {
         $this->container->set('test', 'service_value');
-        $this->container->setFactory('test', function() { return 'factory_value'; });
+        $this->container->setFactory('test', function () {
+            return 'factory_value';
+        });
 
         $this->assertEquals('factory_value', $this->container->get('test'));
     }

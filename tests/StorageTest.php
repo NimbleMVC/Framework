@@ -1,8 +1,7 @@
 <?php
 
-use NimblePHP\Framework\Storage;
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Storage;
 use PHPUnit\Framework\TestCase;
 
 class StorageTest extends TestCase

@@ -1,7 +1,6 @@
 <?php
 
 use NimblePHP\Framework\Response;
-use NimblePHP\Framework\Request;
 use PHPUnit\Framework\TestCase;
 
 class ResponseTest extends TestCase

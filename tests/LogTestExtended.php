@@ -1,7 +1,7 @@
 <?php
 
-use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Storage;
 use PHPUnit\Framework\TestCase;
 
@@ -201,7 +201,7 @@ class LogTestExtended extends TestCase
     public function testGetBacktrace()
     {
         // Define a function that will call log() and then getBacktrace()
-        $testFunction = function() {
+        $testFunction = function () {
             $reflectionMethod = new ReflectionMethod(Log::class, 'getBacktrace');
             $reflectionMethod->setAccessible(true);
 

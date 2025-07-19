@@ -1,8 +1,8 @@
 <?php
 
+use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Routes\Route;
-use NimblePHP\Framework\Exception\NotFoundException;
 use PHPUnit\Framework\TestCase;
 
 class RouteTest extends TestCase

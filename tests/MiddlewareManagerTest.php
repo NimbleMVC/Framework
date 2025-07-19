@@ -47,7 +47,7 @@ class MiddlewareManagerTest extends TestCase
         $middleware = new TestMiddleware();
         $this->middlewareManager->add($middleware);
 
-        $finalHandler = function($request) {
+        $finalHandler = function ($request) {
             return 'final';
         };
 
@@ -57,13 +57,13 @@ class MiddlewareManagerTest extends TestCase
 
     public function testHandleWithCallableMiddleware()
     {
-        $middleware = function($request, $next) {
+        $middleware = function ($request, $next) {
             return 'response';
         };
 
         $this->middlewareManager->add($middleware);
 
-        $finalHandler = function($request) {
+        $finalHandler = function ($request) {
             return 'final';
         };
 
@@ -78,7 +78,7 @@ class MiddlewareManagerTest extends TestCase
 
         $this->middlewareManager->add('NonExistentClass');
 
-        $finalHandler = function($request) {
+        $finalHandler = function ($request) {
             return 'final';
         };
 
@@ -136,7 +136,7 @@ class MiddlewareManagerTest extends TestCase
         $middleware = new TestBootstrapMiddleware();
         $this->middlewareManager->add($middleware);
 
-        $finalHandler = function($request) {
+        $finalHandler = function ($request) {
             return 'response';
         };
 
@@ -148,12 +148,12 @@ class MiddlewareManagerTest extends TestCase
     {
         $executionOrder = [];
 
-        $middleware1 = function($request, $next) use (&$executionOrder) {
+        $middleware1 = function ($request, $next) use (&$executionOrder) {
             $executionOrder[] = 1;
             return $next($request);
         };
 
-        $middleware2 = function($request, $next) use (&$executionOrder) {
+        $middleware2 = function ($request, $next) use (&$executionOrder) {
             $executionOrder[] = 2;
             return $next($request);
         };
@@ -161,7 +161,7 @@ class MiddlewareManagerTest extends TestCase
         $this->middlewareManager->add($middleware1, 1);
         $this->middlewareManager->add($middleware2, 2);
 
-        $finalHandler = function($request) use (&$executionOrder) {
+        $finalHandler = function ($request) use (&$executionOrder) {
             $executionOrder[] = 'final';
             return 'response';
         };
@@ -173,18 +173,18 @@ class MiddlewareManagerTest extends TestCase
 
     public function testMiddlewareChain()
     {
-        $middleware1 = function($request, $next) {
+        $middleware1 = function ($request, $next) {
             return 'middleware1: ' . $next($request);
         };
 
-        $middleware2 = function($request, $next) {
+        $middleware2 = function ($request, $next) {
             return 'middleware2: ' . $next($request);
         };
 
         $this->middlewareManager->add($middleware1);
         $this->middlewareManager->add($middleware2);
 
-        $finalHandler = function($request) {
+        $finalHandler = function ($request) {
             return 'final';
         };
 

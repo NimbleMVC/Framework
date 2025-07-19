@@ -1,7 +1,7 @@
 <?php
 
-use NimblePHP\Framework\View;
 use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\View;
 use PHPUnit\Framework\TestCase;
 
 class ViewTest extends TestCase

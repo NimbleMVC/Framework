@@ -1,7 +1,7 @@
 <?php
 
-use NimblePHP\Framework\DependencyInjector;
 use NimblePHP\Framework\Attributes\DependencyInjection\Inject;
+use NimblePHP\Framework\DependencyInjector;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -45,21 +45,65 @@ class TestController implements ControllerInterface
 {
     #[Inject(TestService::class)]
     public $service;
-    public function loadModel(string $name): object { return new TestModel(); }
-    public function log(string $message, string $level = 'INFO', array $content = []): bool { return true; }
-    public function afterConstruct(): void {}
+
+    public function loadModel(string $name): object
+    {
+        return new TestModel();
+    }
+
+    public function log(string $message, string $level = 'INFO', array $content = []): bool
+    {
+        return true;
+    }
+
+    public function afterConstruct(): void
+    {
+    }
 }
 
 class TestControllerWithInvalidInject implements ControllerInterface
 {
     #[Inject('NonExistentClass')]
     public $service;
-    public function loadModel(string $name): object { return new TestModel(); }
-    public function log(string $message, string $level = 'INFO', array $content = []): bool { return true; }
-    public function afterConstruct(): void {}
+
+    public function loadModel(string $name): object
+    {
+        return new TestModel();
+    }
+
+    public function log(string $message, string $level = 'INFO', array $content = []): bool
+    {
+        return true;
+    }
+
+    public function afterConstruct(): void
+    {
+    }
 }
 
-class TestService { public function doSomething(): string { return 'Service result'; } }
-class TestModel { public $controller; #[Inject(TestRepository::class)] public $repository; }
-class TestRepository { public function find(): string { return 'Repository result'; } }
-class TestClassWithoutInject { public $normalProperty; }
+class TestService
+{
+    public function doSomething(): string
+    {
+        return 'Service result';
+    }
+}
+
+class TestModel
+{
+    public $controller;
+    #[Inject(TestRepository::class)] public $repository;
+}
+
+class TestRepository
+{
+    public function find(): string
+    {
+        return 'Repository result';
+    }
+}
+
+class TestClassWithoutInject
+{
+    public $normalProperty;
+}
