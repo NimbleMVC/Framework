@@ -66,7 +66,7 @@ class UserController extends AbstractController
 {
     public function index(): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $users = $userModel->getActiveUsers();
         
         $this->log('Pobrano listę użytkowników', 'INFO', ['count' => count($users)]);
@@ -77,7 +77,7 @@ class UserController extends AbstractController
     
     public function show(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $user = $userModel->read(['id' => $id]);
         
         if (empty($user)) {
@@ -100,7 +100,7 @@ class UserController extends AbstractController
                 $this->log('Nieprawidłowe dane użytkownika', 'WARNING', $data);
                 $error = "Nazwa i email są wymagane";
             } else {
-                $userModel = $this->loadModel('App\Models\UserModel');
+                $userModel = $this->loadModel(UserModel::class);
                 $success = $userModel->createUser($data);
                 
                 if ($success) {
@@ -121,7 +121,7 @@ class UserController extends AbstractController
     
     public function edit(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $user = $userModel->read(['id' => $id]);
         
         if (empty($user)) {
@@ -150,7 +150,7 @@ class UserController extends AbstractController
     
     public function delete(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $userModel->setId($id);
         $success = $userModel->delete();
         
@@ -256,7 +256,7 @@ class ApiController extends AbstractController
     public function getUsers(): void
     {
         try {
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $users = $userModel->readAll();
             
             $this->response->setJsonContent([
@@ -282,7 +282,7 @@ class ApiController extends AbstractController
     public function getUser(int $id): void
     {
         try {
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $user = $userModel->read(['id' => $id]);
             
             if (empty($user)) {
@@ -334,7 +334,7 @@ class ApiController extends AbstractController
                 return;
             }
             
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $success = $userModel->createUser($data);
             
             if ($success) {
@@ -425,7 +425,7 @@ class AuthController extends AbstractController
             $email = $this->request->getPost('email');
             $password = $this->request->getPost('password');
             
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $user = $userModel->findByEmail($email);
             
             if ($user && password_verify($password, $user['password'])) {
@@ -435,7 +435,7 @@ class AuthController extends AbstractController
                 $_SESSION['user_email'] = $user['email'];
                 
                 // Ładowanie uprawnień
-                $permissionModel = $this->loadModel('App\Models\PermissionModel');
+                $permissionModel = $this->loadModel(PermissionModel::class);
                 $_SESSION['permissions'] = $permissionModel->getUserPermissions($user['id']);
                 
                 $this->log('Użytkownik zalogował się', 'INFO', [
@@ -569,7 +569,7 @@ class ProductController extends AbstractController
         
         if ($products === null) {
             // Pobranie z bazy danych
-            $productModel = $this->loadModel('App\Models\ProductModel');
+            $productModel = $this->loadModel(ProductModel::class);
             $products = $productModel->readAll(['active' => 1]);
             
             // Zapisanie do cache na 1 godzinę
@@ -672,7 +672,7 @@ class AdminController extends AbstractController
     
     public function deleteUser(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $user = $userModel->read(['id' => $id]);
         
         if (empty($user)) {

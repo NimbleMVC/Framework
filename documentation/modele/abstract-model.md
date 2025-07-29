@@ -87,7 +87,7 @@ Tworzy nowy element w bazie danych.
 
 #### Przykład użycia
 ```php
-$userModel = $this->loadModel('App\Models\UserModel');
+$userModel = $this->loadModel(UserModel::class);
 $success = $userModel->create([
     'name' => 'Jan Kowalski',
     'email' => 'jan@example.com',
@@ -109,7 +109,7 @@ Tworzy nowy element lub aktualizuje istniejący (na podstawie ID).
 
 #### Przykład użycia
 ```php
-$userModel = $this->loadModel('App\Models\UserModel');
+$userModel = $this->loadModel(UserModel::class);
 $userModel->setId(123);
 $success = $userModel->save(['name' => 'Nowe imię']);
 ```

@@ -449,7 +449,7 @@ class UserModel extends AbstractModel
         
         if (!empty($user)) {
             // Pobieranie zamówień użytkownika
-            $orderModel = $this->loadModel('App\Models\OrderModel');
+            $orderModel = $this->loadModel(OrderModel::class);
             $orders = $orderModel->readAll(['user_id' => $userId]);
             
             $user['orders'] = $orders;

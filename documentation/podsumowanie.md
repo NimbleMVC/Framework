@@ -191,6 +191,26 @@ class UserModel extends AbstractModel
 }
 ```
 
+### 5. Użycie w kontrolerze
+```php
+<?php
+namespace App\Controllers;
+
+use NimblePHP\Framework\Abstracts\AbstractController;
+use App\Models\UserModel;
+
+class HomeController extends AbstractController
+{
+    public function index(): void
+    {
+        $userModel = $this->loadModel(UserModel::class);
+        $users = $userModel->getActiveUsers();
+        
+        echo json_encode($users);
+    }
+}
+```
+
 ## Najlepsze praktyki
 
 ### 1. Struktura katalogów

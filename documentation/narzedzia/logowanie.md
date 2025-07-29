@@ -121,7 +121,7 @@ class UserController extends AbstractController
     {
         $data = $this->request->getAllPost();
         
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $success = $userModel->create($data);
         
         if ($success) {

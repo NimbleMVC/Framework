@@ -383,9 +383,9 @@ public function create(): void
         return;
     }
     
-    // Przetwarzanie danych
-    $userModel = $this->loadModel('App\Models\UserModel');
-    $success = $userModel->create(['name' => $name, 'email' => $email]);
+            // Przetwarzanie danych
+        $userModel = $this->loadModel(UserModel::class);
+        $success = $userModel->create(['name' => $name, 'email' => $email]);
     
     if ($success) {
         $this->response->setStatusCode(201);
@@ -412,8 +412,8 @@ public function show(): void
         return;
     }
     
-    $userModel = $this->loadModel('App\Models\UserModel');
-    $user = $userModel->read(['id' => $id]);
+            $userModel = $this->loadModel(UserModel::class);
+        $user = $userModel->read(['id' => $id]);
     
     if (empty($user)) {
         $this->response->setStatusCode(404);

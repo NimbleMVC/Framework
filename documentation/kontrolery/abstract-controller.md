@@ -95,14 +95,14 @@ public function loadModel(string $name): object
 Ładuje instancję modelu o podanej nazwie.
 
 #### Parametry
-- `$name` - Nazwa klasy modelu (z namespace)
+- `$name` - Nazwa klasy modelu (używając `::class`)
 
 #### Zwraca
 - `object` - Instancja modelu
 
 #### Przykład użycia
 ```php
-$userModel = $this->loadModel('App\Models\UserModel');
+$userModel = $this->loadModel(\App\Models\UserModel::class);
 $users = $userModel->readAll();
 ```
 
@@ -113,12 +113,14 @@ $users = $userModel->readAll();
 namespace App\Controllers;
 
 use NimblePHP\Framework\Abstracts\AbstractController;
+use App\Models\UserModel;
+use App\Models\PermissionModel;
 
 class UserController extends AbstractController
 {
     public function index(): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $users = $userModel->readAll();
         
         // Renderowanie widoku lub zwracanie odpowiedzi
@@ -127,7 +129,7 @@ class UserController extends AbstractController
     
     public function show(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $user = $userModel->read(['id' => $id]);
         
         if (empty($user)) {
@@ -143,7 +145,7 @@ class UserController extends AbstractController
     {
         $data = $this->request->getAllPost();
         
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $success = $userModel->create($data);
         
         if ($success) {

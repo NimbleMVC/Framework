@@ -28,7 +28,7 @@ public function loadModel(string $name): object;
 Ładuje instancję modelu o podanej nazwie klasy.
 
 #### Parametry
-- `$name` - Pełna nazwa klasy modelu (z namespace)
+- `$name` - Nazwa klasy modelu (używając `::class`)
 
 #### Zwraca
 - `object` - Instancja modelu
@@ -40,8 +40,8 @@ public function loadModel(string $name): object;
 #### Przykład użycia
 ```php
 // W kontrolerze
-$userModel = $this->loadModel('App\Models\UserModel');
-$productModel = $this->loadModel('App\Models\ProductModel');
+$userModel = $this->loadModel(UserModel::class);
+$productModel = $this->loadModel(ProductModel::class);
 ```
 
 ### `log()`
@@ -141,7 +141,7 @@ class UserController extends AbstractController
     public function index(): void
     {
         try {
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $users = $userModel->readAll();
             
             $this->log('Pobrano listę użytkowników', 'INFO', [
@@ -158,7 +158,7 @@ class UserController extends AbstractController
     
     public function show(int $id): void
     {
-        $userModel = $this->loadModel('App\Models\UserModel');
+        $userModel = $this->loadModel(UserModel::class);
         $user = $userModel->read(['id' => $id]);
         
         if (empty($user)) {
@@ -185,7 +185,7 @@ class UserController extends AbstractController
         }
         
         try {
-            $userModel = $this->loadModel('App\Models\UserModel');
+            $userModel = $this->loadModel(UserModel::class);
             $success = $userModel->create($data);
             
             if ($success) {
@@ -229,7 +229,7 @@ class UserController extends AbstractController
     {
         // Ładowanie uprawnień użytkownika
         if (isset($_SESSION['user_id'])) {
-            $permissionModel = $this->loadModel('App\Models\PermissionModel');
+            $permissionModel = $this->loadModel(PermissionModel::class);
             $_SESSION['permissions'] = $permissionModel->getUserPermissions($_SESSION['user_id']);
         }
     }
@@ -289,7 +289,7 @@ class UserControllerTest extends TestCase
     {
         $this->expectException(NotFoundException::class);
         
-        $this->controller->loadModel('Invalid\Model\Class');
+        $this->controller->loadModel(\Invalid\Model\Class::class);
     }
     
     public function testLogMethodReturnsBoolean(): void
