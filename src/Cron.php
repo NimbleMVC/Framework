@@ -193,7 +193,7 @@ class Cron
                     $timeKey = $cron->time;
 
                     if (!isset($cronCache[$timeKey])) {
-                        $cronCache[$timeKey] = CronExpression::factory($timeKey);
+                        $cronCache[$timeKey] = new CronExpression($timeKey);
                     }
 
                     if ($cronCache[$timeKey]->isDue()) {
