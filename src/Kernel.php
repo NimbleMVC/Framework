@@ -304,8 +304,12 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
+        $controller->name = str_replace('\App\Controller\\', '', $controllerName);
+        $controller->action = $methodName;
         $reflection = new ReflectionMethod($controller, $methodName);
         $attributes = $reflection->getAttributes(Action::class);
+
+        Kernel::$middlewareManager->runHook('afterAttributesController', [$reflection, $controller]);
 
         foreach ($attributes as $attribute) {
             $instance = $attribute->newInstance();
@@ -315,8 +319,6 @@ class Kernel implements KernelInterface
             }
         }
 
-        $controller->name = str_replace('\App\Controller\\', '', $controllerName);
-        $controller->action = $methodName;
         $controller->request = new Request();
         $controller->afterConstruct();
         DependencyInjector::inject($controller);
