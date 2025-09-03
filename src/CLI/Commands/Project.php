@@ -7,7 +7,10 @@ use Krzysztofzylka\Console\Prints;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\Interfaces\ServiceProviderInterface;
+use NimblePHP\Framework\Interfaces\ServiceProviderUpdateInterface;
 use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\ModuleRegister;
 
 
 class Project
@@ -130,6 +133,33 @@ storage/session/*
     private function envlocalTemplate(): string
     {
         return "DEBUG=true";
+    }
+
+    #[ConsoleCommand('project:update', 'Project update')]
+    public function update()
+    {
+        ConsoleHelper::loadConfig();
+        ConsoleHelper::initKernel();
+
+        $cache = new Cache();
+        $cache->cacheClear(false);
+
+        $modules = new ModuleRegister();
+
+        foreach ($modules->getAll() as $module) {
+            foreach ($module['classes'] as $key => $classes) {
+                if ($key === 'service_providers') {
+                    foreach ($classes as $serviceProviderClass) {
+                        if ($serviceProviderClass instanceof ServiceProviderUpdateInterface) {
+                            Prints::print(value: 'Run update module: ' . $module['name'], exit: false, color: 'green');
+                            $serviceProviderClass->onUpdate();
+                        }
+                    }
+                }
+            }
+        }
+
+        Prints::print(value: 'Project updated', exit: true, color: 'green');
     }
 
 }
