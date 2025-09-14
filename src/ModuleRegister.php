@@ -95,12 +95,12 @@ class ModuleRegister
             }
 
             $path = InstalledVersions::getInstallPath($package);
-            $serviceProviderClass = $namespace . '\\ServiceProvider';
+            $moduleProviderClass = $namespace . '\\ModuleProvider';
             $classes = [];
 
-            if (class_exists($serviceProviderClass)) {
-                $serviceProvider = new $serviceProviderClass();
-                $classes['service_providers'][] = $serviceProvider;
+            if (class_exists($moduleProviderClass)) {
+                $serviceProvider = new $moduleProviderClass();
+                $classes['module_providers'][] = $serviceProvider;
 
                 if (method_exists($serviceProvider, 'register')) {
                     $serviceProvider->register();

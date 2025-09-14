@@ -2,7 +2,7 @@
 
 namespace NimblePHP\Framework\Interfaces;
 
-interface ServiceProviderUpdateInterface
+interface ModuleProviderUpdateInterface
 {
 
     /**

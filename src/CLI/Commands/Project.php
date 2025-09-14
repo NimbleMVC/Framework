@@ -7,8 +7,7 @@ use Krzysztofzylka\Console\Prints;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
-use NimblePHP\Framework\Interfaces\ServiceProviderInterface;
-use NimblePHP\Framework\Interfaces\ServiceProviderUpdateInterface;
+use NimblePHP\Framework\Interfaces\ModuleProviderUpdateInterface;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\ModuleRegister;
 
@@ -136,7 +135,7 @@ storage/session/*
     }
 
     #[ConsoleCommand('project:update', 'Project update')]
-    public function update()
+    public function update(): void
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
@@ -148,11 +147,11 @@ storage/session/*
 
         foreach ($modules->getAll() as $module) {
             foreach ($module['classes'] as $key => $classes) {
-                if ($key === 'service_providers') {
-                    foreach ($classes as $serviceProviderClass) {
-                        if ($serviceProviderClass instanceof ServiceProviderUpdateInterface) {
+                if ($key === 'module_providers') {
+                    foreach ($classes as $moduleProviderClass) {
+                        if ($moduleProviderClass instanceof ModuleProviderUpdateInterface) {
                             Prints::print(value: 'Run update module: ' . $module['name'], exit: false, color: 'green');
-                            $serviceProviderClass->onUpdate();
+                            $moduleProviderClass->onUpdate();
                         }
                     }
                 }
