@@ -390,9 +390,9 @@ class Kernel implements KernelInterface
 
         foreach (ModuleRegister::getAll() as $module) {
             if (array_key_exists('module_providers', $module['classes']) && !empty($module['classes']['module_providers'])) {
-                foreach ($module['classes']['module_providers'] as $serviceProvider) {
-                    if (method_exists($serviceProvider, 'register')) {
-                        $serviceProvider->register();
+                foreach ($module['classes']['module_providers'] as $moduleProvider) {
+                    if (method_exists($moduleProvider, 'register')) {
+                        $moduleProvider->register();
                     }
                 }
             }

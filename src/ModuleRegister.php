@@ -99,11 +99,11 @@ class ModuleRegister
             $classes = [];
 
             if (class_exists($moduleProviderClass)) {
-                $serviceProvider = new $moduleProviderClass();
-                $classes['module_providers'][] = $serviceProvider;
+                $moduleProvider = new $moduleProviderClass();
+                $classes['module_providers'][] = $moduleProvider;
 
-                if (method_exists($serviceProvider, 'register')) {
-                    $serviceProvider->register();
+                if (method_exists($moduleProvider, 'register')) {
+                    $moduleProvider->register();
                 }
             }
 
