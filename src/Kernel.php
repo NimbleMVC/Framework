@@ -389,7 +389,7 @@ class Kernel implements KernelInterface
         $moduleRegister->autoRegister();
 
         foreach (ModuleRegister::getAll() as $module) {
-            if (array_key_exists('service_providers', $module['classes']) && empty($module['classes']['service_providers'])) {
+            if (array_key_exists('service_providers', $module['classes']) && !empty($module['classes']['service_providers'])) {
                 foreach ($module['classes']['service_providers'] as $serviceProvider) {
                     if (method_exists($serviceProvider, 'register')) {
                         $serviceProvider->register();
@@ -400,7 +400,7 @@ class Kernel implements KernelInterface
     }
 
     /**
-     * Initialize dubug handler
+     * Initialize debug handler
      * @return void
      */
     private function initializeDebugHandler(): void
