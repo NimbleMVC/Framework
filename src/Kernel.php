@@ -11,17 +11,17 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use Krzysztofzylka\Env\Env;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
-use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Container\ServiceContainer;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
-use ReflectionMethod;
+use ReflectionException;
 use Throwable;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
@@ -270,6 +270,9 @@ class Kernel implements KernelInterface
 
     /**
      * Load controller
+     * @throws NimbleException
+     * @throws NotFoundException
+     * @throws ReflectionException
      */
     protected function loadController(): void
     {
@@ -305,27 +308,7 @@ class Kernel implements KernelInterface
         }
 
         $controller->name = str_replace('\App\Controller\\', '', $controllerName);
-        $controller->action = $methodName;
-        $reflection = new ReflectionMethod($controller, $methodName);
-        $attributes = $reflection->getAttributes(Action::class);
-
-        Kernel::$middlewareManager->runHook('afterAttributesController', [$reflection, $controller]);
-
-        foreach ($attributes as $attribute) {
-            $instance = $attribute->newInstance();
-
-            if (method_exists($instance, 'handle')) {
-                $instance->handle($controller, $methodName, $params);
-            }
-        }
-
-        $controller->request = new Request();
-        $controller->afterConstruct();
-        DependencyInjector::inject($controller);
-
-        call_user_func_array([$controller, $methodName], $params);
-
-        Kernel::$middlewareManager->runHook('afterController', [$controllerName, $methodName, $params]);
+        $controller->run($methodName, $params);
     }
 
     /**

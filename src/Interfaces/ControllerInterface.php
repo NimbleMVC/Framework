@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Interfaces;
 
+use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 
@@ -32,5 +33,21 @@ interface ControllerInterface
      * @return void
      */
     public function afterConstruct(): void;
+
+    /**
+     * Boot controller
+     * @param string $action
+     * @param array $params
+     * @return void
+     */
+    public function boot(string $action, array $params = []): void;
+
+    /**
+     * Run controller
+     * @param string $action
+     * @param array $params
+     * @return void
+     */
+    public function run(string $action, array $params = []): void;
 
 }
