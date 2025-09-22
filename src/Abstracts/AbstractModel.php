@@ -275,7 +275,15 @@ abstract class AbstractModel implements ModelInterface
         if ($this->useTable === false) {
             return;
         } elseif (is_null($this->useTable)) {
-            $this->useTable = $this->name;
+            $isModelV2 = str_ends_with(self::class, 'Model');
+
+            if ($isModelV2) {
+                $explodeName = explode('_', $this->name);
+                $newTableName = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', str_replace('Model', '', end($explodeName))));
+                $this->useTable = $newTableName;
+            } else {
+                $this->useTable = $this->name;
+            }
         }
 
         $this->table = new Table($this->useTable);
