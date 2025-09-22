@@ -326,7 +326,7 @@ abstract class AbstractModel implements ModelInterface
         try {
             $condition = $this->prepareCondition($condition);
 
-            return $this->table->findIsset($condition);
+            return !empty($this->read($condition, [$this->useTable . '.id'], $this->useTable . '.id DESC'));
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
