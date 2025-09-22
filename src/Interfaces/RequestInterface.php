@@ -116,4 +116,10 @@ interface RequestInterface
      */
     public function issetCookie(string $key): bool;
 
+    /**
+     * Has post
+     * @return bool
+     */
+    public function hasPost(): bool;
+
 }

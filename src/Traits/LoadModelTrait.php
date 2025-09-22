@@ -38,12 +38,13 @@ trait LoadModelTrait
 
         /** @var AbstractModel $model */
         $model = new $modelClassName();
+        $isModelV2 = str_ends_with($modelClassName, 'Model');
 
         if (!$model instanceof AbstractModel) {
             throw new NimbleException('Failed load model');
         }
 
-        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $name);
+        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $isModelV2 ? substr($name, 0, -5) : $name);
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
