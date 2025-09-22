@@ -291,4 +291,13 @@ readonly class Request implements RequestInterface
         }
     }
 
+    /**
+     * Has post
+     * @return bool
+     */
+    public function hasPost(): bool
+    {
+        return !empty($_POST);
+    }
+
 }
