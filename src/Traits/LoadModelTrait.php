@@ -6,6 +6,7 @@ use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Abstracts\AbstractModel;
 use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\DependencyInjector;
+use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
@@ -38,13 +39,17 @@ trait LoadModelTrait
 
         /** @var AbstractModel $model */
         $model = new $modelClassName();
-        $isModelV2 = str_ends_with($modelClassName, 'Model');
+
+        if (str_ends_with($modelClassName, 'Model')) {
+            $model->modelType = ModelTypeEnum::V2;
+        }
 
         if (!$model instanceof AbstractModel) {
             throw new NimbleException('Failed load model');
         }
 
-        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $isModelV2 ? substr($name, 0, -5) : $name);
+        $model->name = str_replace(['App\Model\\', '\\'], ['', '_'], $model->modelType === ModelTypeEnum::V2 ? substr($name, 0, -5) : $name);
+
         $model->prepareTableInstance();
 
         if ($this instanceof ControllerInterface) {
