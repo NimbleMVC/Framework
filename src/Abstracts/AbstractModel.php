@@ -6,6 +6,7 @@ use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
+use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
@@ -57,6 +58,12 @@ abstract class AbstractModel implements ModelInterface
      * @var array
      */
     public array $conditions = [];
+
+    /**
+     * Model type
+     * @var ModelTypeEnum
+     */
+    public ModelTypeEnum $modelType = ModelTypeEnum::V1;
 
     /**
      * After construct method
@@ -275,9 +282,7 @@ abstract class AbstractModel implements ModelInterface
         if ($this->useTable === false) {
             return;
         } elseif (is_null($this->useTable)) {
-            $isModelV2 = str_ends_with(self::class, 'Model');
-
-            if ($isModelV2) {
+            if ($this->modelType === ModelTypeEnum::V2) {
                 $explodeName = explode('_', $this->name);
                 $newTableName = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', str_replace('Model', '', end($explodeName))));
                 $this->useTable = $newTableName;

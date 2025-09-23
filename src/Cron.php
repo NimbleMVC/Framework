@@ -9,6 +9,7 @@ use krzysztofzylka\DatabaseManager\DatabaseLock;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Libs\Classes;
@@ -178,7 +179,17 @@ class Cron
             }
 
             $reflection = new ReflectionClass($model);
-            $modelName = str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName());
+            $modelType = ModelTypeEnum::V1;
+
+            if (str_ends_with($reflection->getName(), 'Model')) {
+                $modelType = ModelTypeEnum::V2;
+            }
+
+            if ($modelType === ModelTypeEnum::V2) {
+                $modelName = $reflection->getName();
+            } else {
+                $modelName = str_replace($reflection->getNamespaceName() . '\\', '', $reflection->getName());
+            }
 
             foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
                 $attributes = $method->getAttributes(Attributes\Cron\Cron::class);
