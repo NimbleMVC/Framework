@@ -223,6 +223,10 @@ class Kernel implements KernelInterface
                 return;
             }
 
+            if (DatabaseManager::$connection ?? false) {
+                return;
+            }
+
             $connect = DatabaseConnect::create();
 
             switch ($_ENV['DATABASE_TYPE']) {
