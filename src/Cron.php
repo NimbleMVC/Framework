@@ -154,9 +154,9 @@ class Cron
                     'trace' => $exception->getTraceAsString()
                 ]
             ]);
-
-            throw $exception;
         }
+
+        return false;
     }
 
     /**
