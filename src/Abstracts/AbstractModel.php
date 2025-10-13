@@ -430,6 +430,17 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
+     * Unbind all joins
+     * @return $this
+     */
+    public function unbindAll(): self
+    {
+        $this->getTableInstance()->unbindAll();
+
+        return $this;
+    }
+
+    /**
      * Prepare conditions
      * @param array|null $conditions
      * @return array|null
