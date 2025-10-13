@@ -100,7 +100,7 @@ class MiddlewareManager
             }
 
             if (is_object($instance) && method_exists($instance, $methodName)) {
-                call_user_func_array([$instance, $methodName], $args);
+                $instance->$methodName(...$args);
             }
         }
     }
