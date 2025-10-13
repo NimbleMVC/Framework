@@ -326,8 +326,7 @@ class Kernel implements KernelInterface
         $controller->request = new Request();
         $controller->afterConstruct();
         DependencyInjector::inject($controller);
-
-        call_user_func_array([$controller, $methodName], $params);
+        $controller->$methodName(...$params);
 
         Kernel::$middlewareManager->runHook('afterController', [$controllerName, $methodName, $params]);
     }
