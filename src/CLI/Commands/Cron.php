@@ -41,8 +41,11 @@ class Cron
 
         try {
             Prints::print(value: "Run jobs loop");
+
             do {
-                $jobsRun = $cron->runJob();
+                $controller = empty($_ENV['CRON_CONTROLLER']) ? null : $_ENV['CRON_CONTROLLER'];
+                $jobsRun = $cron->runJob($controller);
+
                 if (!$jobsRun) {
                     sleep(5);
                 } else {
