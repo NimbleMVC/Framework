@@ -5,6 +5,8 @@ namespace NimblePHP\Framework\CLI;
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\Interfaces\CliCommandProviderInterface;
+use NimblePHP\Framework\ModuleRegister;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
@@ -65,6 +67,7 @@ class Console
      */
     private static function scanCommands(): void
     {
+        // Scan framework commands
         foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\Framework\CLI\Commands') as $file) {
             if (!class_exists($file)) {
                 continue;
@@ -83,6 +86,49 @@ class Console
                     ];
                 }
             }
+        }
+
+        // Scan commands from modules
+        self::scanModuleCommands();
+    }
+
+    /**
+     * Scan commands from modules via service providers
+     * @return void
+     */
+    private static function scanModuleCommands(): void
+    {
+        try {
+            ConsoleHelper::loadConfig();
+            $modules = new ModuleRegister();
+
+            foreach ($modules->getAll() as $module) {
+                foreach ($module['classes'] as $key => $classes) {
+                    if ($key === 'service_providers') {
+                        foreach ($classes as $serviceProvider) {
+                            if ($serviceProvider instanceof CliCommandProviderInterface) {
+                                foreach ($serviceProvider->getCliCommands() as $commandInstance) {
+                                    $reflection = new ReflectionClass($commandInstance);
+
+                                    foreach ($reflection->getMethods() as $method) {
+                                        foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
+                                            $commandAttr = $attribute->newInstance();
+
+                                            self::$commands[$commandAttr->command] = [
+                                                'class' => $method->class,
+                                                'description' => $commandAttr->description,
+                                                'method' => $method->name
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently skip module commands if modules are not available
         }
     }
 
