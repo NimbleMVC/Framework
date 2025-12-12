@@ -135,8 +135,8 @@ storage/session/*
         return "DEBUG=true";
     }
 
-    #[ConsoleCommand('project:update', 'Project update')]
-    public function update()
+    #[ConsoleCommand('project:update', 'Project update. Usage: project:update [--migrationDirectory=path1,path2]')]
+    public function update(string $migrationDirectory = '')
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
@@ -152,7 +152,7 @@ storage/session/*
                     foreach ($classes as $serviceProviderClass) {
                         if ($serviceProviderClass instanceof ServiceProviderUpdateInterface) {
                             Prints::print(value: 'Run update module: ' . $module['name'], exit: false, color: 'green');
-                            $serviceProviderClass->onUpdate();
+                            $serviceProviderClass->onUpdate($this->parseMigrationDirectories($migrationDirectory));
                         }
                     }
                 }
@@ -160,6 +160,21 @@ storage/session/*
         }
 
         Prints::print(value: 'Project updated', exit: true, color: 'green');
+    }
+
+    /**
+     * Parse migration directories from comma-separated string
+     * @param string $migrationDirectory
+     * @return array
+     */
+    private function parseMigrationDirectories(string $migrationDirectory): array
+    {
+        if (empty($migrationDirectory)) {
+            return [];
+        }
+
+        $directories = explode(',', $migrationDirectory);
+        return array_map('trim', $directories);
     }
 
 }
