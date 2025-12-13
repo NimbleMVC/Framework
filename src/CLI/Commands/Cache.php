@@ -11,7 +11,7 @@ class Cache
 {
 
     #[ConsoleCommand('cache:clear', 'Clear cache')]
-    public function cacheClear(bool $exit = true): void
+    public function cacheClear(array $arguments = []): void
     {
         $cache = new \NimblePHP\Framework\Cache();
         $cache->delete(Route::$cacheKey);
@@ -20,6 +20,7 @@ class Cache
             unlink($file);
         }
 
+        $exit = !isset($arguments['no-exit']);
         Prints::print(value: 'Cleared cache', exit: $exit, color: 'green');
     }
 

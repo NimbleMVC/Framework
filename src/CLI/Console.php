@@ -23,6 +23,7 @@ class Console
      */
     public static function run(array $argv): void
     {
+        ConsoleHelper::initProjectPath();
         self::scanCommands();
 
         if (!isset($argv[1])) {
@@ -39,10 +40,35 @@ class Console
             return;
         }
 
-        ConsoleHelper::initProjectPath();
         $commandClass = self::$commands[$command];
         $method = $commandClass['method'];
-        (new $commandClass['class']())->$method(...$args);
+        $parsedArgs = self::parseArguments($args);
+        (new $commandClass['class']())->$method($parsedArgs);
+    }
+
+    /**
+     * Parse command arguments into array
+     * @param array $args
+     * @return array
+     */
+    private static function parseArguments(array $args): array
+    {
+        $parsed = [];
+
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--')) {
+                $parts = explode('=', substr($arg, 2), 2);
+                $key = $parts[0];
+                $value = $parts[1] ?? true;
+                $parsed[$key] = $value;
+            } elseif (str_starts_with($arg, '-')) {
+                $parsed[substr($arg, 1)] = true;
+            } else {
+                $parsed[] = $arg;
+            }
+        }
+
+        return $parsed;
     }
 
     /**
@@ -54,11 +80,41 @@ class Console
         $help = new Help();
         $help->addHeader('Commands');
 
-        foreach (self::$commands as $cmd => $data) {
+        $sortedCommands = self::sortCommands();
+
+        foreach ($sortedCommands as $cmd => $data) {
             $help->addHelp($cmd, $data['description']);
         }
 
         $help->render();
+    }
+
+    /**
+     * Sort commands: serve first, then without :, then with :
+     * @return array
+     */
+    private static function sortCommands(): array
+    {
+        $serve = [];
+        $withoutColon = [];
+        $withColon = [];
+
+        foreach (self::$commands as $cmd => $data) {
+            if ($cmd === 'serve') {
+                $serve[$cmd] = $data;
+            } elseif (strpos($cmd, ':') === false) {
+                $withoutColon[$cmd] = $data;
+            } else {
+                $withColon[$cmd] = $data;
+            }
+        }
+
+        // Posortuj grupy alfabetycznie
+        ksort($withoutColon);
+        ksort($withColon);
+
+        // Połącz w odpowiedniej kolejności
+        return $serve + $withoutColon + $withColon;
     }
 
     /**
@@ -101,6 +157,7 @@ class Console
         try {
             ConsoleHelper::loadConfig();
             $modules = new ModuleRegister();
+            $modules->autoRegister();
 
             foreach ($modules->getAll() as $module) {
                 foreach ($module['classes'] as $key => $classes) {

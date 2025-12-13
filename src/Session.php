@@ -13,6 +13,10 @@ class Session implements SessionInterface
      */
     public static function init(): void
     {
+        if (php_sapi_name() === 'cli' || headers_sent()) {
+            return;
+        }
+
         if ($_ENV['SESSION_DRIVER'] === 'none') {
             return;
         }
