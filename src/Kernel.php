@@ -210,6 +210,14 @@ class Kernel implements KernelInterface
      */
     protected function initializeSession(): void
     {
+        if (php_sapi_name() === 'cli') {
+            return;
+        }
+
+        if (session_status() !== PHP_SESSION_NONE) {
+            return;
+        }
+
         Session::init();
     }
 
