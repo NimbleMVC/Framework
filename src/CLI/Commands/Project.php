@@ -142,7 +142,7 @@ storage/session/*
         ConsoleHelper::initKernel();
 
         $cache = new Cache();
-        $cache->cacheClear(false);
+        $cache->cacheClear(['no-exit' => true]);
 
         $modules = new ModuleRegister();
 
