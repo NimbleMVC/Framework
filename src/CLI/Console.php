@@ -185,7 +185,7 @@ class Console
                 }
             }
         } catch (\Throwable $e) {
-            // Silently skip module commands if modules are not available
+            Prints::print('Failed load console for modules: ' . $e->getMessage(), false, true, 'red');
         }
     }
 
