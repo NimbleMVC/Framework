@@ -132,13 +132,6 @@ class Route implements RouteInterface
     {
         $uriPath = '/' . $this->controller . (!is_null($this->method) ? '/' . $this->method : '');
 
-        if (array_key_exists($uriPath, self::$routes)) {
-            $route = self::$routes[$uriPath];
-            $this->setController($route['controller']);
-            $this->setMethod($route['method']);
-            return;
-        }
-
         $fullPath = $uriPath;
 
         foreach ($this->params as $param) {
@@ -150,6 +143,14 @@ class Route implements RouteInterface
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
 
+            return;
+        }
+
+        if (empty($this->params) && array_key_exists($uriPath, self::$routes)) {
+            $route = self::$routes[$uriPath];
+            $this->setController($route['controller']);
+            $this->setMethod($route['method']);
+            
             return;
         }
 
@@ -185,7 +186,20 @@ class Route implements RouteInterface
      */
     private function matchDynamicRoute(string $uri): ?array
     {
-        foreach (self::$routes as $pattern => $route) {
+        $routes = self::$routes;
+
+        uksort($routes, function(string $a, string $b): int {
+            $aSegments = substr_count($a, '/');
+            $bSegments = substr_count($b, '/');
+
+            if ($aSegments === $bSegments) {
+                return strlen($b) <=> strlen($a);
+            }
+
+            return $bSegments <=> $aSegments;
+        });
+
+        foreach ($routes as $pattern => $route) {
             if (strpos($pattern, '{') === false) {
                 continue;
             }
