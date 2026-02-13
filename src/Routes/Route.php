@@ -8,6 +8,7 @@ use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Libs\Classes;
 use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * Route management class for handling URI routing
@@ -44,6 +45,12 @@ class Route implements RouteInterface
      * @var array
      */
     protected array $params = [];
+
+    /**
+     * Matched route definition
+     * @var array|null
+     */
+    protected ?array $matchedRoute = null;
 
     /**
      * Request instance
@@ -142,6 +149,7 @@ class Route implements RouteInterface
             $route = self::$routes[$fullPath];
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
+            $this->matchedRoute = $route;
 
             return;
         }
@@ -150,19 +158,23 @@ class Route implements RouteInterface
             $route = self::$routes[$uriPath];
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
-            
+            $this->matchedRoute = $route;
+
             return;
         }
 
-        foreach ($this->params as $key => $param) {
-            $paramPath = $uriPath . '/' . $param;
-            if (array_key_exists($paramPath, self::$routes)) {
-                $route = self::$routes[$paramPath];
-                $this->setController($route['controller']);
-                $this->setMethod($route['method']);
-                unset($this->params[$key]);
+        if (count($this->params) === 1) {
+            foreach ($this->params as $key => $param) {
+                $paramPath = $uriPath . '/' . $param;
+                if (array_key_exists($paramPath, self::$routes)) {
+                    $route = self::$routes[$paramPath];
+                    $this->setController($route['controller']);
+                    $this->setMethod($route['method']);
+                    unset($this->params[$key]);
+                    $this->matchedRoute = $route;
 
-                return;
+                    return;
+                }
             }
         }
 
@@ -172,6 +184,7 @@ class Route implements RouteInterface
             $this->setController($route['controller']);
             $this->setMethod($route['method']);
             $this->setParams($dynamicMatch['params']);
+            $this->matchedRoute = $route;
 
             return;
         }
@@ -192,11 +205,18 @@ class Route implements RouteInterface
             $aSegments = substr_count($a, '/');
             $bSegments = substr_count($b, '/');
 
-            if ($aSegments === $bSegments) {
-                return strlen($b) <=> strlen($a);
+            if ($aSegments !== $bSegments) {
+                return $bSegments <=> $aSegments;
             }
 
-            return $bSegments <=> $aSegments;
+            $aParams = substr_count($a, '{');
+            $bParams = substr_count($b, '{');
+
+            if ($aParams !== $bParams) {
+                return $aParams <=> $bParams;
+            }
+
+            return strlen($b) <=> strlen($a);
         });
 
         foreach ($routes as $pattern => $route) {
@@ -252,17 +272,24 @@ class Route implements RouteInterface
 
             if (preg_match('/^' . $uriRegex . '$/', $uri, $matches)) {
                 array_shift($matches);
-                $params = [];
+                $paramValues = [];
 
                 foreach ($matches as $i => $value) {
                     if (isset($paramNames[$i])) {
                         $paramName = $paramNames[$i];
                         $type = $paramTypes[$paramName] ?? null;
 
-                        $params[] = $this->convertValueToType($value, $type);
+                        $paramValues[] = $this->convertValueToType($value, $type);
                     } else {
-                        $params[] = $value;
+                        $paramValues[] = $value;
                     }
+                }
+
+                $params = $paramValues;
+                $expectedParamCount = $this->getExpectedParamCount($route);
+
+                if ($expectedParamCount !== null && count($params) < $expectedParamCount) {
+                    $params = $this->buildOrderedParams($pattern, $paramValues, $expectedParamCount);
                 }
 
                 return [
@@ -314,7 +341,7 @@ class Route implements RouteInterface
                 $paramType = null;
 
                 foreach ($paramInfo as $param) {
-                    if (strpos($segment, $param['pattern']) !== false && $param['default'] !== null) {
+                    if (str_contains($segment, $param['pattern']) && $param['default'] !== null) {
                         $isOptional = true;
                         $defaultValue = $param['default'];
                         $paramType = $param['type'];
@@ -334,7 +361,7 @@ class Route implements RouteInterface
                 $uriPattern = $partialPattern;
 
                 foreach ($paramInfo as $param) {
-                    if (strpos($uriPattern, $param['pattern']) !== false) {
+                    if (str_contains($uriPattern, $param['pattern'])) {
                         $typePattern = $this->getTypePattern($param['type']);
                         $uriPattern = str_replace($param['pattern'], '(' . $typePattern . ')', $uriPattern);
                     }
@@ -404,6 +431,66 @@ class Route implements RouteInterface
             'bool' => '(?:true|false|1|0)',
             default => '[^/]+',
         };
+    }
+
+    /**
+     * Get expected controller method parameter count
+     * @param array $route
+     * @return int|null
+     */
+    private function getExpectedParamCount(array $route): ?int
+    {
+        $controllerName = $route['controller'] ?? null;
+        $methodName = $route['method'] ?? null;
+
+        if ($controllerName === null || $methodName === null) {
+            return null;
+        }
+
+        $controllerClass = '\\App\\Controller\\' . str_replace('/', '\\', $controllerName);
+
+        if (!class_exists($controllerClass) || !method_exists($controllerClass, $methodName)) {
+            return null;
+        }
+
+        $reflection = new ReflectionMethod($controllerClass, $methodName);
+
+        return $reflection->getNumberOfParameters();
+    }
+
+    /**
+     * Build ordered params from placeholders and numeric literal segments
+     * @param string $pattern
+     * @param array $paramValues
+     * @param int $expectedParamCount
+     * @return array
+     */
+    private function buildOrderedParams(string $pattern, array $paramValues, int $expectedParamCount): array
+    {
+        $params = [];
+        $matchIndex = 0;
+        $segments = explode('/', trim($pattern, '/'));
+
+        foreach ($segments as $segment) {
+            if (str_contains($segment, '{')) {
+                if (isset($paramValues[$matchIndex])) {
+                    $params[] = $paramValues[$matchIndex];
+                    $matchIndex++;
+                }
+
+                continue;
+            }
+
+            if (count($params) >= $expectedParamCount) {
+                break;
+            }
+
+            if (preg_match('/^-?\d+(?:\.\d+)?$/', $segment)) {
+                $params[] = str_contains($segment, '.') ? (float)$segment : (int)$segment;
+            }
+        }
+
+        return $params;
     }
 
     /**
@@ -520,8 +607,13 @@ class Route implements RouteInterface
      */
     public function validate(): bool
     {
-        if (isset(self::$routes['/' . $this->controller . '/' . $this->method])) {
+        $route = $this->matchedRoute;
+
+        if ($route === null && isset(self::$routes['/' . $this->controller . '/' . $this->method])) {
             $route = self::$routes['/' . $this->controller . '/' . $this->method];
+        }
+
+        if ($route !== null) {
             $allowedMethods = explode(',', $route['httpMethod']);
 
             return in_array($this->request->getMethod(), $allowedMethods);
