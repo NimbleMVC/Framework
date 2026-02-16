@@ -8,6 +8,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
@@ -97,6 +98,34 @@ abstract class AbstractModel implements ModelInterface
             $this->setId($this->table->getId());
 
             return $create;
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
+    }
+
+    /**
+     * Update single value
+     * @param string $name
+     * @param mixed $value
+     * @return bool
+     * @throws DatabaseException
+     * @throws NimbleException
+     */
+    public function updateValue(string $name, mixed $value): bool
+    {
+        if (!$_ENV['DATABASE'] || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        } elseif (is_null($this->getId())) {
+            return false;
+        }
+
+        try {
+            $data = [$name => $value];
+            $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'updateValue'];
+            Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
+            $data = $middlewareData['data'];
+
+            return $this->table->updateValue($name, $data[$name]);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
