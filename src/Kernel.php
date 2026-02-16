@@ -15,12 +15,15 @@ use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Container\ServiceContainer;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
+use NimblePHP\Framework\Module\ModuleRegister;
+use ReflectionException;
 use ReflectionMethod;
 use Throwable;
 use Whoops\Handler\PrettyPageHandler;
@@ -103,6 +106,7 @@ class Kernel implements KernelInterface
         self::$serviceContainer->set('kernel.response', $this->response);
         self::$serviceContainer->set('kernel.session', new Session());
         self::$serviceContainer->set('kernel.cache', new Cache());
+        self::$serviceContainer->set('view', new View());
     }
 
     /**
@@ -164,14 +168,13 @@ class Kernel implements KernelInterface
         $this->debug();
         $this->connectToDatabase();
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
-        self::$middlewareManager->runHook('afterBootstrap');
         $this->loadModules();
+        self::$middlewareManager->runHook('afterBootstrap');
     }
 
     /**
      * Error catcher
      * @return void
-     * @throws ErrorException
      * @throws Exception
      */
     protected function errorCatcher(): void
@@ -182,7 +185,8 @@ class Kernel implements KernelInterface
             }
 
             Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
-            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+            $exception = new ErrorException($errstr, 0, $errno, $errfile, $errline);
+            self::$middlewareManager->runHook('exceptionHook', [$exception]);
         });
     }
 
@@ -285,6 +289,9 @@ class Kernel implements KernelInterface
 
     /**
      * Load controller
+     * @throws NotFoundException
+     * @throws NimbleException
+     * @throws ReflectionException
      */
     protected function loadController(): void
     {
@@ -296,7 +303,7 @@ class Kernel implements KernelInterface
         $controllerMiddlewareContext = ['controllerName' => $controllerName, 'methodName' => $methodName, 'params' => $params];
         Kernel::$middlewareManager->runHookWithReference('beforeController', $controllerMiddlewareContext);
         $this->router->setController($controllerMiddlewareContext['controllerName']);
-        $this->router->setMethod($controllerMiddlewareContext['methodName']);;
+        $this->router->setMethod($controllerMiddlewareContext['methodName']);
         $this->router->setParams($controllerMiddlewareContext['params']);
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
@@ -315,16 +322,23 @@ class Kernel implements KernelInterface
         /** @var AbstractController $controller */
         $controller = new $controllerClass();
 
-        if (!method_exists($controller, $methodName)) {
+        $methodExists = method_exists($controller, $methodName);
+        $hasDynamicMethod = $controller::hasDynamicMethod($methodName, $controller::class);
+
+        if (!$methodExists && !$hasDynamicMethod) {
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
         $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
-        $reflection = new ReflectionMethod($controller, $methodName);
-        $attributes = $reflection->getAttributes(Action::class);
+        $attributes = [];
 
-        Kernel::$middlewareManager->runHook('afterAttributesController', [$reflection, $controller]);
+        if ($methodExists) {
+            $reflection = new ReflectionMethod($controller, $methodName);
+            $attributes = $reflection->getAttributes(Action::class);
+
+            Kernel::$middlewareManager->runHook('afterAttributesController', [$reflection, $controller]);
+        }
 
         foreach ($attributes as $attribute) {
             $instance = $attribute->newInstance();
@@ -339,6 +353,7 @@ class Kernel implements KernelInterface
         DependencyInjector::inject($controller);
         $controller->$methodName(...$params);
 
+        Kernel::$middlewareManager->runHook('afterControllerDispatch', [$controller, $controllerName, $methodName, $params]);
         Kernel::$middlewareManager->runHook('afterController', [$controllerName, $methodName, $params]);
     }
 
@@ -350,6 +365,11 @@ class Kernel implements KernelInterface
      */
     protected function handleException(Throwable $exception): void
     {
+        try {
+            self::$middlewareManager->runHook('exceptionHook', [$exception]);
+        } catch (Throwable) {
+        }
+
         $message = $exception->getMessage();
         $data = [
             'exception' => $exception->getMessage(),
@@ -403,12 +423,11 @@ class Kernel implements KernelInterface
         $moduleRegister->autoRegister();
 
         foreach (ModuleRegister::getAll() as $module) {
-            if (array_key_exists('service_providers', $module['classes']) && empty($module['classes']['service_providers'])) {
-                foreach ($module['classes']['service_providers'] as $serviceProvider) {
-                    if (method_exists($serviceProvider, 'register')) {
-                        $serviceProvider->register();
-                    }
-                }
+            /** @var DataStore $classes */
+            $classes = $module['classes'];
+
+            if ($classes->exists('module')) {
+                $classes->get('module')->register();
             }
         }
     }
