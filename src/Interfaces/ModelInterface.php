@@ -4,6 +4,7 @@ namespace NimblePHP\Framework\Interfaces;
 
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Exception\DatabaseException;
+use NimblePHP\Framework\Exception\NimbleException;
 
 /**
  * Model interface
@@ -54,6 +55,16 @@ interface ModelInterface
      * @throws DatabaseException
      */
     public function update(array $data): bool;
+
+    /**
+     * Update single value
+     * @param string $name
+     * @param mixed $value
+     * @return bool
+     * @throws DatabaseException
+     * @throws NimbleException
+     */
+    public function updateValue(string $name, mixed $value): bool;
 
     /**
      * Create or update element
