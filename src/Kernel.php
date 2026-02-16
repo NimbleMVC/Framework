@@ -89,8 +89,14 @@ class Kernel implements KernelInterface
         $this->loadConfiguration();
         $this->initializeDebugHandler();
         $this->autoloader();
-        self::$middlewareManager = new MiddlewareManager();
-        self::$serviceContainer = ServiceContainer::getInstance();
+
+        if (!isset(self::$middlewareManager)) {
+            self::$middlewareManager = new MiddlewareManager();
+        }
+
+        if (!isset(self::$serviceContainer)) {
+            self::$serviceContainer = ServiceContainer::getInstance();
+        }
 
         $this->registerServices();
     }
