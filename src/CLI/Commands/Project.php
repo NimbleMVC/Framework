@@ -7,10 +7,8 @@ use Krzysztofzylka\Console\Prints;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
-use NimblePHP\Framework\Interfaces\ServiceProviderInterface;
-use NimblePHP\Framework\Interfaces\ServiceProviderUpdateInterface;
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\ModuleRegister;
+use NimblePHP\Framework\Module\ModuleRegister;
 
 
 class Project

@@ -11,6 +11,7 @@ use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Interfaces\ModelInterface;
+use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Traits\LoadModelTrait;
 use NimblePHP\Framework\Traits\LogTrait;
 
@@ -72,6 +73,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function afterConstruct(): void
     {
+        Kernel::$middlewareManager->runHookWithReference('afterConstructModel', $this);
     }
 
     /**
@@ -87,6 +89,10 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'create'];
+            Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
+            $data = $middlewareData['data'];
+
             $create = $this->table->insert($data);
             $this->setId($this->table->getId());
 
@@ -202,6 +208,10 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'update'];
+            Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
+            $data = $middlewareData['data'];
+
             return $this->table->update($data);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
@@ -350,6 +360,10 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $middlewareData = ['model' => $this, 'query' => $sql, 'type' => 'create'];
+            Kernel::$middlewareManager->runHookWithReference('processingModelQuery', $middlewareData);
+            $sql = $middlewareData['query'];
+
             return $this->table->query($sql);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);

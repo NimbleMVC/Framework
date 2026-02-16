@@ -7,6 +7,8 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Attributes\Database\DataType;
 use NimblePHP\Framework\Attributes\Database\DefaultValue;
+use NimblePHP\Framework\Interfaces\ORMModelInterface;
+use NimblePHP\Framework\Kernel;
 use ReflectionClass;
 use ReflectionProperty;
 
@@ -14,7 +16,7 @@ use ReflectionProperty;
  * Abstract ORM class
  * @property int $id
  */
-abstract class AbstractORM
+abstract class AbstractORM implements ORMModelInterface
 {
 
     /**
@@ -35,6 +37,8 @@ abstract class AbstractORM
      */
     public function __construct(array $data = [])
     {
+        Kernel::$middlewareManager->runHookWithReference('afterConstructORMModel', $this);
+
         foreach ($data as $key => $value) {
             if (property_exists($this, $key)) {
                 $this->$key = $value;
