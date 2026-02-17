@@ -1,14 +1,17 @@
 <?php
 
-namespace NimblePHP\Framework;
+namespace NimblePHP\Framework\Module;
 
 use Composer\InstalledVersions;
+use NimblePHP\Framework\DataStore;
+use NimblePHP\Framework\Enums\ModuleVersionEnum;
 
 /**
  * Module register
  */
 class ModuleRegister
 {
+
     /**
      * Modules list
      * @var array
@@ -18,18 +21,25 @@ class ModuleRegister
     /**
      * Register modules
      * @param string $name
-     * @param array $config
+     * @param DataStore $config
      * @param string|null $namespace
-     * @param array|null $classes
+     * @param DataStore|null $classes
      * @return void
      */
     public static function register(
-        string $name,
-        array $config = [],
-        ?string $namespace = null,
-        ?array $classes = null
+        string     $name,
+        DataStore  $config,
+        ?string    $namespace = null,
+        ?DataStore $classes = null
     ): void
     {
+        if (array_key_exists($name, self::$modules)) {
+            /** @var DataStore $previousConfig */
+            $previousConfig = self::$modules[$name]['config'];
+
+            $config->set('register', $previousConfig->get('register', false));
+        }
+
         self::$modules[$name] = [
             'name' => $name,
             'config' => $config,
@@ -94,28 +104,48 @@ class ModuleRegister
                 continue;
             }
 
-            $path = InstalledVersions::getInstallPath($package);
-            $serviceProviderClass = $namespace . '\\ServiceProvider';
-            $classes = [];
-
-            if (class_exists($serviceProviderClass)) {
-                $serviceProvider = new $serviceProviderClass();
-                $classes['service_providers'][] = $serviceProvider;
-
-                if (method_exists($serviceProvider, 'register')) {
-                    $serviceProvider->register();
-                }
-            }
-
-            $config = ['path' => realpath($path)];
-
-            self::register(
-                name: $package,
-                config: $config,
+            self::autoRegisterFromNamespace(
                 namespace: $namespace,
-                classes: $classes
+                package: $package
             );
         }
+    }
+
+    /**
+     * Register single module from namespace
+     * @param string $namespace
+     * @param string|null $path
+     * @param string|null $package
+     * @return void
+     */
+    public static function autoRegisterFromNamespace(string $namespace, ?string $path = null, ?string $package = null): void
+    {
+        $pkgVersion = null;
+
+        if ($package) {
+            $path = InstalledVersions::getInstallPath($package);
+            $pkgVersion = InstalledVersions::getPrettyVersion($package) ?? '-';
+        }
+
+        $moduleClass = $namespace . '\\Module';
+        $classes = new DataStore();
+        $config = new DataStore();
+        $config->set('path', realpath($path));
+        $config->set('version', ModuleVersionEnum::V2);
+        $config->set('pkg_version', $pkgVersion);
+        $config->set('register', false);
+
+        if (class_exists($moduleClass)) {
+            $moduleClass = new $moduleClass();
+            $classes->set('module', $moduleClass);
+        }
+
+        self::register(
+            name: $package ?? '',
+            config: $config,
+            namespace: $namespace,
+            classes: $classes
+        );
     }
 
     /**
@@ -127,10 +157,8 @@ class ModuleRegister
     {
         $packages = InstalledVersions::getInstalledPackages();
 
-        foreach ($packages as $package) {
-            if ($package === $name) {
-                return true;
-            }
+        if (in_array($name, $packages, true)) {
+            return true;
         }
 
         return false;

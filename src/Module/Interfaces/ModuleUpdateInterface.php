@@ -1,8 +1,8 @@
 <?php
 
-namespace NimblePHP\Framework\Interfaces;
+namespace NimblePHP\Framework\Module\Interfaces;
 
-interface ServiceProviderUpdateInterface
+interface ModuleUpdateInterface
 {
 
     /**

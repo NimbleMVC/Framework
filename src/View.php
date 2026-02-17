@@ -50,8 +50,11 @@ class View implements ViewInterface
      */
     public function render(string $viewName, array $data = []): void
     {
+        Kernel::$middlewareManager->runHookWithReference('processingViewData', $data);
+        $_previewData = $data;
         extract($data);
         $filePath = $this->viewPath . $viewName . '.phtml';
+        Kernel::$middlewareManager->runHook('beforeViewRender', [$_previewData, $viewName, $filePath]);
 
         if (!file_exists($filePath)) {
             throw new NotFoundException();
@@ -65,6 +68,8 @@ class View implements ViewInterface
         $response->setContent($content);
         $response->setStatusCode($this->responseCode);
         $response->send();
+
+        Kernel::$middlewareManager->runHook('afterViewRender', [$_previewData, $viewName, $filePath]);
     }
 
 }

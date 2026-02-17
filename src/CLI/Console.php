@@ -5,8 +5,9 @@ namespace NimblePHP\Framework\CLI;
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\DataStore;
 use NimblePHP\Framework\Interfaces\CliCommandProviderInterface;
-use NimblePHP\Framework\ModuleRegister;
+use NimblePHP\Framework\Module\ModuleRegister;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
@@ -43,7 +44,7 @@ class Console
         $commandClass = self::$commands[$command];
         $method = $commandClass['method'];
         $parsedArgs = self::parseArguments($args);
-        (new $commandClass['class']())->$method($parsedArgs);
+        (new $commandClass['class']())->$method(...$parsedArgs);
     }
 
     /**
@@ -109,7 +110,6 @@ class Console
             }
         }
 
-        // Posortuj grupy alfabetycznie
         ksort($withoutColon);
         ksort($withColon);
 
@@ -160,25 +160,23 @@ class Console
             $modules->autoRegister();
 
             foreach ($modules->getAll() as $module) {
-                foreach ($module['classes'] as $key => $classes) {
-                    if ($key === 'service_providers') {
-                        foreach ($classes as $serviceProvider) {
-                            if ($serviceProvider instanceof CliCommandProviderInterface) {
-                                foreach ($serviceProvider->getCliCommands() as $commandInstance) {
-                                    $reflection = new ReflectionClass($commandInstance);
+                /** @var DataStore $classes */
+                $classes = $module['classes'];
+                $module = $classes->get('module');
 
-                                    foreach ($reflection->getMethods() as $method) {
-                                        foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
-                                            $commandAttr = $attribute->newInstance();
+                if (is_object($module) && $module instanceof CliCommandProviderInterface) {
+                    foreach ($module->getCliCommands() as $commandInstance) {
+                        $reflection = new ReflectionClass($commandInstance);
 
-                                            self::$commands[$commandAttr->command] = [
-                                                'class' => $method->class,
-                                                'description' => $commandAttr->description,
-                                                'method' => $method->name
-                                            ];
-                                        }
-                                    }
-                                }
+                        foreach ($reflection->getMethods() as $method) {
+                            foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
+                                $commandAttr = $attribute->newInstance();
+
+                                self::$commands[$commandAttr->command] = [
+                                    'class' => $method->class,
+                                    'description' => $commandAttr->description,
+                                    'method' => $method->name
+                                ];
                             }
                         }
                     }

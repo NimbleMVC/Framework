@@ -15,6 +15,12 @@ class MiddlewareManager
     protected array $stack = [];
 
     /**
+     * List
+     * @var array
+     */
+    protected array $list = [];
+
+    /**
      * Add middleware with optional priority.
      * @param callable|object|string $middleware
      * @param int $priority
@@ -23,6 +29,18 @@ class MiddlewareManager
     public function add(mixed $middleware, int $priority = 0): void
     {
         $this->stack[$priority][] = $middleware;
+        $implements = [];
+
+        foreach (array_values(class_implements($middleware)) as $implement) {
+            $explode = explode('\\', $implement);
+            $implements[] = $explode[count($explode) - 1];
+        }
+
+        $this->list[] = [
+            'namespace' => $middleware::class,
+            'priority' => $priority,
+            'implements' => $implements
+        ];
     }
 
     /**
@@ -38,6 +56,17 @@ class MiddlewareManager
         krsort($this->stack);
 
         return array_merge(...array_values($this->stack));
+    }
+
+    /**
+     * Get middleware list sorted by priority (desc)
+     * @return array
+     */
+    public function getList(): array
+    {
+        usort($this->list, fn($a, $b) => $b['priority'] <=> $a['priority']);
+
+        return $this->list;
     }
 
     /**
