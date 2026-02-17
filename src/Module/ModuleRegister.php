@@ -5,6 +5,7 @@ namespace NimblePHP\Framework\Module;
 use Composer\InstalledVersions;
 use NimblePHP\Framework\DataStore;
 use NimblePHP\Framework\Enums\ModuleVersionEnum;
+use NimblePHP\Framework\Module\Interfaces\ModuleModelInterface;
 
 /**
  * Module register
@@ -126,10 +127,16 @@ class ModuleRegister
         $config->set('path', realpath($path));
         $config->set('version', ModuleVersionEnum::V2);
         $config->set('pkg_version', $pkgVersion);
+        $config->set('register', false);
+        $config->set('models', []);
 
         if (class_exists($moduleClass)) {
             $moduleClass = new $moduleClass();
             $classes->set('module', $moduleClass);
+
+            if ($moduleClass instanceof ModuleModelInterface) {
+                $config->set('models', $moduleClass->getModels());
+            }
         }
 
         self::register(

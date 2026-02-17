@@ -27,7 +27,7 @@ trait LoadModelTrait
     #[Action('disabled')]
     public function loadModel(string $name): object
     {
-        if (str_starts_with($name, 'App\Model')) {
+        if (str_starts_with($name, 'App\Model') || str_starts_with($name, 'NimblePHP\\')) {
             $modelClassName = '\\' . $name;
         } else {
             $modelClassName = '\App\Model\\' . $name;

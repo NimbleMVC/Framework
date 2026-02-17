@@ -155,6 +155,7 @@ class Cron
                     'trace' => $exception->getTraceAsString()
                 ]
             ]);
+            var_dump($exception->getMessage());
         }
 
         return false;
@@ -162,18 +163,20 @@ class Cron
 
     /**
      * Init tasks
-     * @param string $modelPath
+     * @param string|null $modelPath
      * @param string $namespace
+     * @param array|null $models
      * @return void
      * @throws DatabaseManagerException
      * @throws NimbleException
      */
-    public function initTasks(string $modelPath, string $namespace): void
+    public function initTasks(?string $modelPath, string $namespace, ?array $models = []): void
     {
         $this->databaseLock->lock('cron_init_tasks');
         $cronCache = [];
+        $models = $models ?? Classes::getAllClasses($modelPath, $namespace);
 
-        foreach (Classes::getAllClasses($modelPath, $namespace) as $model) {
+        foreach ($models as $model) {
             if (!class_exists($model)) {
                 continue;
             }
