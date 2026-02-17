@@ -33,6 +33,13 @@ class ModuleRegister
         ?DataStore $classes = null
     ): void
     {
+        if (array_key_exists($name, self::$modules)) {
+            /** @var DataStore $previousConfig */
+            $previousConfig = self::$modules[$name]['config'];
+
+            $config->set('register', $previousConfig->get('register', false));
+        }
+
         self::$modules[$name] = [
             'name' => $name,
             'config' => $config,
@@ -126,6 +133,7 @@ class ModuleRegister
         $config->set('path', realpath($path));
         $config->set('version', ModuleVersionEnum::V2);
         $config->set('pkg_version', $pkgVersion);
+        $config->set('register', false);
 
         if (class_exists($moduleClass)) {
             $moduleClass = new $moduleClass();
