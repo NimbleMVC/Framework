@@ -3,6 +3,7 @@
 namespace NimblePHP\Framework\Container;
 
 use NimblePHP\Framework\Interfaces\ContainerInterface;
+use NimblePHP\Framework\Kernel;
 use RuntimeException;
 
 /**
@@ -45,10 +46,17 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      * Set a service in the container
      * @param string $id
      * @param mixed $service
+     * @param bool $secured
      * @return void
      */
-    public function set(string $id, mixed $service): void
+    public function set(string $id, mixed $service, bool $secured = true): void
     {
+        if ($secured && array_key_exists($id, $this->services) && is_object($service) && $this->services[$id]::class === $service::class) {
+            return;
+        }
+
+        Kernel::$middlewareManager->runHook('serviceSet', [$id, $service]);
+
         if (empty($id)) {
             throw new RuntimeException('Service ID cannot be empty');
         }
@@ -80,6 +88,8 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function get(string $id): mixed
     {
+        Kernel::$middlewareManager->runHook('serviceGet', [$id]);
+
         if (empty($id)) {
             throw new RuntimeException('Service ID cannot be empty');
         }
@@ -118,6 +128,8 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function has(string $id): bool
     {
+        Kernel::$middlewareManager->runHook('serviceHas', [$id]);
+
         if (empty($id)) {
             return false;
         }
@@ -133,6 +145,8 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function remove(string $id): void
     {
+        Kernel::$middlewareManager->runHook('serviceRemove', [$id]);
+
         if (empty($id)) {
             return;
         }
