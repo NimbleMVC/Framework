@@ -72,6 +72,12 @@ class Kernel implements KernelInterface
     protected ResponseInterface $response;
 
     /**
+     * Bootstrap is initalized
+     * @var bool
+     */
+    protected bool $initializedBootstrap = false;
+
+    /**
      * Constructor
      * @param RouteInterface $router
      * @param RequestInterface|null $request
@@ -132,7 +138,10 @@ class Kernel implements KernelInterface
     public function handle(): void
     {
         try {
-            $this->bootstrap();
+            if (!$this->initializedBootstrap) {
+                $this->bootstrap();
+            }
+
             $this->loadController();
         } catch (Throwable $e) {
             $this->handleException($e);
@@ -176,6 +185,7 @@ class Kernel implements KernelInterface
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
         $this->loadModules();
         self::$middlewareManager->runHook('afterBootstrap');
+        $this->initializedBootstrap = true;
     }
 
     /**
