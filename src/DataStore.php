@@ -24,6 +24,40 @@ class DataStore
     }
 
     /**
+     * Append to value
+     * @param string $key
+     * @param mixed $value
+     * @param ?string $arrayKey
+     * @return bool
+     */
+    public function append(string $key, mixed $value, ?string $arrayKey = null): bool
+    {
+        if (!array_key_exists($key, $this->data)) {
+            return false;
+        }
+
+        if (is_array($this->data[$key])) {
+            if (!is_null($arrayKey)) {
+                $this->data[$key][$arrayKey] = $value;
+            } else {
+                $this->data[$key][] = $value;
+            }
+
+            return true;
+        } elseif (is_string($this->data[$key])) {
+            $this->data[$key] .= $value;
+
+            return true;
+        } elseif (is_integer($this->data[$key])) {
+            $this->data[$key] += $value;
+
+            return true;
+        }
+
+        return true;
+    }
+
+    /**
      * Get a value by key.
      * @param string $key
      * @param mixed $default
