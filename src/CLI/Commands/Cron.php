@@ -9,10 +9,13 @@ use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\DataStore;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Interfaces\ModelInterface;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
+use NimblePHP\Framework\Module\ModuleRegister;
 use Throwable;
 
 class Cron
@@ -79,6 +82,15 @@ class Cron
 
         $cron = new \NimblePHP\Framework\Cron();
         $cron->initTasks(Kernel::$projectPath . '/App/Model', '\App\Model');
+
+        foreach (ModuleRegister::getAll() as $module) {
+            /** @var DataStore $config */
+            $config = $module['config'];
+
+            if (count($config->get('models', [])) > 0) {
+                $cron->initTasks(null, $module['namespace'], $config->get('models', []));
+            }
+        }
     }
 
     /**
