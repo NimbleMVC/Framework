@@ -441,8 +441,10 @@ class Kernel implements KernelInterface
         foreach (ModuleRegister::getAll() as $module) {
             /** @var DataStore $classes */
             $classes = $module['classes'];
+            /** @var DataStore $config */
+            $config = $module['config'];
 
-            if ($classes->exists('module')) {
+            if ($classes->exists('module') && !$config->get('register')) {
                 $classes->get('module')->register();
             }
         }
