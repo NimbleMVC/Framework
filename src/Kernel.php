@@ -23,6 +23,8 @@ use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
 use NimblePHP\Framework\Module\ModuleRegister;
+use NimblePHP\Framework\Translation\Translation;
+use NimblePHP\Framework\Translation\TranslationProviderInterface;
 use ReflectionException;
 use ReflectionMethod;
 use Throwable;
@@ -119,6 +121,10 @@ class Kernel implements KernelInterface
         self::$serviceContainer->set('kernel.session', new Session());
         self::$serviceContainer->set('kernel.cache', new Cache());
         self::$serviceContainer->set('view', new View());
+
+        if (!self::$serviceContainer->has('translation')) {
+            self::$serviceContainer->set('translation', Translation::getInstance());
+        }
     }
 
     /**
@@ -445,7 +451,13 @@ class Kernel implements KernelInterface
             $config = $module['config'];
 
             if ($classes->exists('module') && !$config->get('register')) {
-                $classes->get('module')->register();
+                $moduleInstance = $classes->get('module');
+                $moduleInstance->register();
+
+                if ($moduleInstance instanceof TranslationProviderInterface) {
+                    $moduleInstance->registerTranslations();
+                    Translation::getInstance()->reload();
+                }
             }
         }
     }
