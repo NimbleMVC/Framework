@@ -113,12 +113,33 @@ class Kernel implements KernelInterface
      */
     protected function registerServices(): void
     {
-        self::$serviceContainer->set('kernel.router', $this->router);
-        self::$serviceContainer->set('kernel.request', $this->request);
-        self::$serviceContainer->set('kernel.response', $this->response);
-        self::$serviceContainer->set('kernel.session', new Session());
-        self::$serviceContainer->set('kernel.cache', new Cache());
-        self::$serviceContainer->set('view', new View());
+        if (!self::$serviceContainer->has('kernel.router')) {
+            self::$serviceContainer->set('kernel.router', $this->router);
+        }
+
+        if (!self::$serviceContainer->has('kernel.request')) {
+            self::$serviceContainer->set('kernel.request', $this->request);
+        }
+
+        if (!self::$serviceContainer->has('kernel.response')) {
+            self::$serviceContainer->set('kernel.response', $this->response);
+        }
+
+        if (!self::$serviceContainer->has('kernel.session')) {
+            self::$serviceContainer->set('kernel.session', new Session());
+        }
+
+        if (!self::$serviceContainer->has('kernel.cache')) {
+            self::$serviceContainer->set('kernel.cache', new Cache());
+        }
+
+        if (!self::$serviceContainer->has('kernel.cookie')) {
+            self::$serviceContainer->set('kernel.cookie', new Cookie());
+        }
+
+        if (!self::$serviceContainer->has('view')) {
+            self::$serviceContainer->set('view', new View());
+        }
     }
 
     /**
