@@ -300,4 +300,44 @@ readonly class Request implements RequestInterface
         return !empty($_POST);
     }
 
+    /**
+     * Get browser language
+     * @return array
+     */
+    public function getBrowserLanguages(): array
+    {
+        if (!isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+            return [];
+        }
+
+        $languages = [];
+
+        foreach (explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']) as $lang) {
+            $parts = explode(';', trim($lang));
+            $code = trim($parts[0]);
+            $quality = 1.0;
+
+            if (isset($parts[1]) && strpos($parts[1], 'q=') === 0) {
+                $quality = (float) substr($parts[1], 2);
+            }
+
+            $languages[] = [
+                'code' => $code,
+                'quality' => $quality
+            ];
+
+            if (strpos($code, '-') !== false) {
+                $shortCode = substr($code, 0, 2);
+                $languages[] = [
+                    'code' => $shortCode,
+                    'quality' => $quality - 0.001
+                ];
+            }
+        }
+
+        usort($languages, fn($a, $b) => $b['quality'] <=> $a['quality']);
+
+        return array_unique(array_column($languages, 'code'));
+    }
+
 }
