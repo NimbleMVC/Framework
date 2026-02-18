@@ -108,6 +108,25 @@ class Log
     }
 
     /**
+     * Generate log session
+     * @return void
+     */
+    public static function generateSession(): void
+    {
+        self::$session = sprintf(
+            '%04X%04X-%04X-%04X-%04X-%04X%04X%04X',
+            mt_rand(0, 65535),
+            mt_rand(0, 65535),
+            mt_rand(0, 65535),
+            mt_rand(16384, 20479),
+            mt_rand(32768, 49151),
+            mt_rand(0, 65535),
+            mt_rand(0, 65535),
+            mt_rand(0, 65535)
+        );
+    }
+
+    /**
      * Rotate logs
      * @param string $currentFile
      * @return void
@@ -135,25 +154,6 @@ class Log
                 unlink($file);
             }
         }
-    }
-
-    /**
-     * Generate log session
-     * @return void
-     */
-    private static function generateSession(): void
-    {
-        self::$session = sprintf(
-            '%04X%04X-%04X-%04X-%04X-%04X%04X%04X',
-            mt_rand(0, 65535),
-            mt_rand(0, 65535),
-            mt_rand(0, 65535),
-            mt_rand(16384, 20479),
-            mt_rand(32768, 49151),
-            mt_rand(0, 65535),
-            mt_rand(0, 65535),
-            mt_rand(0, 65535)
-        );
     }
 
     /**
