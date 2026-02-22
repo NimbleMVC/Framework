@@ -233,6 +233,15 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     }
 
     /**
+     * Get statustics
+     * @return array
+     */
+    public function getStats(): array
+    {
+        return $this->stats;
+    }
+
+    /**
      * @param string $id
      * @param string $type
      * @return void
