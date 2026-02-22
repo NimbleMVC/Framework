@@ -43,6 +43,11 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     protected array $resolving = [];
 
     /**
+     * Service stats
+     */
+    protected array $stats = [];
+
+    /**
      * Set a service in the container
      * @param string $id
      * @param mixed $service
@@ -55,6 +60,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
             return;
         }
 
+        $this->increaseStats($id, 'set');
         Kernel::$middlewareManager->runHook('serviceSet', [$id, $service]);
 
         if (empty($id)) {
@@ -88,6 +94,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function get(string $id): mixed
     {
+        $this->increaseStats($id, 'get');
         Kernel::$middlewareManager->runHook('serviceGet', [$id]);
 
         if (empty($id)) {
@@ -128,6 +135,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function has(string $id): bool
     {
+        $this->increaseStats($id, 'has');
         Kernel::$middlewareManager->runHook('serviceHas', [$id]);
 
         if (empty($id)) {
@@ -145,6 +153,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function remove(string $id): void
     {
+        $this->increaseStats($id, 'remove');
         Kernel::$middlewareManager->runHook('serviceRemove', [$id]);
 
         if (empty($id)) {
@@ -169,6 +178,8 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
      */
     public function setAlias(string $alias, string $id): void
     {
+        $this->increaseStats($id, 'setAlias');
+
         if (empty($alias) || empty($id)) {
             throw new RuntimeException('Alias and target ID cannot be empty');
         }
@@ -219,6 +230,26 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
         $this->aliases = [];
         $this->resolved = [];
         $this->resolving = [];
+    }
+
+    /**
+     * @param string $id
+     * @param string $type
+     * @return void
+     */
+    private function increaseStats(string $id, string $type): void
+    {
+        if (!array_key_exists($id, $this->stats)) {
+            $this->stats[$id] = [
+                'get' => 0,
+                'set' => 0,
+                'has' => 0,
+                'remove' => 0,
+                'setAlias' => 0
+            ];
+        }
+
+        $this->stats[$id][$type]++;
     }
 
 }
