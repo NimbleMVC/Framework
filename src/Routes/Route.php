@@ -634,8 +634,9 @@ class Route implements RouteInterface
         $cache = new Cache();
 
         if ($cacheEnabled) {
-            if ($cache->has(self::$cacheKey)) {
-                $cachedData = $cache->get(self::$cacheKey);
+            $cachedData = $cache->get(self::$cacheKey);
+
+            if ($cachedData !== null) {
                 $controllersDirTimestamp = filemtime($controllerPath);
 
                 if (isset($cachedData['timestamp']) && $cachedData['timestamp'] >= $controllersDirTimestamp) {
@@ -669,7 +670,7 @@ class Route implements RouteInterface
             $cache->set(self::$cacheKey, [
                 'routes' => self::$routes,
                 'timestamp' => time()
-            ]);
+            ], 86400 * 30);
         }
     }
 }

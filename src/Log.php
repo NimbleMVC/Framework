@@ -47,13 +47,15 @@ class Log
      */
     public static function log(string $message, string $level = 'INFO', array $content = []): bool
     {
-        if (!$_ENV['LOG']) {
+        if (!($_ENV['LOG'] ?? false)) {
             return false;
         }
 
         if (isset(Kernel::$middlewareManager)) {
             Kernel::$middlewareManager->runHookWithReference('beforeLog', $message);
         }
+
+        $level = strtoupper($level);
 
         if ($level === 'ERR') {
             $level = 'ERROR';
@@ -62,7 +64,6 @@ class Log
         }
 
         $allowedLevels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
-        $level = strtoupper($level);
 
         if (!in_array($level, $allowedLevels)) {
             $level = 'INFO';
@@ -92,14 +93,16 @@ class Log
 
             $jsonLogData = json_encode($logContent);
 
-            if (empty(trim($jsonLogData))) {
+            if ($jsonLogData === false || empty(trim($jsonLogData))) {
                 return false;
             }
 
             $filename = date('Y_m_d') . '.log.json';
             $return = self::$storage->append($filename, $jsonLogData);
 
-            self::rotateLogs($filename);
+            if (mt_rand(1, 100) === 1) {
+                self::rotateLogs($filename);
+            }
 
             return $return;
         } catch (Exception) {

@@ -18,7 +18,12 @@ class Classes
      */
     public static function getAllClasses(string $directory, string $namespace): array
     {
-        $class = [];
+        $classes = [];
+
+        if (!is_dir($directory)) {
+            return $classes;
+        }
+
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)
         );
@@ -28,12 +33,11 @@ class Classes
             if ($file->isFile() && $file->getExtension() === 'php') {
                 $relativePath = str_replace($directory, '', $file->getPathname());
                 $className = $namespace . '\\' . trim(str_replace(['/', '\\'], '\\', $relativePath), '\\');
-                $className = preg_replace('/\.php$/', '', $className);
-                $class[] = $className;
+                $classes[] = substr($className, 0, -4);
             }
         }
 
-        return $class;
+        return $classes;
     }
 
     /**

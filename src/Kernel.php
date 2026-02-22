@@ -185,12 +185,16 @@ class Kernel implements KernelInterface
         $env = new Env();
         $env->loadFromFile(__DIR__ . '/Default/.env');
 
-        if (file_exists(self::$projectPath . '/.env')) {
-            $env->loadFromFile(self::$projectPath . '/.env');
+        $envFile = self::$projectPath . '/.env';
+
+        if (file_exists($envFile)) {
+            $env->loadFromFile($envFile);
         }
 
-        if (file_exists(self::$projectPath . '/.env.local')) {
-            $env->loadFromFile(self::$projectPath . '/.env.local');
+        $envLocalFile = self::$projectPath . '/.env.local';
+
+        if (file_exists($envLocalFile)) {
+            $env->loadFromFile($envLocalFile);
         }
 
         $env->loadFromSystem();
@@ -240,6 +244,10 @@ class Kernel implements KernelInterface
      */
     protected function autoCreator(): void
     {
+        if (!Env::get('DEBUG', false)) {
+            return;
+        }
+
         File::mkdir([
             self::$projectPath . '/public',
             self::$projectPath . '/public/assets',
