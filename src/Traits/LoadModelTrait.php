@@ -10,6 +10,7 @@ use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
+use NimblePHP\Framework\Libs\Classes;
 use NimblePHP\Framework\Request;
 use ReflectionClass;
 
@@ -27,13 +28,9 @@ trait LoadModelTrait
     #[Action('disabled')]
     public function loadModel(string $name): object
     {
-        if (str_starts_with($name, 'App\Model')) {
-            $modelClassName = '\\' . $name;
-        } else {
-            $modelClassName = '\App\Model\\' . $name;
-        }
+        $modelClassName = Classes::findClassName($name, '\App\Model\\');
 
-        if (!class_exists($modelClassName)) {
+        if (is_null($modelClassName) || !class_exists($modelClassName)) {
             throw new NotFoundException('Not found model ' . $name);
         }
 
