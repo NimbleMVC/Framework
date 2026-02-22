@@ -267,29 +267,16 @@ class Translation
         }
 
         $content = file_get_contents($filePath);
+
+        if ($content === false) {
+            return;
+        }
+
         $data = json_decode($content, true);
 
         if (is_array($data)) {
-            self::$translations = $this->arrayMergeRecursive(self::$translations, $data);
+            self::$translations = array_replace_recursive(self::$translations, $data);
         }
-    }
-
-    /**
-     * @param array $array1
-     * @param array $array2
-     * @return array
-     */
-    private function arrayMergeRecursive(array $array1, array $array2): array
-    {
-        foreach ($array2 as $key => $value) {
-            if (is_array($value) && isset($array1[$key]) && is_array($array1[$key])) {
-                $array1[$key] = $this->arrayMergeRecursive($array1[$key], $value);
-            } else {
-                $array1[$key] = $value;
-            }
-        }
-
-        return $array1;
     }
 
 }
