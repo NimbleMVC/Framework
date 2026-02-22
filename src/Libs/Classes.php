@@ -36,4 +36,21 @@ class Classes
         return $class;
     }
 
+    /**
+     * Find the fully qualified class name.
+     * @param string $className The base class name to search for.
+     * @param string $subClass The namespace or subclass prefix to prepend when searching.
+     * @return string|null Returns the full class name if found, or null if the class does not exist.
+     */
+    public static function findClassName(string $className, string $subClass): ?string
+    {
+        if (class_exists($className)) {
+            return $className;
+        } elseif (class_exists($subClass . $className)) {
+            return $subClass . $className;
+        }
+
+        return null;
+    }
+
 }
