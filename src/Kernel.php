@@ -244,10 +244,6 @@ class Kernel implements KernelInterface
      */
     protected function autoCreator(): void
     {
-        if (!Env::get('DEBUG', false)) {
-            return;
-        }
-
         File::mkdir([
             self::$projectPath . '/public',
             self::$projectPath . '/public/assets',
