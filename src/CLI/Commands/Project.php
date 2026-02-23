@@ -7,8 +7,13 @@ use Krzysztofzylka\Console\Prints;
 use Krzysztofzylka\File\File;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\DataStore;
+use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\Module\Interfaces\ModuleInterface;
+use NimblePHP\Framework\Module\Interfaces\ModuleUpdateInterface;
 use NimblePHP\Framework\Module\ModuleRegister;
+use Throwable;
 
 
 class Project
@@ -133,8 +138,14 @@ storage/session/*
         return "DEBUG=true";
     }
 
+
+    /**
+     * @return void
+     * @throws DatabaseException
+     * @throws Throwable
+     */
     #[ConsoleCommand('project:update', 'Project update')]
-    public function update()
+    public function update(): void
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
@@ -145,14 +156,16 @@ storage/session/*
         $modules = new ModuleRegister();
 
         foreach ($modules->getAll() as $module) {
-            foreach ($module['classes'] as $key => $classes) {
-                if ($key === 'service_providers') {
-                    foreach ($classes as $serviceProviderClass) {
-                        if ($serviceProviderClass instanceof ServiceProviderUpdateInterface) {
-                            Prints::print(value: 'Run update module: ' . $module['name'], exit: false, color: 'green');
-                            $serviceProviderClass->onUpdate();
-                        }
-                    }
+            /** @var DataStore $classes */
+            $classes = $module['classes'];
+
+            if ($classes->exists('module')) {
+                /** @var ModuleInterface $classes */
+                $moduleClass = $classes->get('module');
+
+                if ($moduleClass instanceof ModuleUpdateInterface) {
+                    Prints::print(value: 'Run update module: ' . $module['name'], exit: false, color: 'green');
+                    $moduleClass->onUpdate();
                 }
             }
         }
