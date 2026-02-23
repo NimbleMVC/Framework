@@ -11,6 +11,10 @@ use NimblePHP\Framework\Module\ModuleRegister;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
+use ReflectionException;
+use ReflectionMethod;
+use ReflectionNamedType;
+use Throwable;
 
 class Console
 {
@@ -21,6 +25,7 @@ class Console
      * Run command
      * @param array $argv
      * @return void
+     * @throws ReflectionException
      */
     public static function run(array $argv): void
     {
@@ -44,11 +49,33 @@ class Console
         $commandClass = self::$commands[$command];
         $method = $commandClass['method'];
         $parsedArgs = self::parseArguments($args);
-        (new $commandClass['class']())->$method(...$parsedArgs);
+
+        $instance = new $commandClass['class']();
+        $reflection = new ReflectionMethod($instance, $method);
+        $params = $reflection->getParameters();
+
+        if (count($params) === 1 && ($params[0]->getType() instanceof ReflectionNamedType)
+            && $params[0]->getType()->getName() === 'array'
+        ) {
+            $instance->$method($parsedArgs);
+            return;
+        }
+
+        $positional = array_values(array_filter(
+            $parsedArgs,
+            static fn ($k) => is_int($k),
+            ARRAY_FILTER_USE_KEY
+        ));
+
+        $instance->$method(...$positional);
     }
 
     /**
      * Parse command arguments into array
+     * Supports:
+     *   --key=value
+     *   --key value
+     *   -f (boolean flag)
      * @param array $args
      * @return array
      */
@@ -56,17 +83,37 @@ class Console
     {
         $parsed = [];
 
-        foreach ($args as $arg) {
+        for ($i = 0; $i < count($args); $i++) {
+            $arg = $args[$i];
+
             if (str_starts_with($arg, '--')) {
-                $parts = explode('=', substr($arg, 2), 2);
-                $key = $parts[0];
-                $value = $parts[1] ?? true;
-                $parsed[$key] = $value;
-            } elseif (str_starts_with($arg, '-')) {
-                $parsed[substr($arg, 1)] = true;
-            } else {
-                $parsed[] = $arg;
+                $raw = substr($arg, 2);
+
+                if (str_contains($raw, '=')) {
+                    [$key, $value] = explode('=', $raw, 2);
+                    $parsed[$key] = $value;
+                    continue;
+                }
+
+                $key = $raw;
+                $next = $args[$i + 1] ?? null;
+
+                if ($next !== null && !str_starts_with($next, '-')) {
+                    $parsed[$key] = $next;
+                    $i++;
+                } else {
+                    $parsed[$key] = true;
+                }
+
+                continue;
             }
+
+            if (str_starts_with($arg, '-')) {
+                $parsed[substr($arg, 1)] = true;
+                continue;
+            }
+
+            $parsed[] = $arg;
         }
 
         return $parsed;
@@ -182,7 +229,7 @@ class Console
                     }
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Prints::print('Failed load console for modules: ' . $e->getMessage(), false, true, 'red');
         }
     }
