@@ -45,7 +45,7 @@ class Routes
     {
         ConsoleHelper::initKernel();
 
-        $_ENV['CACHE_ROUTE'] = true;
+        \NimblePHP\Framework\Config::set('CACHE_ROUTE', true);
         Route::registerRoutes(Kernel::$projectPath . '/App/Controller', 'App\Controller');
         Prints::print('Successfully generated routes file.', color: 'green');
     }

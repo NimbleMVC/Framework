@@ -8,33 +8,50 @@ use NimblePHP\Framework\Kernel;
 class Translation
 {
 
+    /**
+     * The priority level for the application.
+     * @var int
+     */
     public const PRIORITY_APP = 100;
 
+    /**
+     * The priority level assigned to a specific module.
+     * @var int
+     */
     public const PRIORITY_MODULE = 50;
 
+    /**
+     * Represents the priority level for the framework.
+     * @var int
+     */
     public const PRIORITY_FRAMEWORK = 10;
 
     /**
+     * Translation instance
      * @var Translation|null
      */
     private static ?Translation $instance = null;
 
     /**
+     * Translations
      * @var array
      */
     private static array $translations = [];
 
     /**
+     * Translation paths
      * @var array
      */
     private static array $translationPaths = [];
 
     /**
+     * Current language
      * @var string
      */
     private string $currentLanguage;
 
     /**
+     * Fallback language
      * @var string|mixed
      */
     private string $fallbackLanguage;
@@ -151,6 +168,7 @@ class Translation
             if ($files) {
                 foreach ($files as $file) {
                     $lang = basename($file, '.json');
+
                     if (!in_array($lang, $languages)) {
                         $languages[] = $lang;
                     }

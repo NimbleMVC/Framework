@@ -7,6 +7,7 @@ namespace NimblePHP\Framework;
  */
 class DataStore
 {
+    
     /**
      * @var array<string, mixed>
      */

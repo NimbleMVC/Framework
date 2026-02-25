@@ -6,6 +6,7 @@ use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 
 class Completion
 {
+
     #[ConsoleCommand(command: 'completion', description: 'Wygeneruj skrypt uzupełniania bash')]
     public function generate(): void
     {
@@ -60,4 +61,5 @@ if [[ "\${BASH_SOURCE[0]}" == "\${0}" ]]; then
 fi
 BASH;
     }
+
 }
