@@ -9,6 +9,7 @@ use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Kernel;
@@ -29,7 +30,7 @@ class Cron
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
 
-        if (!$_ENV['DATABASE']) {
+        if (!Config::get('DATABASE', false)) {
             Prints::print(value: 'Database must be enabled', exit: true, color: 'red');
         }
 
@@ -43,7 +44,7 @@ class Cron
             Prints::print(value: "Run jobs loop");
 
             do {
-                $controller = empty($_ENV['CRON_CONTROLLER']) ? null : $_ENV['CRON_CONTROLLER'];
+                $controller = Config::get('CRON_CONTROLLER', null);
                 $jobsRun = $cron->runJob($controller);
 
                 if (!$jobsRun) {

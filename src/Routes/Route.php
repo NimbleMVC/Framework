@@ -179,6 +179,7 @@ class Route implements RouteInterface
         }
 
         $dynamicMatch = $this->matchDynamicRoute($fullPath);
+      
         if ($dynamicMatch !== null) {
             $route = $dynamicMatch['route'];
             $this->setController($route['controller']);
@@ -513,6 +514,7 @@ class Route implements RouteInterface
                 $level++;
             } elseif ($path[$i] === ']') {
                 $level--;
+
                 if ($level === 0) {
                     $closePos = $i;
                     break;
@@ -641,6 +643,7 @@ class Route implements RouteInterface
 
                 if (isset($cachedData['timestamp']) && $cachedData['timestamp'] >= $controllersDirTimestamp) {
                     self::$routes = $cachedData['routes'];
+
                     return;
                 }
             }

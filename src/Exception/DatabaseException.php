@@ -2,20 +2,26 @@
 
 namespace NimblePHP\Framework\Exception;
 
+use NimblePHP\Framework\Config;
 use Throwable;
 
 /**
- * Hidden exception
+ * Database exception
  */
 class DatabaseException extends HiddenException
 {
 
+    /**
+     * @param string $message
+     * @param int $code
+     * @param Throwable|null $previous
+     */
     public function __construct(string $message = 'Database error', int $code = 500, ?Throwable $previous = null)
     {
         $showMessage = 'Database error';
         $this->hiddenMessage = $message;
 
-        if (isset($_ENV['DEBUG']) && $_ENV['DEBUG']) {
+        if (Config::get('DEBUG', false)) {
             $showMessage = $message;
         }
 

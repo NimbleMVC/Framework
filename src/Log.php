@@ -59,7 +59,7 @@ class Log
 
         if ($level === 'ERR') {
             $level = 'ERROR';
-        } elseif ($level === 'FATAL_ERR' || $level === 'FATAL_ERROR') {
+        } elseif (in_array($level, ['FATAL_ERR', 'FATAL_ERROR'])) {
             $level = 'CRITICAL';
         }
 
@@ -147,12 +147,14 @@ class Log
         }
 
         $logFiles = glob(self::$storage->getPath() . '/*.log.json.*');
+
         if (count($logFiles) > $maxFiles) {
             usort($logFiles, function ($a, $b) {
                 return filemtime($a) - filemtime($b);
             });
 
             $filesToDelete = array_slice($logFiles, 0, count($logFiles) - $maxFiles);
+
             foreach ($filesToDelete as $file) {
                 unlink($file);
             }

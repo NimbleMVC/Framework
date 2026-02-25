@@ -108,9 +108,11 @@ class Cache implements CacheInterface
     public function clear(): bool
     {
         $files = $this->storage->listFiles();
+
         foreach ($files as $file) {
             $this->storage->delete($file);
         }
+
         return true;
     }
 
@@ -123,4 +125,5 @@ class Cache implements CacheInterface
     {
         return md5($key) . '.cache';
     }
+
 }

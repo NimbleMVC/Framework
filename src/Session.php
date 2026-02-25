@@ -17,12 +17,12 @@ class Session implements SessionInterface
             return;
         }
 
-        if ($_ENV['SESSION_DRIVER'] === 'none') {
+        if (Config::get('SESSION_DRIVER', 'none') === 'none') {
             return;
         }
 
         if (session_status() === PHP_SESSION_NONE) {
-            switch ($_ENV['SESSION_DRIVER']) {
+            switch (Config::get('SESSION_DRIVER', 'none')) {
                 case 'file':
                     $sessionPath = Kernel::$projectPath . "/storage/session";
 
@@ -33,9 +33,9 @@ class Session implements SessionInterface
                     session_save_path($sessionPath);
                     break;
                 case 'redis':
-                    $redisHost = $_ENV['SESSION_REDIS_HOST'] ?? '127.0.0.1';
+                    $redisHost = Config::get('SESSION_REDIS_HOST', '127.0.0.1');
                     $redisPort = 6379;
-                    $redisPassword = $_ENV['SESSION_REDIS_PASSWORD'] ?? null;
+                    $redisPassword = Config::get('SESSION_REDIS_PASSWORD', null);
                     ini_set('session.save_handler', 'redis');
                     $redisConnection = "tcp://{$redisHost}:{$redisPort}";
 

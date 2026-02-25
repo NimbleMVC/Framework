@@ -119,6 +119,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
             } elseif (isset($this->services[$resolvedId])) {
                 $service = $this->services[$resolvedId];
                 $this->resolved[$resolvedId] = $service;
+
                 return $service;
             } else {
                 throw new RuntimeException("Service '$id' not found");

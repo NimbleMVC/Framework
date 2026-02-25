@@ -13,7 +13,6 @@ use Throwable;
 class ConsoleHelper
 {
 
-
     /**
      * Init project path for methods
      * @return void

@@ -19,6 +19,10 @@ use Throwable;
 class Console
 {
 
+    /**
+     * Commands
+     * @var array
+     */
     private static array $commands = [];
 
     /**
@@ -34,6 +38,7 @@ class Console
 
         if (!isset($argv[1])) {
             self::showHelp();
+
             return;
         }
 
@@ -43,6 +48,7 @@ class Console
         if (!array_key_exists($command, self::$commands)) {
             Prints::print('Unknown command: ' . $command, color: 'yellow');
             self::showHelp();
+
             return;
         }
 
@@ -92,6 +98,7 @@ class Console
                 if (str_contains($raw, '=')) {
                     [$key, $value] = explode('=', $raw, 2);
                     $parsed[$key] = $value;
+
                     continue;
                 }
 
@@ -160,7 +167,6 @@ class Console
         ksort($withoutColon);
         ksort($withColon);
 
-        // Połącz w odpowiedniej kolejności
         return $serve + $withoutColon + $withColon;
     }
 
@@ -170,7 +176,6 @@ class Console
      */
     private static function scanCommands(): void
     {
-        // Scan framework commands
         foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\Framework\CLI\Commands') as $file) {
             if (!class_exists($file)) {
                 continue;
