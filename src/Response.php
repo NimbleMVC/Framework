@@ -157,6 +157,7 @@ class Response implements ResponseInterface
      * @param string $url
      * @param int $statusCode
      * @return never
+     * @throws NimbleException
      */
     public function redirect(string $url, int $statusCode = 302): never
     {
@@ -172,6 +173,101 @@ class Response implements ResponseInterface
 
         header('Location: ' . $url, true, $statusCode);
         exit();
+    }
+
+    /**
+     * Send successful API response
+     * @param mixed $data Response data
+     * @param int $statusCode HTTP status code
+     * @param string $message Success message
+     * @return void
+     * @throws NimbleException
+     */
+    public function success(mixed $data = null, int $statusCode = 200, string $message = 'Success'): void
+    {
+        $this->setStatusCode($statusCode);
+        $this->setJsonContent([
+            'success' => true,
+            'code' => $statusCode,
+            'message' => $message,
+            'data' => $data,
+            'timestamp' => date('c'),
+        ]);
+        $this->send();
+    }
+
+    /**
+     * Send error API response
+     * @param string $message Error message
+     * @param int $statusCode HTTP status code
+     * @param mixed $data Additional error data
+     * @return void
+     * @throws NimbleException
+     */
+    public function error(string $message, int $statusCode = 400, mixed $data = null): void
+    {
+        $this->setStatusCode($statusCode);
+        $this->setJsonContent([
+            'success' => false,
+            'code' => $statusCode,
+            'message' => $message,
+            'data' => $data,
+            'timestamp' => date('c'),
+        ]);
+        $this->send();
+    }
+
+    /**
+     * Send paginated API response
+     * @param array $items Paginated items
+     * @param int $total Total count
+     * @param int $page Current page
+     * @param int $perPage Items per page
+     * @param string $message Success message
+     * @return void
+     * @throws NimbleException
+     */
+    public function paginated(array $items, int $total, int $page, int $perPage, string $message = 'Success'): void
+    {
+        $this->setStatusCode(200);
+        $this->setJsonContent([
+            'success' => true,
+            'code' => 200,
+            'message' => $message,
+            'data' => $items,
+            'pagination' => [
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'pages' => ceil($total / $perPage),
+            ],
+            'timestamp' => date('c'),
+        ]);
+        $this->send();
+    }
+
+    /**
+     * Send created response (201)
+     * @param mixed $data Created resource data
+     * @param string $message Success message
+     * @return void
+     * @throws NimbleException
+     */
+    public function created(mixed $data, string $message = 'Resource created'): void
+    {
+        $this->success($data, 201, $message);
+    }
+
+    /**
+     * Send no content response (204)
+     * @return void
+     * @throws NimbleException
+     */
+    public function noContent(): void
+    {
+        $this->setStatusCode(204);
+        $this->setContent('');
+        $this->send();
     }
 
 }
