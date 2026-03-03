@@ -88,6 +88,32 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     }
 
     /**
+     * Register a lazy singleton service
+     * Service is created only when first accessed
+     * @param string $id
+     * @param callable $factory
+     * @return void
+     */
+    public function singleton(string $id, callable $factory): void
+    {
+        if (empty($id)) {
+            throw new RuntimeException('Service ID cannot be empty');
+        }
+
+        $this->increaseStats($id, 'set');
+        Kernel::$middlewareManager->runHook('serviceSet', [$id, 'singleton']);
+
+        $this->factories[$id] = function($container) use ($factory, $id) {
+            if (!isset($this->resolved[$id])) {
+                $this->resolved[$id] = call_user_func($factory, $container);
+            }
+            return $this->resolved[$id];
+        };
+
+        unset($this->resolved[$id]);
+    }
+
+    /**
      * Get a service from the container
      * @param string $id
      * @return mixed

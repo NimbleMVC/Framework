@@ -21,6 +21,15 @@ interface ContainerInterface
     public function setFactory(string $id, callable $factory): void;
 
     /**
+     * Register a lazy singleton service
+     * Service is created only when first accessed
+     * @param string $id
+     * @param callable $factory
+     * @return void
+     */
+    public function singleton(string $id, callable $factory): void;
+
+    /**
      * Get a service from the container
      * @param string $id
      * @return mixed
