@@ -32,6 +32,18 @@ class View implements ViewInterface
     }
 
     /**
+     * View set path
+     * @param string $path
+     * @return void
+     */
+    public function setViewPath(string $path): self
+    {
+        $this->viewPath = $path;
+
+        return $this;
+    }
+
+    /**
      * Set response code
      * @param int $responseCode
      * @return void
@@ -54,6 +66,7 @@ class View implements ViewInterface
         $_previewData = $data;
         extract($data);
         $filePath = $this->viewPath . $viewName . '.phtml';
+
         Kernel::$middlewareManager->runHook('beforeViewRender', [$_previewData, $viewName, $filePath]);
 
         if (!file_exists($filePath)) {
