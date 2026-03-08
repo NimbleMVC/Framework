@@ -146,9 +146,7 @@ class Kernel implements KernelInterface
         }
 
         if (!self::$serviceContainer->has('view')) {
-            self::$serviceContainer->singleton('view', function($c) {
-                return new View();
-            });
+            self::$serviceContainer->set('view', new View());
         }
 
         if (!self::$serviceContainer->has('translation')) {
