@@ -252,6 +252,7 @@ class Translation
      */
     private function registerDefaultPaths(): void
     {
+        $this->addTranslationPath(__DIR__ . '/../Validation/Lang', self::PRIORITY_FRAMEWORK);
         $this->addTranslationPath(Kernel::$projectPath . '/App/Lang', self::PRIORITY_APP);
     }
 

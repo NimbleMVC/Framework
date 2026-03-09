@@ -1,0 +1,20 @@
+{
+  "framework": {
+    "validation": {
+      "required": "To pole nie może być puste.",
+      "checked": "To pole musi zostać zaznaczone.",
+      "isEmail": "Podany adres e-mail jest niepoprawny.",
+      "isInteger": "To pole musi być liczbą całkowitą.",
+      "isNumeric": "To pole musi być liczbą.",
+      "decimalMax": "To pole może mieć co najwyżej :decimal miejsca po przecinku.",
+      "minLength": "To pole musi mieć co najmniej :length znaków.",
+      "maxLength": "To pole nie może przekraczać :length znaków.",
+      "min": "Wartość musi być co najmniej :min.",
+      "max": "Wartość nie może przekraczać :max.",
+      "in": "Nieprawidłowa wartość. Dozwolone: :values.",
+      "notIn": "Ta wartość jest niedozwolona.",
+      "regex": "To pole ma nieprawidłowy format.",
+      "same": "To pole musi być zgodne z polem :field."
+    }
+  }
+}

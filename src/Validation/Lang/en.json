@@ -1,0 +1,20 @@
+{
+  "framework": {
+    "validation": {
+      "required": "This field is required.",
+      "checked": "This field must be checked.",
+      "isEmail": "Invalid e-mail address.",
+      "isInteger": "This field must be an integer.",
+      "isNumeric": "This field must be a number.",
+      "decimalMax": "This field may have at most :decimal decimal places.",
+      "minLength": "This field must be at least :length characters.",
+      "maxLength": "This field may not exceed :length characters.",
+      "min": "This field must be at least :min.",
+      "max": "This field may not exceed :max.",
+      "in": "Invalid value. Allowed: :values.",
+      "notIn": "This value is not allowed.",
+      "regex": "This field has an invalid format.",
+      "same": "This field must match :field."
+    }
+  }
+}
