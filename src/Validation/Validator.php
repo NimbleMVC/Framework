@@ -128,18 +128,10 @@ class Validator
         return $result;
     }
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     public function __construct(array $data)
     {
         $this->data = $data;
     }
-
-    // -------------------------------------------------------------------------
-    // Fluent API
-    // -------------------------------------------------------------------------
 
     /**
      * Begin rule definition for the given field (fluent API)
@@ -339,10 +331,6 @@ class Validator
         return new ValidationResult($this->errors);
     }
 
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
-
     /**
      * Execute a single built-in rule
      * @throws Exception
@@ -352,31 +340,31 @@ class Validator
         switch ($name) {
             case 'required':
                 if ($this->isEmpty($value)) {
-                    throw new Exception($this->msg('required'));
+                    throw new ValidationException($this->msg('required'));
                 }
                 break;
 
             case 'checked':
                 if (!(bool)trim((string)($value ?? ''))) {
-                    throw new Exception($this->msg('checked'));
+                    throw new ValidationException($this->msg('checked'));
                 }
                 break;
 
             case 'isEmail':
                 if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    throw new Exception($this->msg('isEmail'));
+                    throw new ValidationException($this->msg('isEmail'));
                 }
                 break;
 
             case 'isInteger':
                 if (!filter_var($value, FILTER_VALIDATE_INT)) {
-                    throw new Exception($this->msg('isInteger'));
+                    throw new ValidationException($this->msg('isInteger'));
                 }
                 break;
 
             case 'isNumeric':
                 if (!is_numeric($value)) {
-                    throw new Exception($this->msg('isNumeric'));
+                    throw new ValidationException($this->msg('isNumeric'));
                 }
                 break;
 
@@ -384,7 +372,7 @@ class Validator
                 $normalized = str_replace(',', '.', (string)$value);
 
                 if (!is_numeric($normalized)) {
-                    throw new Exception($this->msg('isNumeric'));
+                    throw new ValidationException($this->msg('isNumeric'));
                 }
 
                 if (!str_contains($normalized, '.')) {
@@ -395,7 +383,7 @@ class Validator
                 $decimalPart = explode('.', $normalized)[1];
 
                 if (strlen($decimalPart) > $maxPlaces) {
-                    throw new Exception(str_replace(':decimal', (string)$maxPlaces, $this->msg('decimalMax')));
+                    throw new ValidationException(str_replace(':decimal', (string)$maxPlaces, $this->msg('decimalMax')));
                 }
                 break;
 
@@ -405,11 +393,11 @@ class Validator
                 $len = mb_strlen((string)($value ?? ''));
 
                 if ($min !== null && $len < $min) {
-                    throw new Exception(str_replace(':length', (string)$min, $this->msg('minLength')));
+                    throw new ValidationException(str_replace(':length', (string)$min, $this->msg('minLength')));
                 }
 
                 if ($max !== null && $len > $max) {
-                    throw new Exception(str_replace(':length', (string)$max, $this->msg('maxLength')));
+                    throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
                 }
                 break;
 
@@ -417,7 +405,7 @@ class Validator
                 $min = (int)$options;
 
                 if (mb_strlen((string)($value ?? '')) < $min) {
-                    throw new Exception(str_replace(':length', (string)$min, $this->msg('minLength')));
+                    throw new ValidationException(str_replace(':length', (string)$min, $this->msg('minLength')));
                 }
                 break;
 
@@ -425,19 +413,19 @@ class Validator
                 $max = (int)$options;
 
                 if (mb_strlen((string)($value ?? '')) > $max) {
-                    throw new Exception(str_replace(':length', (string)$max, $this->msg('maxLength')));
+                    throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
                 }
                 break;
 
             case 'min':
                 if (!is_numeric($value) || (float)$value < (float)$options) {
-                    throw new Exception(str_replace(':min', (string)$options, $this->msg('min')));
+                    throw new ValidationException(str_replace(':min', (string)$options, $this->msg('min')));
                 }
                 break;
 
             case 'max':
                 if (!is_numeric($value) || (float)$value > (float)$options) {
-                    throw new Exception(str_replace(':max', (string)$options, $this->msg('max')));
+                    throw new ValidationException(str_replace(':max', (string)$options, $this->msg('max')));
                 }
                 break;
 
@@ -445,7 +433,7 @@ class Validator
                 $allowed = (array)$options;
 
                 if (!in_array($value, $allowed, true)) {
-                    throw new Exception(str_replace(':values', implode(', ', $allowed), $this->msg('in')));
+                    throw new ValidationException(str_replace(':values', implode(', ', $allowed), $this->msg('in')));
                 }
                 break;
 
@@ -453,13 +441,13 @@ class Validator
                 $forbidden = (array)$options;
 
                 if (in_array($value, $forbidden, true)) {
-                    throw new Exception(str_replace(':values', implode(', ', $forbidden), $this->msg('notIn')));
+                    throw new ValidationException(str_replace(':values', implode(', ', $forbidden), $this->msg('notIn')));
                 }
                 break;
 
             case 'regex':
                 if (!preg_match((string)$options, (string)($value ?? ''))) {
-                    throw new Exception($this->msg('regex'));
+                    throw new ValidationException($this->msg('regex'));
                 }
                 break;
 
@@ -467,7 +455,7 @@ class Validator
                 $otherValue = $this->getDataByKey((string)$options);
 
                 if ($value !== $otherValue) {
-                    throw new Exception(str_replace(':field', (string)$options, $this->msg('same')));
+                    throw new ValidationException(str_replace(':field', (string)$options, $this->msg('same')));
                 }
                 break;
 
@@ -477,7 +465,7 @@ class Validator
                 $names = array_column($enumClass::cases(), 'name');
 
                 if (!in_array($value, $names, true)) {
-                    throw new Exception(str_replace(':values', implode(', ', $names), $this->msg('in')));
+                    throw new ValidationException(str_replace(':values', implode(', ', $names), $this->msg('in')));
                 }
                 break;
         }
