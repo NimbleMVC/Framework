@@ -12,6 +12,7 @@ use NimblePHP\Framework\CLI\ConsoleHelper;
 use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
 use Throwable;
@@ -44,7 +45,7 @@ class Cron
             Prints::print(value: "Run jobs loop");
 
             do {
-                $controller = Config::get('CRON_CONTROLLER', null);
+                $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
                 $jobsRun = $cron->runJob($controller);
 
                 if (!$jobsRun) {
@@ -124,6 +125,47 @@ class Cron
         if (!$connected) {
             Prints::print(value: "Failed to connect to database after $maxAttempts attempts", exit: true, color: 'red');
         }
+    }
+
+    /**
+     * Resolve configured cron controller.
+     * @param mixed $controller
+     * @return ControllerInterface|null
+     * @throws NimbleException
+     */
+    private function resolveController(mixed $controller): ?ControllerInterface
+    {
+        if ($controller === null || $controller === '') {
+            return null;
+        }
+
+        if ($controller instanceof ControllerInterface) {
+            return $controller;
+        }
+
+        if (!is_string($controller)) {
+            throw new NimbleException('CRON_CONTROLLER must be null, a controller instance or a controller class-string');
+        }
+
+        $controllerClass = ltrim(trim($controller), '\\');
+
+        if ($controllerClass === '') {
+            return null;
+        }
+
+        if (!class_exists($controllerClass)) {
+            throw new NimbleException('CRON_CONTROLLER class "' . $controllerClass . '" does not exist');
+        }
+
+        if (!is_subclass_of($controllerClass, ControllerInterface::class)) {
+            throw new NimbleException('CRON_CONTROLLER class "' . $controllerClass . '" must implement ' . ControllerInterface::class);
+        }
+
+        /** @var ControllerInterface $controllerInstance */
+        $controllerInstance = new $controllerClass();
+        $controllerInstance->afterConstruct();
+
+        return $controllerInstance;
     }
 
 }
