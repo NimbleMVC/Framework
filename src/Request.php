@@ -318,7 +318,7 @@ readonly class Request implements RequestInterface
             $quality = 1.0;
 
             if (isset($parts[1]) && strpos($parts[1], 'q=') === 0) {
-                $quality = (float) substr($parts[1], 2);
+                $quality = (float)substr($parts[1], 2);
             }
 
             $languages[] = [

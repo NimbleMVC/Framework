@@ -13,7 +13,9 @@ class ValidationResult
     /**
      * @param array<string, string> $errors Field name => error message
      */
-    public function __construct(private readonly array $errors = []) {}
+    public function __construct(private readonly array $errors = [])
+    {
+    }
 
     /**
      * Returns true when at least one field failed validation

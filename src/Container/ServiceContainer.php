@@ -103,7 +103,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
         $this->increaseStats($id, 'set');
         Kernel::$middlewareManager->runHook('serviceSet', [$id, 'singleton']);
 
-        $this->factories[$id] = function($container) use ($factory, $id) {
+        $this->factories[$id] = function ($container) use ($factory, $id) {
             if (!isset($this->resolved[$id])) {
                 $this->resolved[$id] = call_user_func($factory, $container);
             }

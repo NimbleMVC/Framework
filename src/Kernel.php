@@ -128,19 +128,19 @@ class Kernel implements KernelInterface
         }
 
         if (!self::$serviceContainer->has('kernel.session')) {
-            self::$serviceContainer->singleton('kernel.session', function($c) {
+            self::$serviceContainer->singleton('kernel.session', function ($c) {
                 return new Session();
             });
         }
 
         if (!self::$serviceContainer->has('kernel.cache')) {
-            self::$serviceContainer->singleton('kernel.cache', function($c) {
+            self::$serviceContainer->singleton('kernel.cache', function ($c) {
                 return new Cache();
             });
         }
 
         if (!self::$serviceContainer->has('kernel.cookie')) {
-            self::$serviceContainer->singleton('kernel.cookie', function($c) {
+            self::$serviceContainer->singleton('kernel.cookie', function ($c) {
                 return new Cookie();
             });
         }
@@ -150,7 +150,7 @@ class Kernel implements KernelInterface
         }
 
         if (!self::$serviceContainer->has('translation')) {
-            self::$serviceContainer->singleton('translation', function($c) {
+            self::$serviceContainer->singleton('translation', function ($c) {
                 return Translation::getInstance();
             });
         }

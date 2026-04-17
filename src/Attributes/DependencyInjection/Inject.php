@@ -10,7 +10,7 @@ class Inject
 
     /**
      * Class name
-     * @var string 
+     * @var string
      */
     public string $className;
 

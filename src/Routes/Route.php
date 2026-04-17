@@ -179,7 +179,7 @@ class Route implements RouteInterface
         }
 
         $dynamicMatch = $this->matchDynamicRoute($fullPath);
-      
+
         if ($dynamicMatch !== null) {
             $route = $dynamicMatch['route'];
             $this->setController($route['controller']);
@@ -202,7 +202,7 @@ class Route implements RouteInterface
     {
         $routes = self::$routes;
 
-        uksort($routes, function(string $a, string $b): int {
+        uksort($routes, function (string $a, string $b): int {
             $aSegments = substr_count($a, '/');
             $bSegments = substr_count($b, '/');
 

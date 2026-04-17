@@ -69,7 +69,7 @@ class Console
 
         $positional = array_values(array_filter(
             $parsedArgs,
-            static fn ($k) => is_int($k),
+            static fn($k) => is_int($k),
             ARRAY_FILTER_USE_KEY
         ));
 

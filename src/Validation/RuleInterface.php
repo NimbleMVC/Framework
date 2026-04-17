@@ -2,6 +2,8 @@
 
 namespace NimblePHP\Framework\Validation;
 
+use Exception;
+
 /**
  * Interface for custom validation rules
  */
@@ -13,7 +15,7 @@ interface RuleInterface
      * Throw an exception with a message if validation fails.
      * @param mixed $value
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     public function validate(mixed $value): void;
 

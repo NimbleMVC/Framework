@@ -2,6 +2,8 @@
 
 namespace NimblePHP\Framework\Middleware;
 
+use RuntimeException;
+
 /**
  * Middleware manager that supports priorities and special hooks (e.g. afterBootstrap).
  */
@@ -92,7 +94,7 @@ class MiddlewareManager
                         return $middleware($req, $next);
                     }
 
-                    throw new \RuntimeException('Invalid middleware');
+                    throw new RuntimeException('Invalid middleware');
                 };
             },
             $finalHandler

@@ -4,8 +4,10 @@ namespace NimblePHP\Framework\Validation;
 
 use Closure;
 use Exception;
+use LogicException;
 use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
+use Throwable;
 
 class Validator
 {
@@ -545,7 +547,7 @@ class Validator
     private function assertCurrentField(): void
     {
         if ($this->currentField === null) {
-            throw new \LogicException('Call field() before adding rules');
+            throw new LogicException('Call field() before adding rules');
         }
     }
 
@@ -564,7 +566,7 @@ class Validator
             if ($translated !== $translationKey) {
                 return $translated;
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         return 'Validation error.';
