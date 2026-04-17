@@ -7,56 +7,6 @@ use Exception;
 use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
 
-/**
- * Standalone data validator for use in controllers, models, forms and anywhere else.
- *
- * ## Array syntax
- * ```php
- * $result = Validator::validate($_POST, [
- *     'name'   => ['required', 'length' => ['min' => 3, 'max' => 50]],
- *     'email'  => ['required', 'isEmail'],
- *     'age'    => ['required', 'isInteger', 'min' => 18, 'max' => 120],
- *     'price'  => ['nullable', 'isDecimal' => ['maxPlaces' => 2]],
- *     'role'   => ['required', 'in' => ['admin', 'user', 'guest']],
- *     'code'   => ['required', 'regex' => '/^[A-Z]{3}\d{3}$/'],
- *     'accept' => ['checked'],
- *     'nick'   => [function(mixed $value) { if (str_contains($value, ' ')) throw new \Exception('No spaces allowed'); }],
- *     'token'  => ['required', new MyCustomRule()],
- * ]);
- *
- * if ($result->fails()) {
- *     $errors = $result->errors();
- * }
- *
- * // Throw ValidationException on first failure:
- * $result->throwIfFailed();
- * // or shorthand:
- * Validator::validateOrFail($_POST, $rules);
- * ```
- *
- * ## Supported built-in rules
- * | Rule key          | Options / value                                  |
- * |-------------------|--------------------------------------------------|
- * | `required`        | –                                                |
- * | `nullable`        | Skip remaining rules when value is empty/null    |
- * | `checked`         | Truthy value (checkbox)                          |
- * | `isEmail`         | –                                                |
- * | `isInteger`       | –                                                |
- * | `isDecimal`       | `['maxPlaces' => N]` (default 2)                 |
- * | `isNumeric`       | –                                                |
- * | `length`          | `['min' => N, 'max' => N]`                       |
- * | `minLength`       | integer                                          |
- * | `maxLength`       | integer                                          |
- * | `min`             | number                                           |
- * | `max`             | number                                           |
- * | `in`              | array of allowed values                          |
- * | `notIn`           | array of forbidden values                        |
- * | `regex`           | regex pattern string                             |
- * | `same`            | name of another field whose value must match     |
- * | `enum`            | FQCN of a PHP backed/unit enum                   |
- * | Closure           | `function(mixed $value): void` – throw on error  |
- * | RuleInterface     | Custom rule object                               |
- */
 class Validator
 {
 
@@ -90,10 +40,6 @@ class Validator
      */
     private static array $messages = [];
 
-    // -------------------------------------------------------------------------
-    // Factory / static helpers
-    // -------------------------------------------------------------------------
-
     /**
      * Create a new Validator instance for the given data
      */
@@ -105,10 +51,10 @@ class Validator
     /**
      * Validate data against rules and return a ValidationResult.
      * This is the primary entry point for the array syntax.
-     *
-     * @param array $data    Associative array of input values (e.g. $_POST)
-     * @param array $rules   Field => rule list map
+     * @param array $data Associative array of input values (e.g. $_POST)
+     * @param array $rules Field => rule list map
      * @return ValidationResult
+     * @throws Exception
      */
     public static function validate(array $data, array $rules): ValidationResult
     {
@@ -117,7 +63,6 @@ class Validator
 
     /**
      * Same as validate() but throws a ValidationException when validation fails.
-     *
      * @throws ValidationException
      */
     public static function validateOrFail(array $data, array $rules): ValidationResult
@@ -135,6 +80,8 @@ class Validator
 
     /**
      * Begin rule definition for the given field (fluent API)
+     * @param string $name
+     * @return $this
      */
     public function field(string $name): self
     {
@@ -147,37 +94,55 @@ class Validator
         return $this;
     }
 
-    /** Field must not be empty (fluent) */
+    /**
+     * Field must not be empty (fluent)
+     * @return self
+     */
     public function required(): self
     {
         return $this->addFluentRule('required');
     }
 
-    /** Allow null/empty – skip following rules when empty (fluent) */
+    /**
+     * Allow null/empty – skip following rules when empty (fluent)
+     * @return self
+     */
     public function nullable(): self
     {
         return $this->addFluentRule('nullable');
     }
 
-    /** Value must be truthy – e.g. checkbox (fluent) */
+    /**
+     * Value must be truthy – e.g. checkbox (fluent)
+     * @return self
+     */
     public function checked(): self
     {
         return $this->addFluentRule('checked');
     }
 
-    /** Must be a valid e-mail address (fluent) */
+    /**
+     * Must be a valid e-mail address (fluent)
+     * @return self
+     */
     public function isEmail(): self
     {
         return $this->addFluentRule('isEmail');
     }
 
-    /** Must be an integer (fluent) */
+    /**
+     * Must be an integer (fluent)
+     * @return self
+     */
     public function isInteger(): self
     {
         return $this->addFluentRule('isInteger');
     }
 
-    /** Must be numeric (fluent) */
+    /**
+     * Must be numeric (fluent)
+     * @return self
+     */
     public function isNumeric(): self
     {
         return $this->addFluentRule('isNumeric');
@@ -202,25 +167,41 @@ class Validator
         return $this->addFluentRule('length', array_filter(['min' => $min, 'max' => $max], fn($v) => $v !== null));
     }
 
-    /** Minimum string length (fluent) */
+    /**
+     * Minimum string length (fluent)
+     * @param int $min
+     * @return self
+     */
     public function minLength(int $min): self
     {
         return $this->addFluentRule('minLength', $min);
     }
 
-    /** Maximum string length (fluent) */
+    /**
+     * Maximum string length (fluent)
+     * @param int $max
+     * @return self
+     */
     public function maxLength(int $max): self
     {
         return $this->addFluentRule('maxLength', $max);
     }
 
-    /** Minimum numeric value (fluent) */
+    /**
+     * Minimum numeric value (fluent)
+     * @param int|float $min
+     * @return self
+     */
     public function min(int|float $min): self
     {
         return $this->addFluentRule('min', $min);
     }
 
-    /** Maximum numeric value (fluent) */
+    /**
+     * Maximum numeric value (fluent)
+     * @param int|float $max
+     * @return self
+     */
     public function max(int|float $max): self
     {
         return $this->addFluentRule('max', $max);
@@ -229,6 +210,7 @@ class Validator
     /**
      * Value must be one of the given values (fluent)
      * @param array $values
+     * @return Validator
      */
     public function in(array $values): self
     {
@@ -237,6 +219,8 @@ class Validator
 
     /**
      * Value must not be in the given list (fluent)
+     * @param array $values
+     * @return self
      */
     public function notIn(array $values): self
     {
@@ -245,6 +229,8 @@ class Validator
 
     /**
      * Value must match the regex pattern (fluent)
+     * @param string $pattern
+     * @return self
      */
     public function regex(string $pattern): self
     {
@@ -253,6 +239,8 @@ class Validator
 
     /**
      * Value must match the value of another field (fluent)
+     * @param string $otherField
+     * @return self
      */
     public function same(string $otherField): self
     {
@@ -271,6 +259,8 @@ class Validator
     /**
      * Add a custom closure rule (fluent)
      * The closure receives the field value and should throw on failure.
+     * @param Closure|RuleInterface $rule
+     * @return $this
      */
     public function addRule(Closure|RuleInterface $rule): self
     {
@@ -282,6 +272,9 @@ class Validator
 
     /**
      * Execute fluent rules and return ValidationResult
+     * @param array|null $rules
+     * @return ValidationResult
+     * @throws Exception
      */
     public function run(?array $rules = null): ValidationResult
     {
@@ -299,7 +292,6 @@ class Validator
                     } elseif ($rule instanceof Closure) {
                         $rule($value);
                     } elseif (is_string($ruleType)) {
-                        // key => value pair, e.g. 'length' => ['min' => 3]
                         if ($ruleType === 'nullable') {
                             $nullable = true;
 
@@ -310,7 +302,6 @@ class Validator
                             $this->runBuiltIn($ruleType, $rule, $value, $fieldKey);
                         }
                     } elseif (is_int($ruleType) && is_string($rule)) {
-                        // indexed, e.g. 0 => 'required'
                         if ($rule === 'nullable') {
                             $nullable = true;
 
@@ -342,30 +333,35 @@ class Validator
                 if ($this->isEmpty($value)) {
                     throw new ValidationException($this->msg('required'));
                 }
+
                 break;
 
             case 'checked':
                 if (!(bool)trim((string)($value ?? ''))) {
                     throw new ValidationException($this->msg('checked'));
                 }
+
                 break;
 
             case 'isEmail':
                 if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
                     throw new ValidationException($this->msg('isEmail'));
                 }
+
                 break;
 
             case 'isInteger':
                 if (!filter_var($value, FILTER_VALIDATE_INT)) {
                     throw new ValidationException($this->msg('isInteger'));
                 }
+
                 break;
 
             case 'isNumeric':
                 if (!is_numeric($value)) {
                     throw new ValidationException($this->msg('isNumeric'));
                 }
+
                 break;
 
             case 'isDecimal':
@@ -385,6 +381,7 @@ class Validator
                 if (strlen($decimalPart) > $maxPlaces) {
                     throw new ValidationException(str_replace(':decimal', (string)$maxPlaces, $this->msg('decimalMax')));
                 }
+
                 break;
 
             case 'length':
@@ -399,6 +396,7 @@ class Validator
                 if ($max !== null && $len > $max) {
                     throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
                 }
+
                 break;
 
             case 'minLength':
@@ -407,6 +405,7 @@ class Validator
                 if (mb_strlen((string)($value ?? '')) < $min) {
                     throw new ValidationException(str_replace(':length', (string)$min, $this->msg('minLength')));
                 }
+
                 break;
 
             case 'maxLength':
@@ -415,18 +414,21 @@ class Validator
                 if (mb_strlen((string)($value ?? '')) > $max) {
                     throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
                 }
+
                 break;
 
             case 'min':
                 if (!is_numeric($value) || (float)$value < (float)$options) {
                     throw new ValidationException(str_replace(':min', (string)$options, $this->msg('min')));
                 }
+
                 break;
 
             case 'max':
                 if (!is_numeric($value) || (float)$value > (float)$options) {
                     throw new ValidationException(str_replace(':max', (string)$options, $this->msg('max')));
                 }
+
                 break;
 
             case 'in':
@@ -435,6 +437,7 @@ class Validator
                 if (!in_array($value, $allowed, true)) {
                     throw new ValidationException(str_replace(':values', implode(', ', $allowed), $this->msg('in')));
                 }
+
                 break;
 
             case 'notIn':
@@ -443,12 +446,14 @@ class Validator
                 if (in_array($value, $forbidden, true)) {
                     throw new ValidationException(str_replace(':values', implode(', ', $forbidden), $this->msg('notIn')));
                 }
+
                 break;
 
             case 'regex':
                 if (!preg_match((string)$options, (string)($value ?? ''))) {
                     throw new ValidationException($this->msg('regex'));
                 }
+
                 break;
 
             case 'same':
@@ -457,16 +462,18 @@ class Validator
                 if ($value !== $otherValue) {
                     throw new ValidationException(str_replace(':field', (string)$options, $this->msg('same')));
                 }
+
                 break;
 
             case 'enum':
-                /** @var string $enumClass */
+                /** @var object $enumClass */
                 $enumClass = $options;
                 $names = array_column($enumClass::cases(), 'name');
 
                 if (!in_array($value, $names, true)) {
                     throw new ValidationException(str_replace(':values', implode(', ', $names), $this->msg('in')));
                 }
+
                 break;
         }
     }
@@ -474,6 +481,8 @@ class Validator
     /**
      * Retrieve a nested value from the data array.
      * Keys may use dot-notation: "user.email" → $data['user']['email']
+     * @param string $key
+     * @return mixed
      */
     private function getDataByKey(string $key): mixed
     {
@@ -491,6 +500,10 @@ class Validator
         return $value;
     }
 
+    /**
+     * @param mixed $value
+     * @return bool
+     */
     private function isEmpty(mixed $value): bool
     {
         if (is_null($value)) {
@@ -508,6 +521,11 @@ class Validator
         return false;
     }
 
+    /**
+     * @param string $ruleName
+     * @param mixed|null $options
+     * @return self
+     */
     private function addFluentRule(string $ruleName, mixed $options = null): self
     {
         $this->assertCurrentField();
@@ -521,6 +539,9 @@ class Validator
         return $this;
     }
 
+    /**
+     * @return void
+     */
     private function assertCurrentField(): void
     {
         if ($this->currentField === null) {
@@ -530,40 +551,23 @@ class Validator
 
     /**
      * Resolve a translated message, falling back to the built-in English string.
+     * @param string $key
+     * @return string
      */
     private function msg(string $key): string
     {
-        static $fallback = [
-            'required'   => 'This field is required.',
-            'checked'    => 'This field must be checked.',
-            'isEmail'    => 'Invalid e-mail address.',
-            'isInteger'  => 'This field must be an integer.',
-            'isNumeric'  => 'This field must be a number.',
-            'decimalMax' => 'This field may have at most :decimal decimal places.',
-            'minLength'  => 'This field must be at least :length characters.',
-            'maxLength'  => 'This field may not exceed :length characters.',
-            'min'        => 'This field must be at least :min.',
-            'max'        => 'This field may not exceed :max.',
-            'in'         => 'Invalid value. Allowed: :values.',
-            'notIn'      => 'This value is not allowed.',
-            'regex'      => 'This field has an invalid format.',
-            'same'       => 'This field must match :field.',
-        ];
-
         try {
             $translationKey = 'framework.validation.' . $key;
             $translation = Kernel::$serviceContainer->get('translation');
             $translated = $translation->translate($translationKey);
 
-            // translate() returns the key itself when not found
             if ($translated !== $translationKey) {
                 return $translated;
             }
         } catch (\Throwable) {
-            // Translation not available (e.g. outside HTTP context)
         }
 
-        return $fallback[$key] ?? 'Validation error.';
+        return 'Validation error.';
     }
 
 }

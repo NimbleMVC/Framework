@@ -65,6 +65,7 @@ class ValidationResult
     {
         if ($this->fails()) {
             $first = array_values($this->errors)[0];
+
             throw new ValidationException($first);
         }
     }
