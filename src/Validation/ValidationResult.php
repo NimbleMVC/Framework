@@ -19,6 +19,7 @@ class ValidationResult
 
     /**
      * Returns true when at least one field failed validation
+     * @return bool
      */
     public function fails(): bool
     {
@@ -27,6 +28,7 @@ class ValidationResult
 
     /**
      * Returns true when all fields passed validation
+     * @return bool
      */
     public function passes(): bool
     {
@@ -44,6 +46,8 @@ class ValidationResult
 
     /**
      * First error message for a specific field, or null if none
+     * @param string $field
+     * @return string|null
      */
     public function firstError(string $field): ?string
     {
@@ -52,6 +56,8 @@ class ValidationResult
 
     /**
      * Returns true if the given field has a validation error
+     * @param string $field
+     * @return bool
      */
     public function hasError(string $field): bool
     {
@@ -61,6 +67,7 @@ class ValidationResult
     /**
      * Throw a ValidationException when validation failed
      * The exception message lists all errors as JSON.
+     * @return void
      * @throws ValidationException
      */
     public function throwIfFailed(): void

@@ -44,6 +44,8 @@ class Validator
 
     /**
      * Create a new Validator instance for the given data
+     * @param array $data
+     * @return self
      */
     public static function make(array $data): self
     {
@@ -75,6 +77,9 @@ class Validator
         return $result;
     }
 
+    /**
+     * @param array $data
+     */
     public function __construct(array $data)
     {
         $this->data = $data;
