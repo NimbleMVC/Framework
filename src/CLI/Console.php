@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\CLI;
 
+use Krzysztofzylka\Console\Args;
 use Krzysztofzylka\Console\Generator\Help;
 use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
@@ -14,6 +15,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
+use RuntimeException;
 use Throwable;
 
 class Console
@@ -26,126 +28,158 @@ class Console
     private static array $commands = [];
 
     /**
-     * Run command
      * @param array $argv
-     * @return void
+     * @return int
      * @throws ReflectionException
      */
-    public static function run(array $argv): void
+    public static function run(array $argv): int
     {
         ConsoleHelper::initProjectPath();
         self::scanCommands();
 
         if (!isset($argv[1])) {
-            self::showHelp();
+            self::showOverview();
 
-            return;
+            return 0;
         }
 
         $command = $argv[1];
-        $args = array_slice($argv, 2);
+
+        if (in_array($command, ['--help', '-h', 'help'], true)) {
+            self::showOverview();
+
+            return 0;
+        }
+
+        $rawArguments = array_slice($argv, 2);
+        $parsedArguments = self::parseArguments($rawArguments);
 
         if (!array_key_exists($command, self::$commands)) {
-            Prints::print('Unknown command: ' . $command, color: 'yellow');
-            self::showHelp();
+            Prints::warning('Unknown command: ' . $command);
+            self::showSuggestions($command);
+            self::showOverview();
 
-            return;
+            return 1;
         }
 
-        $commandClass = self::$commands[$command];
-        $method = $commandClass['method'];
-        $parsedArgs = self::parseArguments($args);
+        if (($parsedArguments['help'] ?? false) === true || ($parsedArguments['h'] ?? false) === true) {
+            self::showCommandHelp($command);
 
-        $instance = new $commandClass['class']();
-        $reflection = new ReflectionMethod($instance, $method);
-        $params = $reflection->getParameters();
-
-        if (count($params) === 1 && ($params[0]->getType() instanceof ReflectionNamedType)
-            && $params[0]->getType()->getName() === 'array'
-        ) {
-            $instance->$method($parsedArgs);
-            return;
+            return 0;
         }
 
-        $positional = array_values(array_filter(
-            $parsedArgs,
-            static fn ($k) => is_int($k),
-            ARRAY_FILTER_USE_KEY
-        ));
+        $commandDefinition = self::$commands[$command];
+        $input = new Input(
+            command: $command,
+            rawArguments: $rawArguments,
+            parsedArguments: $parsedArguments,
+            argumentMetadata: self::resolveArgumentsMetadata($commandDefinition)
+        );
+        $output = new Output();
 
-        $instance->$method(...$positional);
+        return self::executeCommand($commandDefinition, $input, $output);
     }
 
     /**
-     * Parse command arguments into array
-     * Supports:
-     *   --key=value
-     *   --key value
-     *   -f (boolean flag)
+     * @return array
+     */
+    public static function getCommandNames(): array
+    {
+        ConsoleHelper::initProjectPath();
+        self::scanCommands();
+
+        return array_keys(self::sortCommands());
+    }
+
+    /**
      * @param array $args
      * @return array
      */
     private static function parseArguments(array $args): array
     {
-        $parsed = [];
+        $normalized = Args::getArgs(array_merge(['nimble'], $args));
+        $parsed = $normalized['args'];
 
-        for ($i = 0; $i < count($args); $i++) {
-            $arg = $args[$i];
-
-            if (str_starts_with($arg, '--')) {
-                $raw = substr($arg, 2);
-
-                if (str_contains($raw, '=')) {
-                    [$key, $value] = explode('=', $raw, 2);
-                    $parsed[$key] = $value;
-
-                    continue;
-                }
-
-                $key = $raw;
-                $next = $args[$i + 1] ?? null;
-
-                if ($next !== null && !str_starts_with($next, '-')) {
-                    $parsed[$key] = $next;
-                    $i++;
-                } else {
-                    $parsed[$key] = true;
-                }
-
-                continue;
-            }
-
-            if (str_starts_with($arg, '-')) {
-                $parsed[substr($arg, 1)] = true;
-                continue;
-            }
-
-            $parsed[] = $arg;
+        foreach ($normalized['params'] as $key => $value) {
+            $parsed[$key] = $value;
         }
 
         return $parsed;
     }
 
     /**
-     * Show help
      * @return void
      */
-    private static function showHelp(): void
+    private static function showOverview(): void
     {
-        $help = new Help();
-        $help->addHeader('Commands');
+        $sections = [];
 
-        $sortedCommands = self::sortCommands();
+        $header = new Help();
+        $header->addHeader('Commands');
+        $sections[] = $header->renderOverview();
 
-        foreach ($sortedCommands as $cmd => $data) {
-            $help->addHelp($cmd, $data['description']);
+        foreach (self::groupCommandsForOverview() as $group => $commands) {
+            $help = new Help();
+            $help->addHeader($group);
+
+            foreach ($commands as $command => $data) {
+                $help->addHelp($command, $data['description']);
+            }
+
+            $sections[] = $help->renderOverview();
         }
 
-        $help->render();
+        Prints::line(implode(PHP_EOL . PHP_EOL, $sections));
     }
 
     /**
-     * Sort commands: serve first, then without :, then with :
+     * @param string $command
+     * @return void
+     * @throws ReflectionException
+     */
+    private static function showCommandHelp(string $command): void
+    {
+        if (!isset(self::$commands[$command])) {
+            self::showOverview();
+
+            return;
+        }
+
+        $commandData = self::$commands[$command];
+        $help = new Help();
+        $help->setDescription($commandData['help'] ?? $commandData['description']);
+        $help->setUsage($commandData['usage'] ?? self::generateUsage($command, $commandData));
+
+        foreach (self::resolveArgumentsMetadata($commandData) as $argument) {
+            $help->addArgument(
+                $argument['name'],
+                $argument['description'],
+                $argument['required'] ?? false,
+                $argument['default'] ?? null,
+                $argument['multiple'] ?? false,
+                $argument['accepted_values'] ?? []
+            );
+        }
+
+        foreach (self::resolveOptionsMetadata($commandData) as $option) {
+            $help->addOption(
+                $option['name'],
+                $option['description'],
+                $option['required'] ?? false,
+                $option['default'] ?? null,
+                $option['multiple'] ?? false,
+                $option['accepted_values'] ?? []
+            );
+        }
+
+        foreach (self::resolveExamplesMetadata($command, $commandData) as $example) {
+            $help->addExample($example['command'], $example['description'] ?? null);
+        }
+
+        Prints::line($help->renderCommandHelp());
+    }
+
+    /**
      * @return array
      */
     private static function sortCommands(): array
@@ -154,13 +188,13 @@ class Console
         $withoutColon = [];
         $withColon = [];
 
-        foreach (self::$commands as $cmd => $data) {
-            if ($cmd === 'serve') {
-                $serve[$cmd] = $data;
-            } elseif (strpos($cmd, ':') === false) {
-                $withoutColon[$cmd] = $data;
+        foreach (self::$commands as $command => $data) {
+            if ($command === 'serve') {
+                $serve[$command] = $data;
+            } elseif (strpos($command, ':') === false) {
+                $withoutColon[$command] = $data;
             } else {
-                $withColon[$cmd] = $data;
+                $withColon[$command] = $data;
             }
         }
 
@@ -171,37 +205,91 @@ class Console
     }
 
     /**
-     * Scan commands
+     * @return array
+     */
+    private static function groupCommandsForOverview(): array
+    {
+        $grouped = [];
+
+        foreach (self::sortCommands() as $command => $data) {
+            $group = self::resolveOverviewGroup($command);
+
+            if (!isset($grouped[$group])) {
+                $grouped[$group] = [];
+            }
+
+            $grouped[$group][$command] = $data;
+        }
+
+        $ordered = [];
+        $preferredOrder = [
+            'Core',
+            'Cache',
+            'Cron',
+            'Logs',
+            'Make',
+            'Migration',
+            'Module',
+            'Project',
+            'Routes',
+            'Other',
+        ];
+
+        foreach ($preferredOrder as $group) {
+            if (isset($grouped[$group])) {
+                $ordered[$group] = $grouped[$group];
+                unset($grouped[$group]);
+            }
+        }
+
+        if ($grouped !== []) {
+            ksort($grouped);
+        }
+
+        return $ordered + $grouped;
+    }
+
+    /**
+     * @param string $command
+     * @return string
+     */
+    private static function resolveOverviewGroup(string $command): string
+    {
+        if (strpos($command, ':') === false) {
+            return 'Core';
+        }
+
+        $prefix = explode(':', $command, 2)[0];
+
+        return match ($prefix) {
+            'config', 'completion' => 'Core',
+            'cache' => 'Cache',
+            'cron' => 'Cron',
+            'logs' => 'Logs',
+            'make' => 'Make',
+            'migration' => 'Migration',
+            'module' => 'Module',
+            'project' => 'Project',
+            'routes' => 'Routes',
+            default => ucfirst(str_replace(['-', '_'], ' ', $prefix)),
+        };
+    }
+
+    /**
      * @return void
      */
     private static function scanCommands(): void
     {
-        foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\Framework\CLI\Commands') as $file) {
-            if (!class_exists($file)) {
-                continue;
-            }
+        self::$commands = [];
 
-            $reflection = new ReflectionClass($file);
-
-            foreach ($reflection->getMethods() as $method) {
-                foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
-                    $class = $attribute->newInstance();
-
-                    self::$commands[$class->command] = [
-                        'class' => $method->class,
-                        'description' => $class->description,
-                        'method' => $method->name
-                    ];
-                }
-            }
+        foreach (self::getAllCommandFiles(__DIR__ . '/Commands', 'NimblePHP\Framework\CLI\Commands') as $className) {
+            self::registerCommandClass($className);
         }
 
-        // Scan commands from modules
         self::scanModuleCommands();
     }
 
     /**
-     * Scan commands from modules via service providers
      * @return void
      */
     private static function scanModuleCommands(): void
@@ -214,29 +302,178 @@ class Console
             foreach ($modules->getAll() as $module) {
                 /** @var DataStore $classes */
                 $classes = $module['classes'];
-                $module = $classes->get('module');
+                $moduleInstance = $classes->get('module');
 
-                if (is_object($module) && $module instanceof CliCommandProviderInterface) {
-                    foreach ($module->getCliCommands() as $commandInstance) {
-                        $reflection = new ReflectionClass($commandInstance);
-
-                        foreach ($reflection->getMethods() as $method) {
-                            foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
-                                $commandAttr = $attribute->newInstance();
-
-                                self::$commands[$commandAttr->command] = [
-                                    'class' => $method->class,
-                                    'description' => $commandAttr->description,
-                                    'method' => $method->name
-                                ];
-                            }
-                        }
+                if (is_object($moduleInstance) && $moduleInstance instanceof CliCommandProviderInterface) {
+                    foreach ($moduleInstance->getCliCommands() as $commandCandidate) {
+                        self::registerCommandClass($commandCandidate);
                     }
                 }
             }
         } catch (Throwable $e) {
-            Prints::print('Failed load console for modules: ' . $e->getMessage(), false, true, 'red');
+            Prints::error('Failed load console for modules: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @param object|string $commandCandidate
+     * @return void
+     */
+    private static function registerCommandClass(object|string $commandCandidate): void
+    {
+        $instance = is_object($commandCandidate) ? $commandCandidate : null;
+        $className = is_object($commandCandidate) ? $commandCandidate::class : $commandCandidate;
+
+        if (!is_string($className) || !class_exists($className)) {
+            return;
+        }
+
+        $reflection = new ReflectionClass($className);
+
+        foreach ($reflection->getAttributes(ConsoleCommand::class) as $attribute) {
+            $metadata = $attribute->newInstance();
+
+            self::registerCommandDefinition($metadata->command, [
+                'class' => $className,
+                'instance' => $instance,
+                'description' => $metadata->description,
+                'help' => $metadata->help,
+                'usage' => $metadata->usage,
+                'arguments' => $metadata->arguments,
+                'options' => $metadata->options,
+                'examples' => $metadata->examples,
+                'mode' => 'class',
+                'method' => 'handle',
+            ]);
+        }
+
+        foreach ($reflection->getMethods() as $method) {
+            foreach ($method->getAttributes(ConsoleCommand::class) as $attribute) {
+                $metadata = $attribute->newInstance();
+
+                self::registerCommandDefinition($metadata->command, [
+                    'class' => $method->class,
+                    'instance' => $instance,
+                    'description' => $metadata->description,
+                    'help' => $metadata->help,
+                    'usage' => $metadata->usage,
+                    'arguments' => $metadata->arguments,
+                    'options' => $metadata->options,
+                    'examples' => $metadata->examples,
+                    'mode' => 'method',
+                    'method' => $method->name,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param string $command
+     * @param array $definition
+     * @return void
+     */
+    private static function registerCommandDefinition(string $command, array $definition): void
+    {
+        self::$commands[$command] = $definition;
+    }
+
+    /**
+     * @param array $commandData
+     * @param Input $input
+     * @param Output $output
+     * @return int
+     * @throws ReflectionException
+     */
+    private static function executeCommand(array $commandData, Input $input, Output $output): int
+    {
+        $instance = self::resolveCommandInstance($commandData);
+
+        if (($commandData['mode'] ?? 'method') === 'class') {
+            if ($instance instanceof AbstractCommand) {
+                return self::normalizeExitCode($instance->run($input, $output));
+            }
+
+            if (method_exists($instance, 'handle')) {
+                return self::normalizeExitCode($instance->handle($input, $output));
+            }
+
+            throw new RuntimeException('Command class ' . $commandData['class'] . ' must define a handle() method');
+        }
+
+        $reflection = new ReflectionMethod($instance, $commandData['method']);
+        $arguments = self::resolveMethodParameters($reflection, $input, $output);
+
+        return self::normalizeExitCode($reflection->invokeArgs($instance, $arguments));
+    }
+
+    /**
+     * @param array $commandData
+     * @return object
+     */
+    private static function resolveCommandInstance(array $commandData): object
+    {
+        if (isset($commandData['instance']) && is_object($commandData['instance'])) {
+            return $commandData['instance'];
+        }
+
+        $className = $commandData['class'];
+
+        return new $className();
+    }
+
+    /**
+     * @param ReflectionMethod $reflection
+     * @param Input $input
+     * @param Output $output
+     * @return array
+     */
+    private static function resolveMethodParameters(ReflectionMethod $reflection, Input $input, Output $output): array
+    {
+        $arguments = [];
+        $positionals = $input->positionals();
+        $position = 0;
+
+        foreach ($reflection->getParameters() as $parameter) {
+            $type = $parameter->getType();
+
+            if ($type instanceof ReflectionNamedType) {
+                if ($type->getName() === Input::class) {
+                    $arguments[] = $input;
+                    continue;
+                }
+
+                if ($type->getName() === Output::class) {
+                    $arguments[] = $output;
+                    continue;
+                }
+
+                if ($type->getName() === 'array') {
+                    $arguments[] = $input->all();
+                    continue;
+                }
+            }
+
+            if (array_key_exists($position, $positionals)) {
+                $arguments[] = $positionals[$position];
+                $position++;
+                continue;
+            }
+
+            if ($parameter->isDefaultValueAvailable()) {
+                continue;
+            }
+        }
+
+        return $arguments;
+    }
+
+    /**
+     * @param int|mixed $exitCode
+     * @return int
+     */
+    private static function normalizeExitCode(mixed $exitCode): int
+    {
+        return is_int($exitCode) ? $exitCode : 0;
     }
 
     /**
@@ -251,12 +488,171 @@ class Console
 
         foreach ($files as $file) {
             if ($file->isFile() && $file->getExtension() === 'php') {
-                $className = $namespace . '\\' . $file->getBasename('.php');
-                $list[] = str_replace('/', '\\', $className);
+                $list[] = str_replace('/', '\\', $namespace . '\\' . $file->getBasename('.php'));
             }
         }
 
         return $list;
+    }
+
+    /**
+     * @param string $command
+     * @param array $commandData
+     * @return string
+     * @throws ReflectionException
+     */
+    private static function generateUsage(string $command, array $commandData): string
+    {
+        $script = $_SERVER['argv'][0] ?? 'vendor/bin/nimble';
+        $usage = 'php ' . $script . ' ' . $command;
+
+        foreach (self::getCommandReflectionMethod($commandData)->getParameters() as $parameter) {
+            $type = $parameter->getType();
+
+            if ($type instanceof ReflectionNamedType) {
+                if (in_array($type->getName(), [Input::class, Output::class], true)) {
+                    continue;
+                }
+
+                if ($type->getName() === 'array') {
+                    $usage .= ' [--option=value]';
+                    continue;
+                }
+            }
+
+            $segment = '<' . $parameter->getName() . '>';
+
+            if ($parameter->isOptional()) {
+                $segment = '[' . $parameter->getName() . ']';
+            }
+
+            $usage .= ' ' . $segment;
+        }
+
+        return $usage;
+    }
+
+    /**
+     * @param array $commandData
+     * @return array
+     * @throws ReflectionException
+     */
+    private static function resolveArgumentsMetadata(array $commandData): array
+    {
+        if (!empty($commandData['arguments'])) {
+            return $commandData['arguments'];
+        }
+
+        $arguments = [];
+
+        foreach (self::getCommandReflectionMethod($commandData)->getParameters() as $parameter) {
+            $type = $parameter->getType();
+
+            if ($type instanceof ReflectionNamedType && in_array($type->getName(), ['array', Input::class, Output::class], true)) {
+                continue;
+            }
+
+            $arguments[] = [
+                'name' => $parameter->getName(),
+                'description' => 'The ' . $parameter->getName() . ' argument.',
+                'required' => !$parameter->isOptional(),
+                'default' => $parameter->isOptional() ? self::stringifyDefaultValue($parameter->getDefaultValue()) : null,
+            ];
+        }
+
+        return $arguments;
+    }
+
+    /**
+     * @param array $commandData
+     * @return array
+     */
+    private static function resolveOptionsMetadata(array $commandData): array
+    {
+        $options = $commandData['options'] ?? [];
+
+        $options[] = [
+            'name' => '--help',
+            'description' => 'Show help for this command.',
+        ];
+        $options[] = [
+            'name' => '-h',
+            'description' => 'Show help for this command.',
+        ];
+
+        return $options;
+    }
+
+    /**
+     * @param string $command
+     * @param array $commandData
+     * @return array
+     * @throws ReflectionException
+     */
+    private static function resolveExamplesMetadata(string $command, array $commandData): array
+    {
+        if (!empty($commandData['examples'])) {
+            return $commandData['examples'];
+        }
+
+        return [[
+            'command' => self::generateUsage($command, $commandData),
+        ]];
+    }
+
+    /**
+     * @param array $commandData
+     * @return ReflectionMethod
+     * @throws ReflectionException
+     */
+    private static function getCommandReflectionMethod(array $commandData): ReflectionMethod
+    {
+        return new ReflectionMethod($commandData['class'], $commandData['method']);
+    }
+
+    /**
+     * @param mixed $value
+     * @return string|null
+     */
+    private static function stringifyDefaultValue(mixed $value): ?string
+    {
+        return match (true) {
+            is_bool($value) => $value ? 'true' : 'false',
+            is_scalar($value) => (string)$value,
+            default => null,
+        };
+    }
+
+    /**
+     * @param string $command
+     * @return void
+     */
+    private static function showSuggestions(string $command): void
+    {
+        $matches = [];
+
+        foreach (array_keys(self::$commands) as $registeredCommand) {
+            if (str_contains($registeredCommand, $command)) {
+                $matches[$registeredCommand] = 0;
+                continue;
+            }
+
+            $distance = levenshtein($command, $registeredCommand);
+
+            if ($distance <= 4) {
+                $matches[$registeredCommand] = $distance;
+            }
+        }
+
+        if ($matches === []) {
+            return;
+        }
+
+        asort($matches);
+        $suggestions = array_slice(array_keys($matches), 0, 5);
+
+        Prints::line('Did you mean:');
+        Prints::bulletList($suggestions);
     }
 
 }

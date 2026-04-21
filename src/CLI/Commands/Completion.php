@@ -2,17 +2,41 @@
 
 namespace NimblePHP\Framework\CLI\Commands;
 
+use NimblePHP\Framework\CLI\AbstractCommand;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 
-class Completion
+#[ConsoleCommand(
+    command: 'completion',
+    description: 'Wygeneruj skrypt uzupełniania bash',
+    help: 'Generate a bash completion script for the Nimble CLI.',
+    usage: 'php vendor/bin/nimble completion',
+    examples: [
+        ['command' => 'php vendor/bin/nimble completion', 'description' => 'Print the bash completion script to stdout.'],
+    ]
+)]
+class Completion extends AbstractCommand
 {
 
-    #[ConsoleCommand(command: 'completion', description: 'Wygeneruj skrypt uzupełniania bash')]
+    public function handle(): int
+    {
+        $this->output()->write($this->scriptTemplate());
+
+        return 0;
+    }
+
     public function generate(): void
+    {
+        $this->output()->write($this->scriptTemplate());
+    }
+
+    /**
+     * @return string
+     */
+    private function scriptTemplate(): string
     {
         $nimblePath = realpath($_SERVER['SCRIPT_FILENAME'] ?? __FILE__);
 
-        echo <<<BASH
+        return <<<BASH
 #!/usr/bin/env bash
 
 _nimble_completion() {

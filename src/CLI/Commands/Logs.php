@@ -2,8 +2,8 @@
 
 namespace NimblePHP\Framework\CLI\Commands;
 
-use Krzysztofzylka\Console\Prints;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
+use NimblePHP\Framework\CLI\Output;
 use NimblePHP\Framework\Kernel;
 
 /**
@@ -12,35 +12,62 @@ use NimblePHP\Framework\Kernel;
 class Logs
 {
 
-    #[ConsoleCommand('logs:clear', 'Delete all logs files')]
-    public function logsClear(): void
+    #[ConsoleCommand(
+        'logs:clear',
+        'Delete all logs files',
+        help: 'Delete JSON log files from the project storage directory.',
+        usage: 'php vendor/bin/nimble logs:clear',
+        examples: [
+            ['command' => 'php vendor/bin/nimble logs:clear', 'description' => 'Remove all stored log files.'],
+        ]
+    )]
+    public function logsClear(Output $output): int
     {
         $logPath = Kernel::$projectPath . "/storage/logs/";
 
         if (!is_dir($logPath)) {
-            Prints::print(value: "Not found /storage/logs", exit: true, color: 'red');
+            $output->error('Not found /storage/logs');
+
+            return 1;
         }
 
         foreach (glob($logPath . "*.log.json") as $file) {
             if (!unlink($file)) {
-                Prints::print(value: "Failed delete log file", exit: true, color: 'red');
+                $output->error('Failed delete log file');
+
+                return 1;
             }
         }
 
-        Prints::print(value: "Success", exit: true, color: 'green');
+        $output->success('Success');
+
+        return 0;
     }
 
-    #[ConsoleCommand('logs:tail', 'Live logs')]
-    public function logTail(): void
+    #[ConsoleCommand(
+        'logs:tail',
+        'Live logs',
+        help: 'Follow JSON log files in real time using tail -f.',
+        usage: 'php vendor/bin/nimble logs:tail',
+        examples: [
+            ['command' => 'php vendor/bin/nimble logs:tail', 'description' => 'Stream new log entries live in the terminal.'],
+        ]
+    )]
+    public function logTail(Output $output): int
     {
         $logFile = Kernel::$projectPath . "/storage/logs/*.log.json";
 
         if (empty(glob($logFile))) {
-            Prints::print(value: 'Not found logs', exit: true, color: 'red');
+            $output->error('Not found logs');
+
+            return 1;
         }
 
-        Prints::print('Live logs');
-        passthru("tail -f " . $logFile);
+        $output->info('Live logs');
+        $status = 0;
+        passthru('tail -f ' . $logFile, $status);
+
+        return $status;
     }
 
 }
