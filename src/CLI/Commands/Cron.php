@@ -3,12 +3,12 @@
 namespace NimblePHP\Framework\CLI\Commands;
 
 use Exception;
-use Krzysztofzylka\Console\Prints;
 use krzysztofzylka\DatabaseManager\DatabaseConnect;
 use krzysztofzylka\DatabaseManager\Enum\DatabaseType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
+use NimblePHP\Framework\CLI\Output;
 use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
@@ -25,24 +25,36 @@ class Cron
      * @throws Throwable
      * @throws DatabaseException
      */
-    #[ConsoleCommand('cron:execute', 'Execute cron scripts')]
-    public function execute(): void
+    #[ConsoleCommand(
+        'cron:execute',
+        'Execute cron scripts',
+        help: 'Run queued cron jobs in a loop for up to 10 minutes.',
+        usage: 'php vendor/bin/nimble cron:execute',
+        examples: [
+            ['command' => 'php vendor/bin/nimble cron:execute', 'description' => 'Start the cron worker loop.'],
+        ]
+    )]
+    public function execute(Output $output): int
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
 
         if (!Config::get('DATABASE', false)) {
-            Prints::print(value: 'Database must be enabled', exit: true, color: 'red');
+            $output->error('Database must be enabled');
+
+            return 1;
         }
 
-        $this->waitForDatabase();
+        if (!$this->waitForDatabase($output)) {
+            return 1;
+        }
 
         $cron = new \NimblePHP\Framework\Cron();
         $startTime = time();
         $maxDuration = 10 * 60;
 
         try {
-            Prints::print(value: "Run jobs loop");
+            $output->info('Run jobs loop');
 
             do {
                 $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
@@ -55,10 +67,14 @@ class Cron
                 }
             } while ((time() - $startTime) < $maxDuration);
 
-            Prints::print(value: "End run cron jobs", exit: true, color: 'green');
+            $output->success('End run cron jobs');
+
+            return 0;
         } catch (DatabaseManagerException $exception) {
             Log::log('Cron error', 'ERR', ['exception' => $exception->getMessage(), 'trace' => $exception->getTraceAsString()]);
-            Prints::print(value: "Cron error", exit: true, color: 'red');
+            $output->error('Cron error');
+
+            return 1;
         }
     }
 
@@ -67,26 +83,41 @@ class Cron
      * @throws Throwable
      * @throws DatabaseException
      */
-    #[ConsoleCommand('cron:tasks', 'Add cron tasks')]
-    public function tasks(): void
+    #[ConsoleCommand(
+        'cron:tasks',
+        'Add cron tasks',
+        help: 'Scan project models and enqueue due cron tasks.',
+        usage: 'php vendor/bin/nimble cron:tasks',
+        examples: [
+            ['command' => 'php vendor/bin/nimble cron:tasks', 'description' => 'Discover due cron tasks and add them to the queue.'],
+        ]
+    )]
+    public function tasks(Output $output): int
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
 
         if (!$_ENV['DATABASE']) {
-            Prints::print(value: 'Database must be enabled', exit: true, color: 'red');
+            $output->error('Database must be enabled');
+
+            return 1;
         }
 
-        $this->waitForDatabase();
+        if (!$this->waitForDatabase($output)) {
+            return 1;
+        }
 
         $cron = new \NimblePHP\Framework\Cron();
         $cron->initTasks(Kernel::$projectPath . '/App/Model', '\App\Model');
+
+        return 0;
     }
 
     /**
-     * @return void
+     * @param Output $output
+     * @return bool
      */
-    private function waitForDatabase(): void
+    private function waitForDatabase(Output $output): bool
     {
         $connected = false;
         $attempts = 0;
@@ -123,8 +154,10 @@ class Cron
         }
 
         if (!$connected) {
-            Prints::print(value: "Failed to connect to database after $maxAttempts attempts", exit: true, color: 'red');
+            $output->error("Failed to connect to database after $maxAttempts attempts");
         }
+
+        return $connected;
     }
 
     /**
