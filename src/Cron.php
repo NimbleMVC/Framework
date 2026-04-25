@@ -4,6 +4,15 @@ namespace NimblePHP\Framework;
 
 use Cron\CronExpression;
 use Exception;
+use krzysztofzylka\DatabaseManager\AlterTable;
+use krzysztofzylka\DatabaseManager\Columns\DateCreatedColumn;
+use krzysztofzylka\DatabaseManager\Columns\DateModifyColumn;
+use krzysztofzylka\DatabaseManager\Columns\DatetimeColumn;
+use krzysztofzylka\DatabaseManager\Columns\IdColumn;
+use krzysztofzylka\DatabaseManager\Columns\IntColumn;
+use krzysztofzylka\DatabaseManager\Columns\TextColumn;
+use krzysztofzylka\DatabaseManager\Columns\VarcharColumn;
+use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\CreateTable;
 use krzysztofzylka\DatabaseManager\DatabaseLock;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -22,15 +31,15 @@ class Cron
 
     use LogTrait;
 
-    public const PRIORITY_MINIMUM = -255;
+    public const int PRIORITY_MINIMUM = -255;
 
-    public const PRIORITY_LOW = -100;
+    public const int PRIORITY_LOW = -100;
 
-    public const PRIORITY_NORMAL = 0;
+    public const int PRIORITY_NORMAL = 0;
 
-    public const PRIORITY_MEDIUM = 100;
+    public const int PRIORITY_MEDIUM = 100;
 
-    public const PRIORITY_HIGH = 255;
+    public const int PRIORITY_HIGH = 255;
 
     /**
      * Table instance
@@ -56,17 +65,27 @@ class Cron
         if (!$this->table->exists()) {
             $this->log('create cron_job table');
 
-            $createTable = new CreateTable();
-            $createTable->setName($this->table->getName());
-            $createTable->addIdColumn();
-            $createTable->addSimpleVarcharColumn('type', 48);
-            $createTable->addSimpleVarcharColumn('name', 255);
-            $createTable->addSimpleVarcharColumn('action', 255);
-            $createTable->addSimpleTextColumn('parameters');
-            $createTable->addSimpleIntColumn('priority');
-            $createTable->addSimpleVarcharColumn('status', 64);
-            $createTable->addDateModifyColumn();
+            $createTable = new CreateTable($this->table->getName());
+            $createTable->addColumn(new IdColumn());
+            $createTable->addColumn(new VarcharColumn('type', size: 64));
+            $createTable->addColumn(new VarcharColumn('name', size: 255));
+            $createTable->addColumn(new VarcharColumn('action', size: 255));
+            $createTable->addColumn(new TextColumn('parameters'));
+            $createTable->addColumn((new IntColumn('priority'))->setDefault(0));
+            $createTable->addColumn(new VarcharColumn('status', size: 20));
+            $createTable->addColumn((new DatetimeColumn('date_run_after'))->setDefault(null));
+            $createTable->addColumn((new DatetimeColumn('date_expiration'))->setDefault(null));
+            $createTable->addColumn(new DateCreatedColumn());
+            $createTable->addColumn(new DateModifyColumn());
             $createTable->execute();
+        } else {
+            if (!$this->table->columnList('date_created')) {
+                $alterTable = new AlterTable($this->table->getName());
+                $alterTable->addColumn((new DatetimeColumn('date_run_after'))->setDefault(null), 'status');
+                $alterTable->addColumn((new DatetimeColumn('date_expiration'))->setDefault(null), 'date_run_after');
+                $alterTable->addColumn(new DateCreatedColumn(), 'date_expiration');
+                $alterTable->execute();
+            }
         }
     }
 
@@ -77,12 +96,14 @@ class Cron
      * @param string $action
      * @param array $parameters
      * @param int $priority
+     * @param string|null $runAfterDate
+     * @param string|null $expirationDate
      * @return void
      * @throws DatabaseManagerException
      * @throws NimbleException
      * @throws Exception
      */
-    public function addJob(string $type, string $name, string $action, array $parameters = [], int $priority = self::PRIORITY_NORMAL): void
+    public function addJob(string $type, string $name, string $action, array $parameters = [], int $priority = self::PRIORITY_NORMAL, ?string $runAfterDate = null, ?string $expirationDate = null): void
     {
         if ($type !== 'model') {
             $this->log('Failed create job, type must be "model"', 'ERR', [
@@ -90,10 +111,16 @@ class Cron
                 'name' => $name,
                 'action' => $action,
                 'parameters' => $parameters,
-                'priority' => $priority
+                'priority' => $priority,
+                'runAfterDate' => $runAfterDate,
+                'expirationDate' => $expirationDate
             ]);
 
             throw new NimbleException('Type must be "model"');
+        }
+
+        if ($runAfterDate === null) {
+            $runAfterDate = date('Y-m-d H:i:s');
         }
 
         $this->table->setId(null)->insert([
@@ -102,7 +129,9 @@ class Cron
             'action' => $action,
             'parameters' => json_encode($parameters),
             'priority' => $priority,
-            'status' => 'new'
+            'status' => 'new',
+            'date_run_after' => $runAfterDate,
+            'date_expiration' => $expirationDate
         ]);
     }
 
@@ -116,17 +145,26 @@ class Cron
     {
         $this->databaseLock->lock('cron_run_jobs');
         $job = null;
+        $lockHeld = true;
 
         try {
             $job = $this->getJob();
 
             if (empty($job)) {
-                $this->databaseLock->unlock('cron_run_jobs');
                 return false;
+            }
+
+            $jobExpirationDate = $job[$this->table->getName()]['date_expiration'];
+
+            if (!empty($jobExpirationDate) && strtotime($jobExpirationDate) <= time()) {
+                $this->table->delete($job[$this->table->getName()]['id']);
+
+                return true;
             }
 
             $this->updateStatus($job[$this->table->getName()]['id'], 'processing');
             $this->databaseLock->unlock('cron_run_jobs');
+            $lockHeld = false;
 
             switch ($job[$this->table->getName()]['type']) {
                 case 'model':
@@ -141,12 +179,11 @@ class Cron
             $this->table->delete($job[$this->table->getName()]['id']);
 
             return true;
-        } catch (Exception $exception) {
+        } catch (\Throwable $exception) {
             if ($job !== null) {
                 $this->updateStatus($job[$this->table->getName()]['id'], 'failed');
             }
 
-            $this->databaseLock->unlock('cron_run_jobs');
             $this->log('Cron job failed', 'ERR', [
                 'job' => $job,
                 'exception' => [
@@ -155,6 +192,10 @@ class Cron
                     'trace' => $exception->getTraceAsString()
                 ]
             ]);
+        } finally {
+            if ($lockHeld) {
+                $this->databaseLock->unlock('cron_run_jobs');
+            }
         }
 
         return false;
@@ -213,7 +254,9 @@ class Cron
                             $modelName,
                             $method->getName(),
                             $cron->parameters,
-                            $cron->priority
+                            $cron->priority,
+                            $cron->runAfterDate,
+                            $cron->expirationDate
                         );
                     }
                 }
@@ -247,7 +290,11 @@ class Cron
     {
         return $this->table->find(
             [
-                $this->table->getName() . '.status' => 'new'
+                $this->table->getName() . '.status' => 'new',
+                'OR' => [
+                    new Condition($this->table->getName() . '.date_run_after', '<=', date('Y-m-d H:i:s')),
+                    [new Condition($this->table->getName() . '.date_run_after', 'IS', null),]
+                ]
             ],
             null,
             $this->table->getName() . '.priority DESC'

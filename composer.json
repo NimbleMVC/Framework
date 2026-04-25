@@ -18,8 +18,8 @@
         "bin/nimble"
     ],
     "require": {
-        "php": ">=8.2",
-        "krzysztofzylka/database-manager": "^1.1.3",
+        "php": ">=8.3",
+        "krzysztofzylka/database-manager": "^1.1.18",
         "krzysztofzylka/file": "^1.0.6",
         "krzysztofzylka/env": "^2.0.2",
         "krzysztofzylka/console": "^1.1.0",
