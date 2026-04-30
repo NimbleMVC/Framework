@@ -34,20 +34,30 @@ class Session implements SessionInterface
                     break;
                 case 'redis':
                     $redisHost = Config::get('SESSION_REDIS_HOST', '127.0.0.1');
-                    $redisPort = 6379;
+                    $redisPort = (int) Config::get('SESSION_REDIS_PORT', 6379);
                     $redisPassword = Config::get('SESSION_REDIS_PASSWORD', null);
+                    $redisConnectTimeout = (float) Config::get('SESSION_REDIS_CONNECT_TIMEOUT', 0.5);
+                    $redisReadTimeout = (float) Config::get('SESSION_REDIS_READ_TIMEOUT', 1);
                     ini_set('session.save_handler', 'redis');
                     $redisConnection = "tcp://{$redisHost}:{$redisPort}";
+                    $redisConnectionParams = [
+                        'timeout' => $redisConnectTimeout,
+                        'read_timeout' => $redisReadTimeout,
+                    ];
 
                     if ($redisPassword) {
-                        $redisConnection .= "?auth={$redisPassword}";
+                        $redisConnectionParams['auth'] = $redisPassword;
+                    }
+
+                    if (!empty($redisConnectionParams)) {
+                        $redisConnection .= '?' . http_build_query($redisConnectionParams, '', '&', PHP_QUERY_RFC3986);
                     }
 
                     ini_set('session.save_path', $redisConnection);
                     break;
             }
 
-            session_start();
+            self::startSession();
         }
     }
 
@@ -119,7 +129,70 @@ class Session implements SessionInterface
      */
     public function regenerate(?bool $removeOldSession = false): void
     {
-        session_regenerate_id($removeOldSession);
+        if (!self::shouldRetryRedisSessionOperation()) {
+            session_regenerate_id($removeOldSession);
+            return;
+        }
+
+        self::runRedisSessionOperationWithRetry(
+            static fn (): bool => session_regenerate_id($removeOldSession)
+        );
+    }
+
+    /**
+     * @return void
+     */
+    private static function startSession(): void
+    {
+        if (!self::shouldRetryRedisSessionOperation()) {
+            session_start();
+            return;
+        }
+
+        self::runRedisSessionOperationWithRetry(
+            static fn (): bool => session_start()
+        );
+    }
+
+    /**
+     * @return bool
+     */
+    private static function shouldRetryRedisSessionOperation(): bool
+    {
+        return Config::get('SESSION_DRIVER', 'none') === 'redis';
+    }
+
+    /**
+     * @param callable $operation
+     * @return void
+     */
+    private static function runRedisSessionOperationWithRetry(callable $operation): void
+    {
+        $attempts = max(1, (int) Config::get('SESSION_REDIS_RETRY_ATTEMPTS', 3));
+        $delayMilliseconds = max(0, (int) Config::get('SESSION_REDIS_RETRY_DELAY_MS', 150));
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            if ($attempt === $attempts) {
+                $operation();
+                return;
+            }
+
+            set_error_handler(static fn (): bool => true);
+
+            try {
+                $result = $operation();
+            } finally {
+                restore_error_handler();
+            }
+
+            if ($result !== false) {
+                return;
+            }
+
+            if ($delayMilliseconds > 0) {
+                usleep($delayMilliseconds * 1000);
+            }
+        }
     }
 
 }
