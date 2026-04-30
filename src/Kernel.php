@@ -288,42 +288,71 @@ class Kernel implements KernelInterface
      */
     protected function connectToDatabase(): void
     {
-        try {
-            if (!$_ENV['DATABASE']) {
-                return;
-            }
-
-            if (DatabaseManager::$connection ?? false) {
-                return;
-            }
-
-            $connect = DatabaseConnect::create();
-
-            switch ($_ENV['DATABASE_TYPE']) {
-                case 'mysql':
-                    $connect->setType(DatabaseType::mysql);
-                    $connect->setHost(trim($_ENV['DATABASE_HOST']));
-                    $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
-                    $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
-                    $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
-                    $connect->setPort((int)$_ENV['DATABASE_PORT']);
-                    break;
-                case 'sqlite':
-                    $connect->setType(DatabaseType::sqlite);
-                    $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
-                    break;
-                default:
-                    throw new DatabaseException('Invalid database type');
-            }
-
-
-            $connect->setCharset($_ENV['DATABASE_CHARSET']);
-
-            $manager = new DatabaseManager();
-            $manager->connect($connect);
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        if (!$_ENV['DATABASE']) {
+            return;
         }
+
+        if (DatabaseManager::$connection ?? false) {
+            return;
+        }
+
+        $connect = DatabaseConnect::create();
+
+        switch ($_ENV['DATABASE_TYPE']) {
+            case 'mysql':
+                $connect->setType(DatabaseType::mysql);
+                $connect->setHost(trim($_ENV['DATABASE_HOST']));
+                $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
+                $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
+                $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
+                $connect->setPort((int)$_ENV['DATABASE_PORT']);
+                break;
+            case 'sqlite':
+                $connect->setType(DatabaseType::sqlite);
+                $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
+                break;
+            default:
+                throw new DatabaseException('Invalid database type');
+        }
+
+        $connect->setCharset($_ENV['DATABASE_CHARSET']);
+
+        $manager = new DatabaseManager();
+        $attempts = max(1, (int)Config::get('DATABASE_CONNECT_RETRY_ATTEMPTS', 3));
+        $delayMilliseconds = max(0, (int)Config::get('DATABASE_CONNECT_RETRY_DELAY_MS', 150));
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                $manager->connect($connect);
+
+                return;
+            } catch (DatabaseManagerException $exception) {
+                if ($attempt === $attempts || !$this->shouldRetryDatabaseConnection($exception)) {
+                    throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+                }
+
+                if ($delayMilliseconds > 0) {
+                    usleep($delayMilliseconds * 1000);
+                }
+            }
+        }
+    }
+
+    protected function shouldRetryDatabaseConnection(DatabaseManagerException $exception): bool
+    {
+        if (($_ENV['DATABASE_TYPE'] ?? null) !== 'mysql') {
+            return false;
+        }
+
+        $message = strtolower($exception->getHiddenMessage());
+
+        return str_contains($message, 'sqlstate[hy000] [2002]')
+            && (
+                str_contains($message, 'php_network_getaddresses')
+                || str_contains($message, 'getaddrinfo')
+                || str_contains($message, 'name does not resolve')
+                || str_contains($message, 'temporary failure in name resolution')
+            );
     }
 
     /**
