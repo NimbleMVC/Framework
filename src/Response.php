@@ -101,7 +101,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Set status code
+     * Set the status code
      * @param int $code
      * @param string $text
      * @return void
@@ -176,7 +176,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Send successful API response
+     * Send successfull API response
      * @param mixed $data Response data
      * @param int $statusCode HTTP status code
      * @param string $message Success message
@@ -261,7 +261,6 @@ class Response implements ResponseInterface
     /**
      * Send no content response (204)
      * @return void
-     * @throws NimbleException
      */
     public function noContent(): void
     {
