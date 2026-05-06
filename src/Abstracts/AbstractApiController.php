@@ -4,9 +4,11 @@ namespace NimblePHP\Framework\Abstracts;
 
 use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Middleware\ApiExceptionHandler;
 use NimblePHP\Framework\Response;
+use NimblePHP\Framework\Validation\Validator;
 
 /**
  * Base controller for JSON APIs (e.g. SPA backends).
@@ -136,6 +138,28 @@ abstract class AbstractApiController extends AbstractController
     protected function paginated(array $items, int $total, int $page, int $perPage, string $message = 'Success'): void
     {
         $this->response->paginated($items, $total, $page, $perPage, $message);
+    }
+
+    /**
+     * Validate the JSON request body against the given rules.
+     *
+     * Returns the validated data filtered to keys present in the rules
+     * (whitelist – guards against mass assignment). Throws
+     * ValidationException with a per-field error map on failure;
+     * ApiExceptionHandler converts that into a 422 JSON response.
+     *
+     * @param array $rules Field => rule list (same format as Validator::validate)
+     * @return array Validated, whitelisted data
+     * @throws ValidationException
+     * @throws NimbleException
+     */
+    #[Action('disabled')]
+    protected function validate(array $rules): array
+    {
+        $data = $this->json();
+        Validator::validateOrFail($data, $rules);
+
+        return array_intersect_key($data, $rules);
     }
 
 }

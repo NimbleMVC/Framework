@@ -3,6 +3,7 @@
 use NimblePHP\Framework\Abstracts\AbstractApiController;
 use NimblePHP\Framework\Container\ServiceContainer;
 use NimblePHP\Framework\Exception\NimbleException;
+use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Middleware\ApiExceptionHandler;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
@@ -120,6 +121,50 @@ class AbstractApiControllerTest extends TestCase
         } finally {
             unset($_GET['only_query'], $_POST['only_post']);
         }
+    }
+
+    public function testValidatePassesAndWhitelistsKnownKeys()
+    {
+        $controller = $this->buildController('{"email":"a@b.c","age":25,"role":"admin","extra":"drop"}');
+
+        $data = $this->invoke($controller, 'validate', [
+            'email' => ['required', 'isEmail'],
+            'age'   => ['nullable', 'isInteger', 'min' => 18],
+        ]);
+
+        $this->assertSame(['email' => 'a@b.c', 'age' => 25], $data);
+        $this->assertArrayNotHasKey('role', $data);
+        $this->assertArrayNotHasKey('extra', $data);
+    }
+
+    public function testValidateThrowsWithFieldErrorsOnFailure()
+    {
+        $controller = $this->buildController('{"email":"not-an-email","age":10}');
+
+        try {
+            $this->invoke($controller, 'validate', [
+                'email' => ['required', 'isEmail'],
+                'age'   => ['required', 'isInteger', 'min' => 18],
+            ]);
+            $this->fail('Expected ValidationException');
+        } catch (ValidationException $exception) {
+            $errors = $exception->getFieldErrors();
+            $this->assertArrayHasKey('email', $errors);
+            $this->assertArrayHasKey('age', $errors);
+            $this->assertSame(422, $exception->getCode());
+        }
+    }
+
+    public function testValidateAcceptsEmptyOptionalFields()
+    {
+        $controller = $this->buildController('{"email":"a@b.c"}');
+
+        $data = $this->invoke($controller, 'validate', [
+            'email' => ['required', 'isEmail'],
+            'age'   => ['nullable', 'isInteger'],
+        ]);
+
+        $this->assertSame(['email' => 'a@b.c'], $data);
     }
 
     private function buildController(?string $body = null): AbstractApiController

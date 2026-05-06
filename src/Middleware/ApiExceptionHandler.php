@@ -5,6 +5,7 @@ namespace NimblePHP\Framework\Middleware;
 use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
 use Throwable;
@@ -79,6 +80,10 @@ class ApiExceptionHandler
             'timestamp' => date('c'),
         ];
 
+        if ($exception instanceof ValidationException && $exception->getFieldErrors()) {
+            $payload['errors'] = $exception->getFieldErrors();
+        }
+
         if (filter_var(Config::get('DEBUG', false), FILTER_VALIDATE_BOOLEAN)) {
             $payload['debug'] = [
                 'exception' => $exception::class,
@@ -99,6 +104,10 @@ class ApiExceptionHandler
     {
         if ($exception instanceof NotFoundException) {
             return 404;
+        }
+
+        if ($exception instanceof ValidationException && $exception->getFieldErrors()) {
+            return 422;
         }
 
         $code = $exception->getCode();
