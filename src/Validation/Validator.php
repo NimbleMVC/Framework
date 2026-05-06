@@ -90,10 +90,6 @@ class Validator
      */
     private static array $messages = [];
 
-    // -------------------------------------------------------------------------
-    // Factory / static helpers
-    // -------------------------------------------------------------------------
-
     /**
      * Create a new Validator instance for the given data
      */
@@ -229,6 +225,7 @@ class Validator
     /**
      * Value must be one of the given values (fluent)
      * @param array $values
+     * @return Validator
      */
     public function in(array $values): self
     {
@@ -534,20 +531,20 @@ class Validator
     private function msg(string $key): string
     {
         static $fallback = [
-            'required'   => 'This field is required.',
-            'checked'    => 'This field must be checked.',
-            'isEmail'    => 'Invalid e-mail address.',
-            'isInteger'  => 'This field must be an integer.',
-            'isNumeric'  => 'This field must be a number.',
+            'required' => 'This field is required.',
+            'checked' => 'This field must be checked.',
+            'isEmail' => 'Invalid e-mail address.',
+            'isInteger' => 'This field must be an integer.',
+            'isNumeric' => 'This field must be a number.',
             'decimalMax' => 'This field may have at most :decimal decimal places.',
-            'minLength'  => 'This field must be at least :length characters.',
-            'maxLength'  => 'This field may not exceed :length characters.',
-            'min'        => 'This field must be at least :min.',
-            'max'        => 'This field may not exceed :max.',
-            'in'         => 'Invalid value. Allowed: :values.',
-            'notIn'      => 'This value is not allowed.',
-            'regex'      => 'This field has an invalid format.',
-            'same'       => 'This field must match :field.',
+            'minLength' => 'This field must be at least :length characters.',
+            'maxLength' => 'This field may not exceed :length characters.',
+            'min' => 'This field must be at least :min.',
+            'max' => 'This field may not exceed :max.',
+            'in' => 'Invalid value. Allowed: :values.',
+            'notIn' => 'This value is not allowed.',
+            'regex' => 'This field has an invalid format.',
+            'same' => 'This field must match :field.',
         ];
 
         try {
