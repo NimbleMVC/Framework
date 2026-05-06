@@ -21,6 +21,7 @@ use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
+use NimblePHP\Framework\Middleware\CorsMiddleware;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
 use NimblePHP\Framework\Module\ModuleRegister;
 use NimblePHP\Framework\Translation\Translation;
@@ -107,6 +108,7 @@ class Kernel implements KernelInterface
         }
 
         $this->registerServices();
+        CorsMiddleware::registerFromEnv();
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Middleware;
 
+use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Kernel;
@@ -78,7 +79,7 @@ class ApiExceptionHandler
             'timestamp' => date('c'),
         ];
 
-        if (!empty($_ENV['DEBUG'])) {
+        if (filter_var(Config::get('DEBUG', false), FILTER_VALIDATE_BOOLEAN)) {
             $payload['debug'] = [
                 'exception' => $exception::class,
                 'file' => $exception->getFile(),
