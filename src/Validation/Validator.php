@@ -74,6 +74,14 @@ class Validator
         'url' => Rules\Url::class,
         'uuid' => Rules\Uuid::class,
         'boolean' => Rules\Boolean::class,
+        'slug' => Rules\Slug::class,
+        'json' => Rules\Json::class,
+        'digits' => Rules\Digits::class,
+        'digitsBetween' => Rules\DigitsBetween::class,
+        'isString' => Rules\IsString::class,
+        'isArray' => Rules\IsArray::class,
+        'alphaNum' => Rules\AlphaNum::class,
+        'alphaDash' => Rules\AlphaDash::class,
     ];
 
     /**
@@ -347,6 +355,54 @@ class Validator
     public function boolean(): self
     {
         return $this->addFluentRule('boolean');
+    }
+
+    /** URL-friendly slug: lowercase letters, digits, single dashes (fluent) */
+    public function slug(): self
+    {
+        return $this->addFluentRule('slug');
+    }
+
+    /** Must be a string containing valid JSON (fluent) */
+    public function json(): self
+    {
+        return $this->addFluentRule('json');
+    }
+
+    /** Must consist of exactly N digits (fluent) */
+    public function digits(int $length): self
+    {
+        return $this->addFluentRule('digits', $length);
+    }
+
+    /** Must consist of digits with length between min and max inclusive (fluent) */
+    public function digitsBetween(int $min, int $max): self
+    {
+        return $this->addFluentRule('digitsBetween', [$min, $max]);
+    }
+
+    /** Strict string type check (fluent) */
+    public function isString(): self
+    {
+        return $this->addFluentRule('isString');
+    }
+
+    /** Strict array type check (fluent) */
+    public function isArray(): self
+    {
+        return $this->addFluentRule('isArray');
+    }
+
+    /** Letters and digits only (fluent) */
+    public function alphaNum(): self
+    {
+        return $this->addFluentRule('alphaNum');
+    }
+
+    /** Letters, digits, dashes and underscores only (fluent) */
+    public function alphaDash(): self
+    {
+        return $this->addFluentRule('alphaDash');
     }
 
     /**

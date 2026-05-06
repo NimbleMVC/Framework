@@ -26,7 +26,15 @@
       "after": "This field must be a date after :date.",
       "url": "Invalid URL.",
       "uuid": "Invalid UUID.",
-      "boolean": "This field must be a boolean."
+      "boolean": "This field must be a boolean.",
+      "slug": "Invalid slug. Use lowercase letters, digits and single dashes only.",
+      "json": "This field must contain valid JSON.",
+      "digits": "This field must consist of exactly :length digits.",
+      "digitsBetween": "This field must consist of :min to :max digits.",
+      "isString": "This field must be a string.",
+      "isArray": "This field must be an array.",
+      "alphaNum": "This field must contain only letters and digits.",
+      "alphaDash": "This field must contain only letters, digits, dashes and underscores."
     }
   }
 }
