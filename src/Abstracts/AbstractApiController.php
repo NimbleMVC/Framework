@@ -3,6 +3,7 @@
 namespace NimblePHP\Framework\Abstracts;
 
 use NimblePHP\Framework\Attributes\Http\Action;
+use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
@@ -138,6 +139,47 @@ abstract class AbstractApiController extends AbstractController
     protected function paginated(array $items, int $total, int $page, int $perPage, string $message = 'Success'): void
     {
         $this->response->paginated($items, $total, $page, $perPage, $message);
+    }
+
+    /**
+     * Run an automatic paginated query on a model and send the response.
+     *
+     * Reads `?page=N&per_page=N` from the query string, clamps them, calls
+     * AbstractModel::paginate() and emits a paginated JSON response.
+     *
+     * @param AbstractModel $model
+     * @param array|null $condition Conditions forwarded to the model
+     * @param array|null $columns Columns forwarded to the model
+     * @param string|null $orderBy
+     * @param string|null $groupBy
+     * @param int $defaultPerPage Default when ?per_page is missing
+     * @param int|null $maxPerPage Hard cap (defaults to API_PAGINATION_MAX env or 100)
+     * @throws NimbleException
+     */
+    #[Action('disabled')]
+    protected function paginate(
+        AbstractModel $model,
+        ?array $condition = null,
+        ?array $columns = null,
+        ?string $orderBy = null,
+        ?string $groupBy = null,
+        int $defaultPerPage = 25,
+        ?int $maxPerPage = null
+    ): void
+    {
+        $maxPerPage = $maxPerPage ?? (int)Config::get('API_PAGINATION_MAX', 100);
+        $page = max(1, (int)($this->request->getQuery('page') ?? 1));
+        $perPage = (int)($this->request->getQuery('per_page') ?? $defaultPerPage);
+        $perPage = max(1, min($perPage, $maxPerPage));
+
+        $result = $model->paginate($page, $perPage, $condition, $columns, $orderBy, $groupBy);
+
+        $this->response->paginated(
+            $result['items'],
+            $result['total'],
+            $result['page'],
+            $result['per_page']
+        );
     }
 
     /**

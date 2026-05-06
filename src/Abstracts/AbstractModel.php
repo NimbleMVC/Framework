@@ -335,6 +335,49 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
+     * Read a single page of elements together with metadata.
+     *
+     * Returns ['items', 'total', 'page', 'per_page', 'pages']. Page is clamped
+     * to >= 1; per-page is clamped to [1, 100]. Designed for API endpoints but
+     * usable anywhere (CLI, jobs).
+     *
+     * @param int $page 1-based page number
+     * @param int $perPage Items per page (hard-capped at 100)
+     * @param array|null $condition Same shape as read()/readAll()
+     * @param array|null $columns
+     * @param string|null $orderBy
+     * @param string|null $groupBy
+     * @return array{items: array, total: int, page: int, per_page: int, pages: int}
+     * @throws DatabaseException
+     */
+    public function paginate(
+        int $page = 1,
+        int $perPage = 25,
+        ?array $condition = null,
+        ?array $columns = null,
+        ?string $orderBy = null,
+        ?string $groupBy = null
+    ): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min($perPage, 100));
+        $offset = ($page - 1) * $perPage;
+
+        $total = $this->count($condition, $groupBy);
+        $items = $total === 0
+            ? []
+            : $this->readAll($condition, $columns, $orderBy, $offset . ', ' . $perPage, $groupBy);
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'pages' => $perPage > 0 ? (int)ceil($total / $perPage) : 0,
+        ];
+    }
+
+    /**
      * Count elements
      * @param array|null $condition
      * @param string|null $groupBy
