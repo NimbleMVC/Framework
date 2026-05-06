@@ -14,7 +14,19 @@
       "in": "Invalid value. Allowed: :values.",
       "notIn": "This value is not allowed.",
       "regex": "This field has an invalid format.",
-      "same": "This field must match :field."
+      "same": "This field must match :field.",
+      "different": "This field must be different from :field.",
+      "confirmed": "This field's confirmation does not match.",
+      "requiredIf": "This field is required when :field is :value.",
+      "requiredWith": "This field is required when :field is present.",
+      "requiredWithout": "This field is required when :field is missing.",
+      "date": "This field must be a valid date.",
+      "dateFormat": "This field must match the format :format.",
+      "before": "This field must be a date before :date.",
+      "after": "This field must be a date after :date.",
+      "url": "Invalid URL.",
+      "uuid": "Invalid UUID.",
+      "boolean": "This field must be a boolean."
     }
   }
 }

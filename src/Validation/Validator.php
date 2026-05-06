@@ -3,9 +3,8 @@
 namespace NimblePHP\Framework\Validation;
 
 use Closure;
-use Exception;
+use LogicException;
 use NimblePHP\Framework\Exception\ValidationException;
-use NimblePHP\Framework\Kernel;
 
 /**
  * Standalone data validator for use in controllers, models, forms and anywhere else.
@@ -34,31 +33,48 @@ use NimblePHP\Framework\Kernel;
  * Validator::validateOrFail($_POST, $rules);
  * ```
  *
- * ## Supported built-in rules
- * | Rule key          | Options / value                                  |
- * |-------------------|--------------------------------------------------|
- * | `required`        | –                                                |
- * | `nullable`        | Skip remaining rules when value is empty/null    |
- * | `checked`         | Truthy value (checkbox)                          |
- * | `isEmail`         | –                                                |
- * | `isInteger`       | –                                                |
- * | `isDecimal`       | `['maxPlaces' => N]` (default 2)                 |
- * | `isNumeric`       | –                                                |
- * | `length`          | `['min' => N, 'max' => N]`                       |
- * | `minLength`       | integer                                          |
- * | `maxLength`       | integer                                          |
- * | `min`             | number                                           |
- * | `max`             | number                                           |
- * | `in`              | array of allowed values                          |
- * | `notIn`           | array of forbidden values                        |
- * | `regex`           | regex pattern string                             |
- * | `same`            | name of another field whose value must match     |
- * | `enum`            | FQCN of a PHP backed/unit enum                   |
- * | Closure           | `function(mixed $value): void` – throw on error  |
- * | RuleInterface     | Custom rule object                               |
+ * Each built-in rule lives in its own class under `src/Validation/Rules/`.
+ * Add a custom rule by implementing `RuleInterface` (or extending
+ * `AbstractRule`); use `ContextAwareRuleInterface` if your rule needs the
+ * other field values (e.g. cross-field comparisons).
  */
 class Validator
 {
+
+    /**
+     * Built-in rule registry: short name => FQCN of rule class.
+     * @var array<string, class-string<RuleInterface|ContextAwareRuleInterface>>
+     */
+    private static array $builtInRules = [
+        'required' => Rules\Required::class,
+        'checked' => Rules\Checked::class,
+        'isEmail' => Rules\IsEmail::class,
+        'isInteger' => Rules\IsInteger::class,
+        'isNumeric' => Rules\IsNumeric::class,
+        'isDecimal' => Rules\IsDecimal::class,
+        'length' => Rules\Length::class,
+        'minLength' => Rules\MinLength::class,
+        'maxLength' => Rules\MaxLength::class,
+        'min' => Rules\Min::class,
+        'max' => Rules\Max::class,
+        'in' => Rules\In::class,
+        'notIn' => Rules\NotIn::class,
+        'regex' => Rules\Regex::class,
+        'same' => Rules\Same::class,
+        'enum' => Rules\Enum::class,
+        'confirmed' => Rules\Confirmed::class,
+        'different' => Rules\Different::class,
+        'requiredIf' => Rules\RequiredIf::class,
+        'requiredWith' => Rules\RequiredWith::class,
+        'requiredWithout' => Rules\RequiredWithout::class,
+        'date' => Rules\Date::class,
+        'dateFormat' => Rules\DateFormat::class,
+        'before' => Rules\Before::class,
+        'after' => Rules\After::class,
+        'url' => Rules\Url::class,
+        'uuid' => Rules\Uuid::class,
+        'boolean' => Rules\Boolean::class,
+    ];
 
     /**
      * Data being validated
@@ -85,12 +101,6 @@ class Validator
     private ?string $currentField = null;
 
     /**
-     * Translation messages cache
-     * @var array<string, string>
-     */
-    private static array $messages = [];
-
-    /**
      * Create a new Validator instance for the given data
      */
     public static function make(array $data): self
@@ -100,10 +110,9 @@ class Validator
 
     /**
      * Validate data against rules and return a ValidationResult.
-     * This is the primary entry point for the array syntax.
      *
-     * @param array $data    Associative array of input values (e.g. $_POST)
-     * @param array $rules   Field => rule list map
+     * @param array $data Associative array of input values (e.g. $_POST)
+     * @param array $rules Field => rule list map
      * @return ValidationResult
      */
     public static function validate(array $data, array $rules): ValidationResult
@@ -122,6 +131,18 @@ class Validator
         $result->throwIfFailed();
 
         return $result;
+    }
+
+    /**
+     * Register a new built-in rule under a short name. Allows extension
+     * libraries to add rules usable in array syntax.
+     *
+     * @param string $name
+     * @param class-string<RuleInterface|ContextAwareRuleInterface> $ruleClass
+     */
+    public static function registerRule(string $name, string $ruleClass): void
+    {
+        self::$builtInRules[$name] = $ruleClass;
     }
 
     public function __construct(array $data)
@@ -224,33 +245,25 @@ class Validator
 
     /**
      * Value must be one of the given values (fluent)
-     * @param array $values
-     * @return Validator
      */
     public function in(array $values): self
     {
         return $this->addFluentRule('in', $values);
     }
 
-    /**
-     * Value must not be in the given list (fluent)
-     */
+    /** Value must not be in the given list (fluent) */
     public function notIn(array $values): self
     {
         return $this->addFluentRule('notIn', $values);
     }
 
-    /**
-     * Value must match the regex pattern (fluent)
-     */
+    /** Value must match the regex pattern (fluent) */
     public function regex(string $pattern): self
     {
         return $this->addFluentRule('regex', $pattern);
     }
 
-    /**
-     * Value must match the value of another field (fluent)
-     */
+    /** Value must match the value of another field (fluent) */
     public function same(string $otherField): self
     {
         return $this->addFluentRule('same', $otherField);
@@ -258,18 +271,88 @@ class Validator
 
     /**
      * Value must be a valid case name of the given PHP enum (fluent)
-     * @param string $enumClass FQCN of the enum
      */
     public function enum(string $enumClass): self
     {
         return $this->addFluentRule('enum', $enumClass);
     }
 
+    /** Companion field `<field>_confirmation` must match (fluent) */
+    public function confirmed(): self
+    {
+        return $this->addFluentRule('confirmed');
+    }
+
+    /** Value must differ from another field (fluent) */
+    public function different(string $otherField): self
+    {
+        return $this->addFluentRule('different', $otherField);
+    }
+
+    /** Required when another field equals a given value (fluent) */
+    public function requiredIf(string $otherField, mixed $expectedValue): self
+    {
+        return $this->addFluentRule('requiredIf', [$otherField, $expectedValue]);
+    }
+
+    /** Required when another field is non-empty (fluent) */
+    public function requiredWith(string $otherField): self
+    {
+        return $this->addFluentRule('requiredWith', $otherField);
+    }
+
+    /** Required when another field is empty/missing (fluent) */
+    public function requiredWithout(string $otherField): self
+    {
+        return $this->addFluentRule('requiredWithout', $otherField);
+    }
+
+    /** Must parse as a date string (fluent) */
+    public function date(): self
+    {
+        return $this->addFluentRule('date');
+    }
+
+    /** Must match the given strict date format (fluent) */
+    public function dateFormat(string $format): self
+    {
+        return $this->addFluentRule('dateFormat', $format);
+    }
+
+    /** Date must be strictly before reference (literal date or another field) (fluent) */
+    public function before(string $reference): self
+    {
+        return $this->addFluentRule('before', $reference);
+    }
+
+    /** Date must be strictly after reference (literal date or another field) (fluent) */
+    public function after(string $reference): self
+    {
+        return $this->addFluentRule('after', $reference);
+    }
+
+    /** Must be a valid URL (fluent) */
+    public function url(): self
+    {
+        return $this->addFluentRule('url');
+    }
+
+    /** Must be a valid RFC 4122 UUID (fluent) */
+    public function uuid(): self
+    {
+        return $this->addFluentRule('uuid');
+    }
+
+    /** Must be a (loose) boolean: true/false/1/0/"true"/"false" (fluent) */
+    public function boolean(): self
+    {
+        return $this->addFluentRule('boolean');
+    }
+
     /**
-     * Add a custom closure rule (fluent)
-     * The closure receives the field value and should throw on failure.
+     * Add a custom closure or rule object (fluent)
      */
-    public function addRule(Closure|RuleInterface $rule): self
+    public function addRule(Closure|RuleInterface|ContextAwareRuleInterface $rule): self
     {
         $this->assertCurrentField();
         $this->fluentRules[$this->currentField][] = $rule;
@@ -287,36 +370,51 @@ class Validator
 
         foreach ($rules as $fieldKey => $ruleList) {
             $value = $this->getDataByKey($fieldKey);
-            $nullable = false;
 
             foreach ($ruleList as $ruleType => $rule) {
                 try {
+                    if (is_string($ruleType)) {
+                        if ($ruleType === 'nullable') {
+                            if ($this->isEmpty($value)) {
+                                break;
+                            }
+
+                            continue;
+                        }
+
+                        $this->dispatchBuiltIn($ruleType, $rule, $value, $fieldKey);
+
+                        continue;
+                    }
+
+                    if (is_string($rule)) {
+                        if ($rule === 'nullable') {
+                            if ($this->isEmpty($value)) {
+                                break;
+                            }
+
+                            continue;
+                        }
+
+                        $this->dispatchBuiltIn($rule, null, $value, $fieldKey);
+
+                        continue;
+                    }
+
+                    if ($rule instanceof Closure) {
+                        $rule($value);
+
+                        continue;
+                    }
+
+                    if ($rule instanceof ContextAwareRuleInterface) {
+                        $rule->validateInContext($value, $fieldKey, $this->data);
+
+                        continue;
+                    }
+
                     if ($rule instanceof RuleInterface) {
                         $rule->validate($value);
-                    } elseif ($rule instanceof Closure) {
-                        $rule($value);
-                    } elseif (is_string($ruleType)) {
-                        // key => value pair, e.g. 'length' => ['min' => 3]
-                        if ($ruleType === 'nullable') {
-                            $nullable = true;
-
-                            if ($this->isEmpty($value)) {
-                                break;
-                            }
-                        } else {
-                            $this->runBuiltIn($ruleType, $rule, $value, $fieldKey);
-                        }
-                    } elseif (is_int($ruleType) && is_string($rule)) {
-                        // indexed, e.g. 0 => 'required'
-                        if ($rule === 'nullable') {
-                            $nullable = true;
-
-                            if ($this->isEmpty($value)) {
-                                break;
-                            }
-                        } else {
-                            $this->runBuiltIn($rule, null, $value, $fieldKey);
-                        }
                     }
                 } catch (ValidationException $e) {
                     $this->errors[$fieldKey] = $e->getMessage();
@@ -329,143 +427,24 @@ class Validator
     }
 
     /**
-     * Execute a single built-in rule
-     * @throws Exception
+     * Build a built-in rule from its short name and options, then dispatch it.
      */
-    private function runBuiltIn(string $name, mixed $options, mixed $value, string $fieldKey): void
+    private function dispatchBuiltIn(string $name, mixed $options, mixed $value, string $fieldKey): void
     {
-        switch ($name) {
-            case 'required':
-                if ($this->isEmpty($value)) {
-                    throw new ValidationException($this->msg('required'));
-                }
-                break;
-
-            case 'checked':
-                if (!(bool)trim((string)($value ?? ''))) {
-                    throw new ValidationException($this->msg('checked'));
-                }
-                break;
-
-            case 'isEmail':
-                if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    throw new ValidationException($this->msg('isEmail'));
-                }
-                break;
-
-            case 'isInteger':
-                if (!filter_var($value, FILTER_VALIDATE_INT)) {
-                    throw new ValidationException($this->msg('isInteger'));
-                }
-                break;
-
-            case 'isNumeric':
-                if (!is_numeric($value)) {
-                    throw new ValidationException($this->msg('isNumeric'));
-                }
-                break;
-
-            case 'isDecimal':
-                $normalized = str_replace(',', '.', (string)$value);
-
-                if (!is_numeric($normalized)) {
-                    throw new ValidationException($this->msg('isNumeric'));
-                }
-
-                if (!str_contains($normalized, '.')) {
-                    break;
-                }
-
-                $maxPlaces = is_array($options) ? ($options['maxPlaces'] ?? 2) : 2;
-                $decimalPart = explode('.', $normalized)[1];
-
-                if (strlen($decimalPart) > $maxPlaces) {
-                    throw new ValidationException(str_replace(':decimal', (string)$maxPlaces, $this->msg('decimalMax')));
-                }
-                break;
-
-            case 'length':
-                $min = is_array($options) ? ($options['min'] ?? null) : null;
-                $max = is_array($options) ? ($options['max'] ?? null) : null;
-                $len = mb_strlen((string)($value ?? ''));
-
-                if ($min !== null && $len < $min) {
-                    throw new ValidationException(str_replace(':length', (string)$min, $this->msg('minLength')));
-                }
-
-                if ($max !== null && $len > $max) {
-                    throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
-                }
-                break;
-
-            case 'minLength':
-                $min = (int)$options;
-
-                if (mb_strlen((string)($value ?? '')) < $min) {
-                    throw new ValidationException(str_replace(':length', (string)$min, $this->msg('minLength')));
-                }
-                break;
-
-            case 'maxLength':
-                $max = (int)$options;
-
-                if (mb_strlen((string)($value ?? '')) > $max) {
-                    throw new ValidationException(str_replace(':length', (string)$max, $this->msg('maxLength')));
-                }
-                break;
-
-            case 'min':
-                if (!is_numeric($value) || (float)$value < (float)$options) {
-                    throw new ValidationException(str_replace(':min', (string)$options, $this->msg('min')));
-                }
-                break;
-
-            case 'max':
-                if (!is_numeric($value) || (float)$value > (float)$options) {
-                    throw new ValidationException(str_replace(':max', (string)$options, $this->msg('max')));
-                }
-                break;
-
-            case 'in':
-                $allowed = (array)$options;
-
-                if (!in_array($value, $allowed, true)) {
-                    throw new ValidationException(str_replace(':values', implode(', ', $allowed), $this->msg('in')));
-                }
-                break;
-
-            case 'notIn':
-                $forbidden = (array)$options;
-
-                if (in_array($value, $forbidden, true)) {
-                    throw new ValidationException(str_replace(':values', implode(', ', $forbidden), $this->msg('notIn')));
-                }
-                break;
-
-            case 'regex':
-                if (!preg_match((string)$options, (string)($value ?? ''))) {
-                    throw new ValidationException($this->msg('regex'));
-                }
-                break;
-
-            case 'same':
-                $otherValue = $this->getDataByKey((string)$options);
-
-                if ($value !== $otherValue) {
-                    throw new ValidationException(str_replace(':field', (string)$options, $this->msg('same')));
-                }
-                break;
-
-            case 'enum':
-                /** @var string $enumClass */
-                $enumClass = $options;
-                $names = array_column($enumClass::cases(), 'name');
-
-                if (!in_array($value, $names, true)) {
-                    throw new ValidationException(str_replace(':values', implode(', ', $names), $this->msg('in')));
-                }
-                break;
+        if (!isset(self::$builtInRules[$name])) {
+            throw new LogicException('Unknown validation rule: ' . $name);
         }
+
+        $ruleClass = self::$builtInRules[$name];
+        $rule = $ruleClass::fromOptions($options);
+
+        if ($rule instanceof ContextAwareRuleInterface) {
+            $rule->validateInContext($value, $fieldKey, $this->data);
+
+            return;
+        }
+
+        $rule->validate($value);
     }
 
     /**
@@ -521,46 +500,8 @@ class Validator
     private function assertCurrentField(): void
     {
         if ($this->currentField === null) {
-            throw new \LogicException('Call field() before adding rules');
+            throw new LogicException('Call field() before adding rules');
         }
-    }
-
-    /**
-     * Resolve a translated message, falling back to the built-in English string.
-     */
-    private function msg(string $key): string
-    {
-        static $fallback = [
-            'required' => 'This field is required.',
-            'checked' => 'This field must be checked.',
-            'isEmail' => 'Invalid e-mail address.',
-            'isInteger' => 'This field must be an integer.',
-            'isNumeric' => 'This field must be a number.',
-            'decimalMax' => 'This field may have at most :decimal decimal places.',
-            'minLength' => 'This field must be at least :length characters.',
-            'maxLength' => 'This field may not exceed :length characters.',
-            'min' => 'This field must be at least :min.',
-            'max' => 'This field may not exceed :max.',
-            'in' => 'Invalid value. Allowed: :values.',
-            'notIn' => 'This value is not allowed.',
-            'regex' => 'This field has an invalid format.',
-            'same' => 'This field must match :field.',
-        ];
-
-        try {
-            $translationKey = 'framework.validation.' . $key;
-            $translation = Kernel::$serviceContainer->get('translation');
-            $translated = $translation->translate($translationKey);
-
-            // translate() returns the key itself when not found
-            if ($translated !== $translationKey) {
-                return $translated;
-            }
-        } catch (\Throwable) {
-            // Translation not available (e.g. outside HTTP context)
-        }
-
-        return $fallback[$key] ?? 'Validation error.';
     }
 
 }
