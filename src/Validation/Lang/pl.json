@@ -14,7 +14,27 @@
       "in": "Nieprawidłowa wartość. Dozwolone: :values.",
       "notIn": "Ta wartość jest niedozwolona.",
       "regex": "To pole ma nieprawidłowy format.",
-      "same": "To pole musi być zgodne z polem :field."
+      "same": "To pole musi być zgodne z polem :field.",
+      "different": "To pole musi się różnić od pola :field.",
+      "confirmed": "Potwierdzenie pola nie zgadza się.",
+      "requiredIf": "To pole jest wymagane gdy :field ma wartość :value.",
+      "requiredWith": "To pole jest wymagane gdy :field jest wypełnione.",
+      "requiredWithout": "To pole jest wymagane gdy :field jest puste.",
+      "date": "To pole musi być prawidłową datą.",
+      "dateFormat": "To pole musi pasować do formatu :format.",
+      "before": "Ta data musi być wcześniejsza niż :date.",
+      "after": "Ta data musi być późniejsza niż :date.",
+      "url": "Nieprawidłowy URL.",
+      "uuid": "Nieprawidłowy UUID.",
+      "boolean": "To pole musi być wartością logiczną.",
+      "slug": "Nieprawidłowy slug. Dozwolone są tylko małe litery, cyfry i pojedyncze myślniki.",
+      "json": "To pole musi zawierać poprawny JSON.",
+      "digits": "To pole musi składać się z dokładnie :length cyfr.",
+      "digitsBetween": "To pole musi składać się z :min do :max cyfr.",
+      "isString": "To pole musi być ciągiem znaków.",
+      "isArray": "To pole musi być tablicą.",
+      "alphaNum": "To pole może zawierać tylko litery i cyfry.",
+      "alphaDash": "To pole może zawierać tylko litery, cyfry, myślniki i podkreślenia."
     }
   }
 }
