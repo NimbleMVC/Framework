@@ -3,6 +3,8 @@
 namespace NimblePHP\Framework\Routes;
 
 use NimblePHP\Framework\Cache;
+use NimblePHP\Framework\Config;
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
@@ -21,6 +23,24 @@ class Route implements RouteInterface
      * @var array
      */
     protected static array $routes = [];
+
+    /**
+     * Compiled dynamic route index sorted by specificity.
+     * @var array|null
+     */
+    protected static ?array $dynamicRouteIndex = null;
+
+    /**
+     * Top-level route count used to detect external resets.
+     * @var int
+     */
+    protected static int $dynamicRouteIndexCount = -1;
+
+    /**
+     * Cached controller method parameter counts.
+     * @var array
+     */
+    protected static array $expectedParamCountCache = [];
 
     /**
      * Route cache key
@@ -71,8 +91,8 @@ class Route implements RouteInterface
         $httpMethod = self::normalizeHttpMethods($httpMethod);
         $route = [
             'path' => $path,
-            'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
-            'method' => $method ?? $_ENV['DEFAULT_METHOD'],
+            'controller' => $controller ?? Config::get('DEFAULT_CONTROLLER'),
+            'method' => $method ?? Config::get('DEFAULT_METHOD'),
         ];
 
         if (strpos($path, '[') !== false && strpos($path, ']') !== false) {
@@ -84,6 +104,8 @@ class Route implements RouteInterface
         } else {
             self::storeRoute($path, $route, $httpMethod);
         }
+
+        self::invalidateRouteIndexes();
     }
 
     /**
@@ -204,105 +226,45 @@ class Route implements RouteInterface
      */
     private function matchDynamicRoute(string $uri): ?array
     {
-        $routes = self::$routes;
+        foreach (self::getDynamicRouteIndex() as $compiledRoute) {
+            foreach (self::filterRoutesByMethod($compiledRoute['routeDefinitions'], $this->request->getMethod()) as $route) {
+                if ($compiledRoute['hasDefaultParams']) {
+                    $partialMatch = $this->tryPartialMatch(
+                        $uri,
+                        $compiledRoute['pattern'],
+                        $route,
+                        $compiledRoute['paramMatches']
+                    );
 
-        uksort($routes, function(string $a, string $b): int {
-            $aSegments = substr_count($a, '/');
-            $bSegments = substr_count($b, '/');
-
-            if ($aSegments !== $bSegments) {
-                return $bSegments <=> $aSegments;
-            }
-
-            $aParams = substr_count($a, '{');
-            $bParams = substr_count($b, '{');
-
-            if ($aParams !== $bParams) {
-                return $aParams <=> $bParams;
-            }
-
-            return strlen($b) <=> strlen($a);
-        });
-
-        foreach ($routes as $pattern => $routeDefinitions) {
-            if (strpos($pattern, '{') === false) {
-                continue;
-            }
-
-            foreach (self::filterRoutesByMethod(self::getRouteDefinitionsForPath($pattern), $this->request->getMethod()) as $route) {
-                $paramRegex = '/{([^}:]+)(?::([^=}]+)(?:=([^}]+))?)?}/';
-
-                if (!preg_match_all($paramRegex, $pattern, $paramMatches, PREG_SET_ORDER)) {
-                    continue;
-                }
-
-                $hasDefaultParams = false;
-                foreach ($paramMatches as $match) {
-                    if (isset($match[3])) {
-                        $hasDefaultParams = true;
-                        break;
-                    }
-                }
-
-                if ($hasDefaultParams) {
-                    $partialMatch = $this->tryPartialMatch($uri, $pattern, $route, $paramMatches);
                     if ($partialMatch !== null) {
                         return $partialMatch;
                     }
                 }
 
-                $uriPattern = $pattern;
-                $paramNames = [];
-                $paramTypes = [];
-                $paramDefaults = [];
-
-                foreach ($paramMatches as $match) {
-                    $paramName = $match[1];
-                    $paramType = $match[2] ?? null;
-                    $paramDefault = $match[3] ?? null;
-
-                    $paramNames[] = $paramName;
-                    if ($paramType !== null) {
-                        $paramTypes[$paramName] = $paramType;
-                    }
-
-                    if ($paramDefault !== null) {
-                        $paramDefaults[$paramName] = $paramDefault;
-                    }
-
-                    $typePattern = $this->getTypePattern($paramType);
-                    $uriPattern = str_replace($match[0], '(' . $typePattern . ')', $uriPattern);
+                if (!preg_match($compiledRoute['regex'], $uri, $matches)) {
+                    continue;
                 }
 
-                $uriRegex = str_replace('/', '\/', $uriPattern);
+                array_shift($matches);
+                $paramValues = [];
 
-                if (preg_match('/^' . $uriRegex . '$/', $uri, $matches)) {
-                    array_shift($matches);
-                    $paramValues = [];
-
-                    foreach ($matches as $i => $value) {
-                        if (isset($paramNames[$i])) {
-                            $paramName = $paramNames[$i];
-                            $type = $paramTypes[$paramName] ?? null;
-
-                            $paramValues[] = $this->convertValueToType($value, $type);
-                        } else {
-                            $paramValues[] = $value;
-                        }
-                    }
-
-                    $params = $paramValues;
-                    $expectedParamCount = $this->getExpectedParamCount($route);
-
-                    if ($expectedParamCount !== null && count($params) < $expectedParamCount) {
-                        $params = $this->buildOrderedParams($pattern, $paramValues, $expectedParamCount);
-                    }
-
-                    return [
-                        'route' => $route,
-                        'params' => $params
-                    ];
+                foreach ($matches as $i => $value) {
+                    $paramName = $compiledRoute['paramNames'][$i] ?? null;
+                    $type = $paramName !== null ? ($compiledRoute['paramTypes'][$paramName] ?? null) : null;
+                    $paramValues[] = $this->convertValueToType($value, $type);
                 }
+
+                $params = $paramValues;
+                $expectedParamCount = $this->getExpectedParamCount($route);
+
+                if ($expectedParamCount !== null && count($params) < $expectedParamCount) {
+                    $params = $this->buildOrderedParams($compiledRoute['pattern'], $paramValues, $expectedParamCount);
+                }
+
+                return [
+                    'route' => $route,
+                    'params' => $params
+                ];
             }
         }
 
@@ -454,15 +416,25 @@ class Route implements RouteInterface
             return null;
         }
 
+        $cacheKey = $controllerName . '::' . $methodName;
+
+        if (array_key_exists($cacheKey, self::$expectedParamCountCache)) {
+            return self::$expectedParamCountCache[$cacheKey];
+        }
+
         $controllerClass = '\\App\\Controller\\' . str_replace('/', '\\', $controllerName);
 
         if (!class_exists($controllerClass) || !method_exists($controllerClass, $methodName)) {
+            self::$expectedParamCountCache[$cacheKey] = null;
+
             return null;
         }
 
         $reflection = new ReflectionMethod($controllerClass, $methodName);
 
-        return $reflection->getNumberOfParameters();
+        self::$expectedParamCountCache[$cacheKey] = $reflection->getNumberOfParameters();
+
+        return self::$expectedParamCountCache[$cacheKey];
     }
 
     /**
@@ -558,11 +530,11 @@ class Route implements RouteInterface
      */
     public function getController(): string
     {
-        return $this->controller ?? ($_ENV['DEFAULT_CONTROLLER']);
+        return $this->controller ?? Config::get('DEFAULT_CONTROLLER');
     }
 
     /**
-     * Set controller name
+     * Set a controller name
      * @param ?string $controller
      * @return void
      */
@@ -577,7 +549,7 @@ class Route implements RouteInterface
      */
     public function getMethod(): string
     {
-        return $this->method ?? $_ENV['DEFAULT_METHOD'];
+        return $this->method ?? Config::get('DEFAULT_METHOD');
     }
 
     /**
@@ -635,10 +607,11 @@ class Route implements RouteInterface
      * @param string $controllerPath
      * @param string $namespace
      * @return void
+     * @throws NimbleException
      */
     public static function registerRoutes(string $controllerPath, string $namespace): void
     {
-        $cacheEnabled = $_ENV['CACHE_ROUTE'] ?? false;
+        $cacheEnabled = Config::get('CACHE_ROUTE', false);
         $cache = new Cache();
 
         if ($cacheEnabled) {
@@ -649,6 +622,7 @@ class Route implements RouteInterface
 
                 if (isset($cachedData['timestamp']) && $cachedData['timestamp'] >= $controllersDirTimestamp) {
                     self::$routes = $cachedData['routes'];
+                    self::invalidateRouteIndexes();
 
                     return;
                 }
@@ -681,6 +655,8 @@ class Route implements RouteInterface
                 'timestamp' => time()
             ], 86400 * 30);
         }
+
+        self::invalidateRouteIndexes();
     }
 
     /**
@@ -763,11 +739,119 @@ class Route implements RouteInterface
      */
     private function findRouteForPath(string $path): ?array
     {
-        $routes = self::filterRoutesByMethod(
-            self::getRouteDefinitionsForPath($path),
-            $this->request->getMethod()
-        );
+        $routeDefinitions = self::$routes[$path] ?? null;
+
+        if ($routeDefinitions === null) {
+            return null;
+        }
+
+        $method = strtoupper($this->request->getMethod());
+
+        if (isset($routeDefinitions[$method]) && is_array($routeDefinitions[$method])) {
+            return $routeDefinitions[$method];
+        }
+
+        $routes = self::getRouteDefinitionsForPath($path);
 
         return $routes[0] ?? null;
+    }
+
+    /**
+     * @return array
+     */
+    private static function getDynamicRouteIndex(): array
+    {
+        if (self::$dynamicRouteIndex !== null && self::$dynamicRouteIndexCount === count(self::$routes)) {
+            return self::$dynamicRouteIndex;
+        }
+
+        $index = [];
+        $paramRegex = '/{([^}:]+)(?::([^=}]+)(?:=([^}]+))?)?}/';
+
+        foreach (self::$routes as $pattern => $routeDefinitions) {
+            if (strpos($pattern, '{') === false) {
+                continue;
+            }
+
+            if (!preg_match_all($paramRegex, $pattern, $paramMatches, PREG_SET_ORDER)) {
+                continue;
+            }
+
+            $uriPattern = $pattern;
+            $paramNames = [];
+            $paramTypes = [];
+            $hasDefaultParams = false;
+
+            foreach ($paramMatches as $match) {
+                $paramName = $match[1];
+                $paramType = $match[2] ?? null;
+                $paramDefault = $match[3] ?? null;
+
+                $paramNames[] = $paramName;
+
+                if ($paramType !== null) {
+                    $paramTypes[$paramName] = $paramType;
+                }
+
+                if ($paramDefault !== null) {
+                    $hasDefaultParams = true;
+                }
+
+                $uriPattern = str_replace($match[0], '(' . self::getTypePatternStatic($paramType) . ')', $uriPattern);
+            }
+
+            $index[] = [
+                'pattern' => $pattern,
+                'routeDefinitions' => self::getRouteDefinitionsForPath($pattern),
+                'regex' => '/^' . str_replace('/', '\/', $uriPattern) . '$/',
+                'paramMatches' => $paramMatches,
+                'paramNames' => $paramNames,
+                'paramTypes' => $paramTypes,
+                'hasDefaultParams' => $hasDefaultParams,
+                'segmentCount' => substr_count($pattern, '/'),
+                'paramCount' => substr_count($pattern, '{'),
+                'length' => strlen($pattern),
+            ];
+        }
+
+        usort($index, static function (array $a, array $b): int {
+            if ($a['segmentCount'] !== $b['segmentCount']) {
+                return $b['segmentCount'] <=> $a['segmentCount'];
+            }
+
+            if ($a['paramCount'] !== $b['paramCount']) {
+                return $a['paramCount'] <=> $b['paramCount'];
+            }
+
+            return $b['length'] <=> $a['length'];
+        });
+
+        self::$dynamicRouteIndex = $index;
+        self::$dynamicRouteIndexCount = count(self::$routes);
+
+        return self::$dynamicRouteIndex;
+    }
+
+    /**
+     * @return void
+     */
+    private static function invalidateRouteIndexes(): void
+    {
+        self::$dynamicRouteIndex = null;
+        self::$dynamicRouteIndexCount = -1;
+    }
+
+    /**
+     * @param string|null $type
+     * @return string
+     */
+    private static function getTypePatternStatic(?string $type): string
+    {
+        return match ($type) {
+            'int' => '[0-9]+',
+            'float' => '[0-9]+(?:\\.[0-9]+)?',
+            'bool' => '(?:true|false|1|0)',
+            default => '[^/]+',
+        };
     }
 }
