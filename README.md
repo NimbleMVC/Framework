@@ -51,6 +51,13 @@ php vendor/bin/nimble cache:clear
 php vendor/bin/nimble serve <host:127.0.0.1> <port:8080>
 ```
 
+## Benchmark Route
+Ręczny benchmark routera można uruchomić poleceniem:
+```shell
+php bin/route-benchmark
+```
+Skrypt wypisuje średni koszt `reload()` dla tras statycznych i dynamicznych oraz porównanie `registerRoutes()` dla cold cache i warm cache.
+
 ## Współtworzenie
 Zachęcamy do współtworzenia! Masz sugestie, znalazłeś błędy, chcesz pomóc w rozwoju? Otwórz issue lub prześlij pull request.
 

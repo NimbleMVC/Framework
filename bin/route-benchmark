@@ -1,0 +1,284 @@
+#!/usr/bin/env php
+<?php
+
+use NimblePHP\Framework\Cache;
+use NimblePHP\Framework\Interfaces\RequestInterface;
+use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\Routes\Route;
+
+if (isset($GLOBALS['_composer_autoload_path'])) {
+    require_once $GLOBALS['_composer_autoload_path'];
+} elseif (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/../../../autoload.php')) {
+    require_once __DIR__ . '/../../../autoload.php';
+} else {
+    fwrite(STDERR, "Autoload not found.\n");
+    exit(1);
+}
+
+$_ENV['DEFAULT_CONTROLLER'] = 'index';
+$_ENV['DEFAULT_METHOD'] = 'index';
+$_ENV['CACHE_ROUTE'] = false;
+
+final class BenchmarkRequest implements RequestInterface
+{
+    public function __construct(
+        private readonly string $uri,
+        private readonly string $method = 'GET'
+    ) {
+    }
+
+    public function getQuery(string $key, mixed $default = null, bool $protect = true): mixed
+    {
+        return $default;
+    }
+
+    public function getPost(string $key, mixed $default = null, bool $protect = true): mixed
+    {
+        return $default;
+    }
+
+    public function getCookie(string $key, mixed $default = null, bool $protect = true): mixed
+    {
+        return $default;
+    }
+
+    public function getFile(string $key): mixed
+    {
+        return null;
+    }
+
+    public function getHeader(string $key): mixed
+    {
+        return null;
+    }
+
+    public function getMethod(): string
+    {
+        return $this->method;
+    }
+
+    public function getUri(): string
+    {
+        return $this->uri;
+    }
+
+    public function getServer(string $key, mixed $default = null): mixed
+    {
+        return $default;
+    }
+
+    public function getBody(): string
+    {
+        return '';
+    }
+
+    public function getAllQuery(bool $protect = true): array
+    {
+        return [];
+    }
+
+    public function getAllPost(bool $protect = true): array
+    {
+        return [];
+    }
+
+    public function isAjax(): bool
+    {
+        return false;
+    }
+
+    public function issetQuery(string $key): bool
+    {
+        return false;
+    }
+
+    public function issetPost(string $key): bool
+    {
+        return false;
+    }
+
+    public function issetCookie(string $key): bool
+    {
+        return false;
+    }
+
+    public function hasPost(): bool
+    {
+        return false;
+    }
+
+    public function getBrowserLanguages(): array
+    {
+        return [];
+    }
+}
+
+function measureMilliseconds(callable $callback): float
+{
+    $start = hrtime(true);
+    $callback();
+
+    return (hrtime(true) - $start) / 1_000_000;
+}
+
+function median(array $values): float
+{
+    sort($values);
+    $count = count($values);
+    $middle = intdiv($count, 2);
+
+    if ($count % 2 === 1) {
+        return $values[$middle];
+    }
+
+    return ($values[$middle - 1] + $values[$middle]) / 2;
+}
+
+function resetRoutes(): void
+{
+    $reflection = new ReflectionClass(Route::class);
+    $routesProperty = $reflection->getProperty('routes');
+    $routesProperty->setAccessible(true);
+    $routesProperty->setValue(null, []);
+}
+
+function removeDirectory(string $directory): void
+{
+    if (!is_dir($directory)) {
+        return;
+    }
+
+    foreach (scandir($directory) ?: [] as $item) {
+        if ($item === '.' || $item === '..') {
+            continue;
+        }
+
+        $path = $directory . '/' . $item;
+
+        if (is_dir($path)) {
+            removeDirectory($path);
+        } else {
+            unlink($path);
+        }
+    }
+
+    rmdir($directory);
+}
+
+function benchmarkAverageReload(string $uri, int $iterations, int $rounds): array
+{
+    $samples = [];
+
+    for ($round = 0; $round < $rounds; $round++) {
+        $samples[] = measureMilliseconds(function () use ($uri, $iterations): void {
+            for ($i = 0; $i < $iterations; $i++) {
+                $route = new Route(new BenchmarkRequest($uri, 'GET'));
+                $route->reload();
+            }
+        });
+    }
+
+    $medianTotal = median($samples);
+    $medianPerOperation = $medianTotal / $iterations;
+
+    return [
+        'median_ms_total' => $medianTotal,
+        'median_ms_op' => $medianPerOperation,
+        'ops_s' => $medianPerOperation > 0 ? 1000 / $medianPerOperation : INF,
+    ];
+}
+
+function printMetric(string $name, array $metric): void
+{
+    printf(
+        "%-26s %10.3f ms/op  %12.0f ops/s  (%0.3f ms total median)\n",
+        $name,
+        $metric['median_ms_op'],
+        $metric['ops_s'],
+        $metric['median_ms_total']
+    );
+}
+
+$projectPath = sys_get_temp_dir() . '/nimble_route_benchmark_' . uniqid('', true);
+mkdir($projectPath . '/App/Controller', 0777, true);
+mkdir($projectPath . '/storage/cache', 0777, true);
+Kernel::$projectPath = $projectPath;
+
+try {
+    resetRoutes();
+    (new Cache())->clear();
+
+    for ($i = 0; $i < 2000; $i++) {
+        Route::addRoute('/static/' . $i, 'StaticController', 'show', ['GET']);
+    }
+
+    for ($i = 0; $i < 200; $i++) {
+        Route::addRoute('/articles/' . $i . '/{id:int}/{slug}', 'ArticleController', 'show', ['GET']);
+    }
+
+    (new Route(new BenchmarkRequest('/static/1999')))->reload();
+    (new Route(new BenchmarkRequest('/articles/199/123/example-slug')))->reload();
+
+    $staticMetric = benchmarkAverageReload('/static/1999', 1000, 7);
+    $dynamicMetric = benchmarkAverageReload('/articles/199/123/example-slug', 100, 7);
+
+    $_ENV['CACHE_ROUTE'] = true;
+    resetRoutes();
+    (new Cache())->clear();
+
+    for ($i = 0; $i < 250; $i++) {
+        $class = 'BenchmarkController' . $i;
+        $route = '/bench-' . $i;
+
+        file_put_contents($projectPath . '/App/Controller/' . $class . '.php', <<<PHP
+<?php
+
+namespace App\Controller;
+
+use NimblePHP\Framework\Abstracts\AbstractController;
+use NimblePHP\Framework\Attributes\Http\Route;
+
+class {$class} extends AbstractController
+{
+    #[Route('{$route}', 'GET')]
+    public function index(): void
+    {
+    }
+}
+PHP);
+    }
+
+    $coldRegister = measureMilliseconds(function () use ($projectPath): void {
+        resetRoutes();
+        (new Cache())->clear();
+        Route::registerRoutes($projectPath . '/App/Controller', 'App\\Controller');
+    });
+
+    Route::registerRoutes($projectPath . '/App/Controller', 'App\\Controller');
+
+    $warmSamples = [];
+    for ($i = 0; $i < 9; $i++) {
+        $warmSamples[] = measureMilliseconds(function () use ($projectPath): void {
+            resetRoutes();
+            Route::registerRoutes($projectPath . '/App/Controller', 'App\\Controller');
+        });
+    }
+    $warmRegister = median($warmSamples);
+
+    echo "Route benchmark\n";
+    echo "===============\n";
+    printf("Project temp dir: %s\n\n", $projectPath);
+
+    printMetric('Static reload (2000 routes)', $staticMetric);
+    printMetric('Dynamic reload (200 routes)', $dynamicMetric);
+    printf("%-26s %10.3f ms total\n", 'registerRoutes cold', $coldRegister);
+    printf("%-26s %10.3f ms total\n", 'registerRoutes warm', $warmRegister);
+
+    if ($warmRegister > 0) {
+        printf("%-26s %10.2fx faster\n", 'Warm vs cold', $coldRegister / $warmRegister);
+    }
+} finally {
+    removeDirectory($projectPath);
+}
