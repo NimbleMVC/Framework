@@ -79,7 +79,9 @@ class Cron
                 }
 
                 $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
-                $jobsRun = $cron->runJob($controller);
+                $jobsRun = $cron->runJob($controller, function (string $message) use ($output): void {
+                    $output->info($message);
+                });
 
                 if ($jobsRun) {
                     $jobsProcessed++;

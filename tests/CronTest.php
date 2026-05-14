@@ -56,6 +56,59 @@ class CronTest extends TestCase
         $this->assertTrue($cron->runJob());
     }
 
+    public function testRunJobCanEmitInfoAboutExecutedModelJob(): void
+    {
+        $table = $this->createMock(Table::class);
+        $table->method('getName')->willReturn('cron_job');
+        $table->expects($this->once())->method('find')->willReturn([
+            'cron_job' => [
+                'id' => 15,
+                'type' => 'model',
+                'name' => 'Report',
+                'action' => 'generate',
+                'parameters' => '["2026","monthly"]',
+                'date_expiration' => null,
+            ],
+        ]);
+        $table->expects($this->once())->method('setId')->with(15)->willReturnSelf();
+        $table->expects($this->once())->method('update')->with([
+            'status' => 'processing',
+        ])->willReturn(true);
+        $table->expects($this->once())->method('delete')->with(15);
+
+        $lock = $this->createMock(DatabaseLock::class);
+        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
+        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
+
+        $model = new class {
+            public array $received = [];
+
+            public function generate(string $year, string $period): void
+            {
+                $this->received = [$year, $period];
+            }
+        };
+
+        $controller = $this->createMock(ControllerInterface::class);
+        $controller->expects($this->once())->method('loadModel')->with('Report')->willReturn($model);
+        $controller->expects($this->never())->method('afterConstruct');
+        $controller->expects($this->never())->method('log');
+
+        $messages = [];
+        $cron = $this->buildCronInstance($table, $lock);
+
+        $result = $cron->runJob($controller, static function (string $message) use (&$messages): void {
+            $messages[] = $message;
+        });
+
+        $this->assertTrue($result);
+        $this->assertSame([['2026', 'monthly']], [$model->received]);
+        $this->assertSame(
+            ['Run job model Report, action generate, parameters ["2026","monthly"]'],
+            $messages
+        );
+    }
+
     public function testUpdateStatusRejectsUnsupportedStatus(): void
     {
         $cron = (new ReflectionClass(Cron::class))->newInstanceWithoutConstructor();
