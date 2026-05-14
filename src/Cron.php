@@ -137,11 +137,12 @@ class Cron
 
     /**
      * @param AbstractController|null $controller
+     * @param callable|null $output
      * @return bool
      * @throws DatabaseManagerException
      * @throws NimbleException
      */
-    public function runJob(?ControllerInterface $controller = null): bool
+    public function runJob(?ControllerInterface $controller = null, ?callable $output = null): bool
     {
         $this->databaseLock->lock('cron_run_jobs');
         $job = null;
@@ -171,6 +172,10 @@ class Cron
                     $modelName = $job[$this->table->getName()]['name'];
                     $action = $job[$this->table->getName()]['action'];
                     $parameters = $job[$this->table->getName()]['parameters'];
+                    $this->emitOutput(
+                        $output,
+                        'Run job model ' . $modelName . ', action ' . $action . ', parameters ' . $parameters
+                    );
                     $controller = $controller ?? $this->getController();
                     $controller->loadModel($modelName)->$action(...json_decode($parameters));
                     break;
@@ -199,6 +204,20 @@ class Cron
         }
 
         return false;
+    }
+
+    /**
+     * @param callable|null $output
+     * @param string $message
+     * @return void
+     */
+    private function emitOutput(?callable $output, string $message): void
+    {
+        if ($output === null) {
+            return;
+        }
+
+        $output($message);
     }
 
     /**
