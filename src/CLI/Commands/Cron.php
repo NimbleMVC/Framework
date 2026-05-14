@@ -33,13 +33,20 @@ class Cron
     #[ConsoleCommand(
         'cron:execute',
         'Execute cron scripts',
-        help: 'Run queued cron jobs in a loop for up to 10 minutes.',
-        usage: 'php vendor/bin/nimble cron:execute',
+        help: 'Run queued cron jobs in a loop. By default the worker stops after 10 minutes, but it can also run continuously with safe limits.',
+        usage: 'php vendor/bin/nimble cron:execute [--forever] [--max-duration=600] [--max-jobs=1000] [--max-memory-mb=128]',
+        options: [
+            ['name' => '--forever', 'description' => 'Run the worker without a time limit.'],
+            ['name' => '--max-duration', 'description' => 'Maximum worker lifetime in seconds. Use 0 to disable the time limit.'],
+            ['name' => '--max-jobs', 'description' => 'Maximum number of executed jobs before graceful exit. Use 0 to disable the job limit.'],
+            ['name' => '--max-memory-mb', 'description' => 'Maximum memory usage in MB before graceful exit. Use 0 to disable the memory limit.'],
+        ],
         examples: [
             ['command' => 'php vendor/bin/nimble cron:execute', 'description' => 'Start the cron worker loop.'],
+            ['command' => 'php vendor/bin/nimble cron:execute --forever --max-memory-mb=128 --max-jobs=1000', 'description' => 'Run continuously but restart safely after memory or job thresholds.'],
         ]
     )]
-    public function execute(Output $output): int
+    public function execute(Output $output, array $options = []): int
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
@@ -57,14 +64,34 @@ class Cron
 
         $cron = new \NimblePHP\Framework\Cron();
         $startTime = time();
-        $maxDuration = 10 * 60;
+        $workerLimits = $this->resolveWorkerLimits($options);
+        $jobsProcessed = 0;
 
         try {
             $output->info('Run jobs loop');
 
-            do {
+            while (true) {
+                $limitMessage = $this->resolveExitLimitMessage($startTime, $jobsProcessed, $workerLimits);
+
+                if ($limitMessage !== null) {
+                    $output->info($limitMessage);
+                    break;
+                }
+
                 $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
                 $jobsRun = $cron->runJob($controller);
+
+                if ($jobsRun) {
+                    $jobsProcessed++;
+                    $this->collectGarbage();
+
+                    $memoryLimitMessage = $this->resolveMemoryLimitMessage($workerLimits['maxMemoryBytes']);
+
+                    if ($memoryLimitMessage !== null) {
+                        $output->info($memoryLimitMessage);
+                        break;
+                    }
+                }
 
                 if ($this->shouldStopAfterCurrentIteration) {
                     $output->info('Stop signal received, exiting cron worker');
@@ -76,7 +103,7 @@ class Cron
                 } else {
                     $this->sleepInterruptibly(0.2);
                 }
-            } while ((time() - $startTime) < $maxDuration);
+            }
 
             $output->success('End run cron jobs');
 
@@ -172,6 +199,77 @@ class Cron
     }
 
     /**
+     * @param array $options
+     * @return array{maxDuration:int,maxJobs:int,maxMemoryBytes:int}
+     * @throws NimbleException
+     */
+    protected function resolveWorkerLimits(array $options): array
+    {
+        $maxDuration = $this->resolvePositiveIntSetting(
+            $options,
+            'max-duration',
+            'CRON_MAX_DURATION',
+            600
+        );
+
+        if ($this->isEnabledFlag($options, 'forever')) {
+            $maxDuration = 0;
+        }
+
+        return [
+            'maxDuration' => $maxDuration,
+            'maxJobs' => $this->resolvePositiveIntSetting(
+                $options,
+                'max-jobs',
+                'CRON_MAX_JOBS',
+                0
+            ),
+            'maxMemoryBytes' => $this->resolvePositiveIntSetting(
+                $options,
+                'max-memory-mb',
+                'CRON_MAX_MEMORY_MB',
+                0
+            ) * 1024 * 1024,
+        ];
+    }
+
+    /**
+     * @param int $startTime
+     * @param int $jobsProcessed
+     * @param array{maxDuration:int,maxJobs:int,maxMemoryBytes:int} $limits
+     * @return string|null
+     */
+    protected function resolveExitLimitMessage(int $startTime, int $jobsProcessed, array $limits): ?string
+    {
+        if ($limits['maxDuration'] > 0 && (time() - $startTime) >= $limits['maxDuration']) {
+            return 'Max duration reached, exiting cron worker';
+        }
+
+        if ($limits['maxJobs'] > 0 && $jobsProcessed >= $limits['maxJobs']) {
+            return 'Max jobs reached, exiting cron worker';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param int $maxMemoryBytes
+     * @return string|null
+     */
+    protected function resolveMemoryLimitMessage(int $maxMemoryBytes): ?string
+    {
+        if ($maxMemoryBytes <= 0) {
+            return null;
+        }
+
+        if (memory_get_usage(true) >= $maxMemoryBytes) {
+            return 'Max memory reached, exiting cron worker';
+        }
+
+        return null;
+    }
+
+    /**
      * @return void
      */
     protected function registerSignalHandlers(): void
@@ -215,6 +313,69 @@ class Cron
             usleep($chunk);
             $microsecondsRemaining -= $chunk;
         }
+    }
+
+    /**
+     * @return void
+     */
+    protected function collectGarbage(): void
+    {
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+    }
+
+    /**
+     * @param array $options
+     * @param string $optionName
+     * @return bool
+     */
+    protected function isEnabledFlag(array $options, string $optionName): bool
+    {
+        if (!array_key_exists($optionName, $options)) {
+            return false;
+        }
+
+        $value = $options[$optionName];
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if ($value === null || $value === '') {
+            return true;
+        }
+
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        return $normalized ?? true;
+    }
+
+    /**
+     * @param array $options
+     * @param string $optionName
+     * @param string $configKey
+     * @param int $default
+     * @return int
+     * @throws NimbleException
+     */
+    protected function resolvePositiveIntSetting(array $options, string $optionName, string $configKey, int $default): int
+    {
+        $value = $options[$optionName] ?? Config::get($configKey, $default);
+
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_INT) === false || (int) $value < 0) {
+            throw new NimbleException('Invalid value for ' . $optionName . '. Expected a non-negative integer.');
+        }
+
+        return (int) $value;
     }
 
     /**

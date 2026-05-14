@@ -124,6 +124,75 @@ class CronTest extends TestCase
         $this->assertLessThan(0.1, $elapsed);
     }
 
+    public function testCronCommandCollectGarbageCanBeCalledExplicitly(): void
+    {
+        $command = new TestableCronCommand();
+
+        $command->callCollectGarbage();
+
+        $this->assertTrue(true);
+    }
+
+    public function testCronCommandResolveWorkerLimitsSupportsForeverAndThresholdOptions(): void
+    {
+        $_ENV['CRON_MAX_DURATION'] = '900';
+        $_ENV['CRON_MAX_JOBS'] = '25';
+        $_ENV['CRON_MAX_MEMORY_MB'] = '64';
+
+        $command = new TestableCronCommand();
+        $limits = $command->callResolveWorkerLimits([
+            'forever' => true,
+            'max-jobs' => '100',
+            'max-memory-mb' => '128',
+        ]);
+
+        $this->assertSame(0, $limits['maxDuration']);
+        $this->assertSame(100, $limits['maxJobs']);
+        $this->assertSame(128 * 1024 * 1024, $limits['maxMemoryBytes']);
+    }
+
+    public function testCronCommandResolveWorkerLimitsRejectsInvalidNumericOptions(): void
+    {
+        $command = new TestableCronCommand();
+
+        $this->expectException(NimbleException::class);
+        $this->expectExceptionMessage('Invalid value for max-jobs. Expected a non-negative integer.');
+        $command->callResolveWorkerLimits(['max-jobs' => '-1']);
+    }
+
+    public function testCronCommandResolveExitLimitMessageDetectsDurationAndJobLimits(): void
+    {
+        $command = new TestableCronCommand();
+
+        $this->assertSame(
+            'Max duration reached, exiting cron worker',
+            $command->callResolveExitLimitMessage(time() - 10, 0, [
+                'maxDuration' => 5,
+                'maxJobs' => 0,
+                'maxMemoryBytes' => 0,
+            ])
+        );
+
+        $this->assertSame(
+            'Max jobs reached, exiting cron worker',
+            $command->callResolveExitLimitMessage(time(), 3, [
+                'maxDuration' => 0,
+                'maxJobs' => 3,
+                'maxMemoryBytes' => 0,
+            ])
+        );
+    }
+
+    public function testCronCommandResolveMemoryLimitMessageDetectsExceededLimit(): void
+    {
+        $command = new TestableCronCommand();
+
+        $this->assertSame(
+            'Max memory reached, exiting cron worker',
+            $command->callResolveMemoryLimitMessage(1024)
+        );
+    }
+
     private function buildCronInstance(Table $table, DatabaseLock $lock): Cron
     {
         $cron = (new ReflectionClass(Cron::class))->newInstanceWithoutConstructor();
@@ -170,5 +239,25 @@ class TestableCronCommand extends CronCommand
     public function callSleepInterruptibly(float $seconds): void
     {
         $this->sleepInterruptibly($seconds);
+    }
+
+    public function callCollectGarbage(): void
+    {
+        $this->collectGarbage();
+    }
+
+    public function callResolveWorkerLimits(array $options): array
+    {
+        return $this->resolveWorkerLimits($options);
+    }
+
+    public function callResolveExitLimitMessage(int $startTime, int $jobsProcessed, array $limits): ?string
+    {
+        return $this->resolveExitLimitMessage($startTime, $jobsProcessed, $limits);
+    }
+
+    public function callResolveMemoryLimitMessage(int $maxMemoryBytes): ?string
+    {
+        return $this->resolveMemoryLimitMessage($maxMemoryBytes);
     }
 }
