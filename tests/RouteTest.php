@@ -11,22 +11,36 @@ class RouteTest extends TestCase
     {
         $_ENV['DEFAULT_CONTROLLER'] = 'DefaultController';
         $_ENV['DEFAULT_METHOD'] = 'defaultMethod';
-        Route::getRoutes() !== [] ? Route::getRoutes() === [] : null;
+        $reflection = new ReflectionClass(Route::class);
+        $routesProperty = $reflection->getProperty('routes');
+        $routesProperty->setAccessible(true);
+        $routesProperty->setValue(null, []);
     }
 
     public function testAddRoute(): void
     {
         Route::addRoute('/test/route', 'TestController', 'testMethod');
 
-        $expected = [
+        $expectedGet = [
             'path' => '/test/route',
             'controller' => 'TestController',
             'method' => 'testMethod',
-            'httpMethod' => 'GET,POST'
+            'httpMethod' => 'GET'
         ];
 
-        $this->assertArrayHasKey('/test/route', Route::getRoutes());
-        $this->assertEquals($expected, Route::getRoutes()['/test/route']);
+        $expectedPost = [
+            'path' => '/test/route',
+            'controller' => 'TestController',
+            'method' => 'testMethod',
+            'httpMethod' => 'POST'
+        ];
+
+        $routes = Route::getRoutes();
+
+        $this->assertArrayHasKey('/test/route [GET]', $routes);
+        $this->assertArrayHasKey('/test/route [POST]', $routes);
+        $this->assertEquals($expectedGet, $routes['/test/route [GET]']);
+        $this->assertEquals($expectedPost, $routes['/test/route [POST]']);
     }
 
     public function testAddRouteWithCustomHttpMethods(): void
@@ -40,22 +54,34 @@ class RouteTest extends TestCase
             'httpMethod' => 'GET'
         ];
 
-        $this->assertArrayHasKey('/api/data', Route::getRoutes());
-        $this->assertEquals($expected, Route::getRoutes()['/api/data']);
+        $routes = Route::getRoutes();
+
+        $this->assertArrayHasKey('/api/data [GET]', $routes);
+        $this->assertEquals($expected, $routes['/api/data [GET]']);
     }
 
     public function testAddRouteWithDefaults(): void
     {
         Route::addRoute('/default/route');
 
-        $expected = [
+        $expectedGet = [
             'path' => '/default/route',
             'controller' => $_ENV['DEFAULT_CONTROLLER'],
             'method' => $_ENV['DEFAULT_METHOD'],
-            'httpMethod' => 'GET,POST'
+            'httpMethod' => 'GET'
         ];
 
-        $this->assertEquals($expected, Route::getRoutes()['/default/route']);
+        $expectedPost = [
+            'path' => '/default/route',
+            'controller' => $_ENV['DEFAULT_CONTROLLER'],
+            'method' => $_ENV['DEFAULT_METHOD'],
+            'httpMethod' => 'POST'
+        ];
+
+        $routes = Route::getRoutes();
+
+        $this->assertEquals($expectedGet, $routes['/default/route [GET]']);
+        $this->assertEquals($expectedPost, $routes['/default/route [POST]']);
     }
 
     public function testReloadWithDynamicRoute(): void
@@ -64,6 +90,7 @@ class RouteTest extends TestCase
 
         $requestMock = $this->createMock(RequestInterface::class);
         $requestMock->method('getUri')->willReturn('/users/123');
+        $requestMock->method('getMethod')->willReturn('GET');
 
         $route = new Route($requestMock);
         $route->reload();
@@ -79,6 +106,7 @@ class RouteTest extends TestCase
 
         $requestMock = $this->createMock(RequestInterface::class);
         $requestMock->method('getUri')->willReturn('/non/existent/route');
+        $requestMock->method('getMethod')->willReturn('GET');
 
         $route = new Route($requestMock);
         $route->reload();

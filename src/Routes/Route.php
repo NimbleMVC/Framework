@@ -540,12 +540,12 @@ class Route implements RouteInterface
         $result = [];
 
         foreach ($suffixVariants as $s) {
-            $result[] = $prefix . $s;
+            $result[] = preg_replace('#/+#', '/', $prefix . $s) ?? ($prefix . $s);
         }
 
         foreach ($optionalVariants as $o) {
             foreach ($suffixVariants as $s) {
-                $result[] = $prefix . $o . $s;
+                $result[] = preg_replace('#/+#', '/', $prefix . $o . $s) ?? ($prefix . $o . $s);
             }
         }
 

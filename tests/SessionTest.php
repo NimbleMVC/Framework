@@ -31,11 +31,7 @@ class SessionTest extends TestCase
         // Ustawiamy driver sesji na 'file'
         $_ENV['SESSION_DRIVER'] = 'file';
 
-        // Ustawiamy opcje sesji, aby działały w środowisku testowym
-        ini_set('session.use_cookies', 0);
-        ini_set('session.use_only_cookies', 0);
-        ini_set('session.use_trans_sid', 0);
-        ini_set('session.cache_limiter', '');
+        $_SESSION = [];
     }
 
     protected function tearDown(): void
@@ -124,37 +120,21 @@ class SessionTest extends TestCase
 
     public function testRegenerateSessionId()
     {
-        // Ten test jest trudny do przeprowadzenia w środowisku testowym
-        // W rzeczywistym środowisku regeneracja ID działa, ale w PHPUnit
-        // musimy mocno zmodyfikować sposób testowania
-
-        // W tym przypadku po prostu sprawdzamy, czy metoda działa bez błędów
         $session = new Session();
         $session->set('test_key', 'test_value');
 
-        // Regenerujemy ID sesji
         $session->regenerate();
 
-        // Sprawdzamy, czy dane sesji zostały zachowane
         $this->assertEquals('test_value', $session->get('test_key'));
-
-        // Test jest udany, jeśli dotarliśmy do tego miejsca bez błędów
-        $this->assertTrue(true);
     }
 
     public function testRegenerateSessionIdWithRemoveOldSession()
     {
-        // Podobnie jak powyżej, tylko z parametrem true
         $session = new Session();
         $session->set('test_key', 'test_value');
 
-        // Regenerujemy ID sesji z usunięciem starej sesji
         $session->regenerate(true);
 
-        // Sprawdzamy, czy dane sesji zostały zachowane
         $this->assertEquals('test_value', $session->get('test_key'));
-
-        // Test jest udany, jeśli dotarliśmy do tego miejsca bez błędów
-        $this->assertTrue(true);
     }
 }

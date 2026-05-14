@@ -34,7 +34,7 @@ class View implements ViewInterface
     /**
      * View set path
      * @param string $path
-     * @return void
+     * @return View
      */
     public function setViewPath(string $path): self
     {

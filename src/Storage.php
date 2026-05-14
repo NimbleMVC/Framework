@@ -84,7 +84,7 @@ class Storage
     }
 
     /**
-     * Delete file
+     * Delete a file
      * @param string $filePath
      * @return bool
      */
@@ -98,7 +98,7 @@ class Storage
     }
 
     /**
-     * Delete file
+     * Delete a file
      * @param string $filePath
      * @return bool
      */
@@ -132,7 +132,7 @@ class Storage
     }
 
     /**
-     * Get full path
+     * Get the full path
      * @param string $filePath
      * @return string
      */
@@ -220,7 +220,7 @@ class Storage
     }
 
     /**
-     * Create base directory if not exists
+     * Create a base directory if not exists
      * @return void
      * @throws NimbleException
      */
@@ -234,7 +234,7 @@ class Storage
     }
 
     /**
-     * Ensure directory exists
+     * Ensure a directory exists
      * @param string $directory
      * @return void
      * @throws NimbleException
