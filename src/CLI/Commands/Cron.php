@@ -72,7 +72,7 @@ class Cron
                 }
 
                 if (!$jobsRun) {
-                    $this->sleepInterruptibly(5);
+                    $this->sleepInterruptibly(1);
                 } else {
                     $this->sleepInterruptibly(0.2);
                 }
