@@ -101,6 +101,29 @@ class CronTest extends TestCase
         $method->invoke($command, 'MissingController');
     }
 
+    public function testCronCommandHandleStopSignalMarksWorkerToExitAfterCurrentIteration(): void
+    {
+        $command = new TestableCronCommand();
+
+        $this->assertFalse($command->shouldStopAfterCurrentIteration());
+
+        $command->handleStopSignal(15);
+
+        $this->assertTrue($command->shouldStopAfterCurrentIteration());
+    }
+
+    public function testCronCommandSleepInterruptiblyReturnsImmediatelyWhenStopWasRequested(): void
+    {
+        $command = new TestableCronCommand();
+        $command->handleStopSignal(15);
+
+        $start = microtime(true);
+        $command->callSleepInterruptibly(1.0);
+        $elapsed = microtime(true) - $start;
+
+        $this->assertLessThan(0.1, $elapsed);
+    }
+
     private function buildCronInstance(Table $table, DatabaseLock $lock): Cron
     {
         $cron = (new ReflectionClass(Cron::class))->newInstanceWithoutConstructor();
@@ -134,5 +157,18 @@ class CronCommandTestController implements ControllerInterface
     public function afterConstruct(): void
     {
         $this->afterConstructCalled = true;
+    }
+}
+
+class TestableCronCommand extends CronCommand
+{
+    public function shouldStopAfterCurrentIteration(): bool
+    {
+        return $this->shouldStopAfterCurrentIteration;
+    }
+
+    public function callSleepInterruptibly(float $seconds): void
+    {
+        $this->sleepInterruptibly($seconds);
     }
 }

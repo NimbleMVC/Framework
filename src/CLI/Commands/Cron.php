@@ -21,6 +21,11 @@ class Cron
 {
 
     /**
+     * @var bool
+     */
+    protected bool $shouldStopAfterCurrentIteration = false;
+
+    /**
      * @throws NimbleException
      * @throws Throwable
      * @throws DatabaseException
@@ -38,6 +43,7 @@ class Cron
     {
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
+        $this->registerSignalHandlers();
 
         if (!Config::get('DATABASE', false)) {
             $output->error('Database must be enabled');
@@ -60,10 +66,15 @@ class Cron
                 $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
                 $jobsRun = $cron->runJob($controller);
 
+                if ($this->shouldStopAfterCurrentIteration) {
+                    $output->info('Stop signal received, exiting cron worker');
+                    break;
+                }
+
                 if (!$jobsRun) {
-                    sleep(5);
+                    $this->sleepInterruptibly(5);
                 } else {
-                    usleep(200000);
+                    $this->sleepInterruptibly(0.2);
                 }
             } while ((time() - $startTime) < $maxDuration);
 
@@ -158,6 +169,52 @@ class Cron
         }
 
         return $connected;
+    }
+
+    /**
+     * @return void
+     */
+    protected function registerSignalHandlers(): void
+    {
+        if (!function_exists('pcntl_signal')) {
+            return;
+        }
+
+        if (function_exists('pcntl_async_signals')) {
+            pcntl_async_signals(true);
+        }
+
+        if (defined('SIGTERM')) {
+            pcntl_signal(SIGTERM, [$this, 'handleStopSignal']);
+        }
+
+        if (defined('SIGINT')) {
+            pcntl_signal(SIGINT, [$this, 'handleStopSignal']);
+        }
+    }
+
+    /**
+     * @param int $signal
+     * @return void
+     */
+    public function handleStopSignal(int $signal): void
+    {
+        $this->shouldStopAfterCurrentIteration = true;
+    }
+
+    /**
+     * @param float $seconds
+     * @return void
+     */
+    protected function sleepInterruptibly(float $seconds): void
+    {
+        $microsecondsRemaining = (int) round($seconds * 1000000);
+
+        while ($microsecondsRemaining > 0 && !$this->shouldStopAfterCurrentIteration) {
+            $chunk = min($microsecondsRemaining, 200000);
+            usleep($chunk);
+            $microsecondsRemaining -= $chunk;
+        }
     }
 
     /**
