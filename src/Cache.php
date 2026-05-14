@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework;
 
+use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\CacheInterface;
 
 class Cache implements CacheInterface
@@ -36,6 +37,7 @@ class Cache implements CacheInterface
      * @param mixed $value
      * @param ?int $ttl
      * @return bool
+     * @throws NimbleException
      */
     public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
