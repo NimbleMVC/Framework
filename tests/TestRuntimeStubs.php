@@ -165,3 +165,12 @@ if (!function_exists(__NAMESPACE__ . '\getcwd')) {
         return \TestSupport\RuntimeFunctionState::$cwd ?? \getcwd();
     }
 }
+
+namespace NimblePHP\Framework\CLI;
+
+if (!function_exists(__NAMESPACE__ . '\getcwd')) {
+    function getcwd(): string|false
+    {
+        return \TestSupport\RuntimeFunctionState::$cwd ?? \getcwd();
+    }
+}
