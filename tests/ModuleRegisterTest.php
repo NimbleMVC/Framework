@@ -1,6 +1,8 @@
 <?php
 
-use NimblePHP\Framework\ModuleRegister;
+use NimblePHP\Framework\DataStore;
+use NimblePHP\Framework\Module\ModuleRegister;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 class ModuleRegisterTest extends TestCase
@@ -17,9 +19,12 @@ class ModuleRegisterTest extends TestCase
     public function testRegisterAndGet()
     {
         $moduleName = 'test-module';
-        $moduleConfig = ['key' => 'value'];
+        $moduleConfig = new DataStore();
+        $moduleConfig->set('key', 'value');
         $moduleNamespace = '\\NimblePHP\\TestModule';
-        $moduleClasses = ['class1', 'class2'];
+        $moduleClasses = new DataStore();
+        $moduleClasses->set('class1', 'App\\Class1');
+        $moduleClasses->set('class2', 'App\\Class2');
 
         ModuleRegister::register($moduleName, $moduleConfig, $moduleNamespace, $moduleClasses);
 
@@ -27,9 +32,12 @@ class ModuleRegisterTest extends TestCase
 
         $this->assertIsArray($module);
         $this->assertEquals($moduleName, $module['name']);
-        $this->assertEquals($moduleConfig, $module['config']);
+        $this->assertInstanceOf(DataStore::class, $module['config']);
+        $this->assertEquals('value', $module['config']->get('key'));
         $this->assertEquals($moduleNamespace, $module['namespace']);
-        $this->assertEquals($moduleClasses, $module['classes']);
+        $this->assertInstanceOf(DataStore::class, $module['classes']);
+        $this->assertEquals('App\\Class1', $module['classes']->get('class1'));
+        $this->assertEquals('App\\Class2', $module['classes']->get('class2'));
     }
 
     public function testGetNonExistentModule()
@@ -46,15 +54,20 @@ class ModuleRegisterTest extends TestCase
         $this->assertFalse(ModuleRegister::isset('test-module'));
 
         // Register a module and test again
-        ModuleRegister::register('test-module');
+        ModuleRegister::register('test-module', new DataStore());
         $this->assertTrue(ModuleRegister::isset('test-module'));
     }
 
     public function testGetAll()
     {
         // Register multiple modules
-        ModuleRegister::register('module1', ['key1' => 'value1']);
-        ModuleRegister::register('module2', ['key2' => 'value2']);
+        $module1Config = new DataStore();
+        $module1Config->set('key1', 'value1');
+        $module2Config = new DataStore();
+        $module2Config->set('key2', 'value2');
+
+        ModuleRegister::register('module1', $module1Config);
+        ModuleRegister::register('module2', $module2Config);
 
         $allModules = ModuleRegister::getAll();
 
@@ -62,23 +75,15 @@ class ModuleRegisterTest extends TestCase
         $this->assertCount(2, $allModules);
         $this->assertArrayHasKey('module1', $allModules);
         $this->assertArrayHasKey('module2', $allModules);
-        $this->assertEquals('value1', $allModules['module1']['config']['key1']);
-        $this->assertEquals('value2', $allModules['module2']['config']['key2']);
+        $this->assertEquals('value1', $allModules['module1']['config']->get('key1'));
+        $this->assertEquals('value2', $allModules['module2']['config']->get('key2'));
     }
 
-    /**
-     * @runInSeparateProcess
-     */
+    #[RunInSeparateProcess]
     public function testModuleExistsInVendor()
     {
-        // This test requires mocking the Composer\InstalledVersions class
-        // Since we can't easily mock static class methods, we'll create a simple
-        // test that just verifies the method exists and returns a boolean value
-
-        // We can't easily test the actual functionality without setting up Composer packages
-        $result = ModuleRegister::moduleExistsInVendor('some-module');
-
-        $this->assertIsBool($result);
+        $this->assertTrue(ModuleRegister::moduleExistsInVendor('nimblephp/framework'));
+        $this->assertFalse(ModuleRegister::moduleExistsInVendor('nimblephp/non-existent-package'));
     }
 
     /**
@@ -89,16 +94,8 @@ class ModuleRegisterTest extends TestCase
      */
     public function testAutoRegister()
     {
-        // Nie możemy łatwo mockować statycznych klas Composer, więc zamiast tego
-        // po prostu sprawdzimy, czy metoda autoRegister działa bez błędów
-
-        // Utwórz instancję ModuleRegister
         $moduleRegister = new ModuleRegister();
-
-        // Wywołaj metodę autoRegister
         $moduleRegister->autoRegister();
-
-        // Jeśli nie wystąpiły żadne wyjątki, test jest udany
-        $this->assertTrue(true);
+        $this->assertIsArray(ModuleRegister::getAll());
     }
 }

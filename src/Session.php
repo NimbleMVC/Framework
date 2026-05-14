@@ -118,8 +118,12 @@ class Session implements SessionInterface
      */
     public function destroy(): void
     {
-        session_unset();
-        session_destroy();
+        $_SESSION = [];
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_unset();
+            session_destroy();
+        }
     }
 
     /**
@@ -129,6 +133,10 @@ class Session implements SessionInterface
      */
     public function regenerate(?bool $removeOldSession = false): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
         if (!self::shouldRetryRedisSessionOperation()) {
             session_regenerate_id($removeOldSession);
             return;

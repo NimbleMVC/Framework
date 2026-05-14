@@ -31,13 +31,15 @@ class MiddlewareManager
         $this->stack[$priority][] = $middleware;
         $implements = [];
 
-        foreach (array_values(class_implements($middleware)) as $implement) {
-            $explode = explode('\\', $implement);
-            $implements[] = $explode[count($explode) - 1];
+        if (is_object($middleware) || (is_string($middleware) && class_exists($middleware))) {
+            foreach (array_values(class_implements($middleware) ?: []) as $implement) {
+                $explode = explode('\\', $implement);
+                $implements[] = $explode[count($explode) - 1];
+            }
         }
 
         $this->list[] = [
-            'namespace' => $middleware::class,
+            'namespace' => is_object($middleware) ? $middleware::class : (string) $middleware,
             'priority' => $priority,
             'implements' => $implements
         ];
