@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Exception;
 
+use NimblePHP\Framework\Config;
 use Throwable;
 
 /**
@@ -26,7 +27,7 @@ class HiddenException extends NimbleException
         $showMessage = 'System error';
         $this->hiddenMessage = $message;
 
-        if (isset($_ENV['DEBUG']) && $_ENV['DEBUG']) {
+        if (Config::get('DEBUG', false)) {
             $showMessage = $message;
         }
 

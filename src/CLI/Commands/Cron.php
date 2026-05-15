@@ -137,7 +137,7 @@ class Cron
         ConsoleHelper::loadConfig();
         ConsoleHelper::initKernel();
 
-        if (!$_ENV['DATABASE']) {
+        if (!Config::get('DATABASE', false)) {
             $output->error('Database must be enabled');
 
             return 1;
@@ -167,18 +167,18 @@ class Cron
             try {
                 $connect = DatabaseConnect::create();
 
-                switch ($_ENV['DATABASE_TYPE']) {
+                switch (Config::get('DATABASE_TYPE')) {
                     case 'mysql':
                         $connect->setType(DatabaseType::mysql);
-                        $connect->setHost(trim($_ENV['DATABASE_HOST']));
-                        $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
-                        $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
-                        $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
-                        $connect->setPort((int)$_ENV['DATABASE_PORT']);
+                        $connect->setHost(trim(Config::get('DATABASE_HOST')));
+                        $connect->setDatabaseName(trim(Config::get('DATABASE_NAME')));
+                        $connect->setUsername(trim(Config::get('DATABASE_USERNAME')));
+                        $connect->setPassword(trim(Config::get('DATABASE_PASSWORD')));
+                        $connect->setPort((int)Config::get('DATABASE_PORT', 3306));
                         break;
                     case 'sqlite':
                         $connect->setType(DatabaseType::sqlite);
-                        $connect->setSqlitePath(Kernel::$projectPath . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
+                        $connect->setSqlitePath(Kernel::$projectPath . DIRECTORY_SEPARATOR . Config::get('DATABASE_PATH'));
                         break;
                     default:
                         throw new DatabaseException('Invalid database type');
