@@ -8,6 +8,7 @@ use NimblePHP\Framework\Interfaces\RouteInterface;
 
 /**
  * Route
+ * @deprecated Use Route class instead
  */
 class SimpleRoute implements RouteInterface
 {

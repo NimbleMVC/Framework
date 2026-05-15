@@ -177,7 +177,7 @@ abstract class AbstractORM implements ORMModelInterface
             unset($data['id']);
             return self::getTableInstance()->setId($this->id)->update($data);
         } else {
-            return self::getTableInstance()->setId(null)->insert($data);
+            return self::getTableInstance()->setId()->insert($data);
         }
     }
 
@@ -194,7 +194,7 @@ abstract class AbstractORM implements ORMModelInterface
         }
 
         $delete = self::getTableInstance()->delete($this->id);
-        self::getTableInstance()->setId(null);
+        self::getTableInstance()->setId();
 
         return $delete;
     }

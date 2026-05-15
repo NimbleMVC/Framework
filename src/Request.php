@@ -241,7 +241,7 @@ readonly class Request implements RequestInterface
     }
 
     /**
-     * Get data from array
+     * Get data from an array
      * @param array $source
      * @param string $key
      * @param mixed|null $default
@@ -263,10 +263,9 @@ readonly class Request implements RequestInterface
      * Validate input
      * @param string $key
      * @param string $type
-     * @param array $options
      * @return mixed
      */
-    public function validateInput(string $key, string $type = 'string', array $options = []): mixed
+    public function validateInput(string $key, string $type = 'string'): mixed
     {
         $value = $this->getQuery($key) ?? $this->getPost($key);
 
@@ -274,21 +273,14 @@ readonly class Request implements RequestInterface
             return null;
         }
 
-        switch ($type) {
-            case 'email':
-                return filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : null;
-            case 'int':
-                return filter_var($value, FILTER_VALIDATE_INT) !== false ? (int)$value : null;
-            case 'float':
-                return filter_var($value, FILTER_VALIDATE_FLOAT) !== false ? (float)$value : null;
-            case 'url':
-                return filter_var($value, FILTER_VALIDATE_URL) ? $value : null;
-            case 'ip':
-                return filter_var($value, FILTER_VALIDATE_IP) ? $value : null;
-            case 'string':
-            default:
-                return is_string($value) ? $value : null;
-        }
+        return match ($type) {
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : null,
+            'int' => filter_var($value, FILTER_VALIDATE_INT) !== false ? (int)$value : null,
+            'float' => filter_var($value, FILTER_VALIDATE_FLOAT) !== false ? (float)$value : null,
+            'url' => filter_var($value, FILTER_VALIDATE_URL) ? $value : null,
+            'ip' => filter_var($value, FILTER_VALIDATE_IP) ? $value : null,
+            default => is_string($value) ? $value : null,
+        };
     }
 
     /**
@@ -317,7 +309,7 @@ readonly class Request implements RequestInterface
             $code = trim($parts[0]);
             $quality = 1.0;
 
-            if (isset($parts[1]) && strpos($parts[1], 'q=') === 0) {
+            if (isset($parts[1]) && str_starts_with($parts[1], 'q=')) {
                 $quality = (float) substr($parts[1], 2);
             }
 
@@ -326,7 +318,7 @@ readonly class Request implements RequestInterface
                 'quality' => $quality
             ];
 
-            if (strpos($code, '-') !== false) {
+            if (str_contains($code, '-')) {
                 $shortCode = substr($code, 0, 2);
                 $languages[] = [
                     'code' => $shortCode,

@@ -23,7 +23,7 @@ class Cache implements CacheInterface
     /**
      * Constructor
      * @param ?string $cachePath
-     * @return void
+     * @throws NimbleException
      */
     public function __construct(?string $cachePath = null)
     {
@@ -82,7 +82,7 @@ class Cache implements CacheInterface
     }
 
     /**
-     * Check if cache exists
+     * Check if a cache exists
      * @param string $key
      * @return bool
      */

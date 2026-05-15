@@ -20,13 +20,13 @@ class Cookie implements CookieInterface
     protected static bool $defaultHttpOnly = false;
 
     /**
-     * Samesite
+     * Same site
      * @var string
      */
     protected static string $sameSite = 'Lax';
 
     /**
-     * Set samesite
+     * Set a same site
      * @param string $sameSite
      * @return void
      */
@@ -99,7 +99,7 @@ class Cookie implements CookieInterface
     }
 
     /**
-     * Exists cookie
+     * Cookie exists
      * @param $name
      * @return bool
      */

@@ -215,6 +215,12 @@ class KernelCoverageTest extends TestCase
         return $kernel;
     }
 
+    /**
+     * @param Kernel $kernel
+     * @param string $method
+     * @return mixed
+     * @throws ReflectionException
+     */
     private function invokeKernelMethod(Kernel $kernel, string $method): mixed
     {
         $reflectionMethod = new ReflectionMethod(Kernel::class, $method);

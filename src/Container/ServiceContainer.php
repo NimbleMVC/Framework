@@ -88,8 +88,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     }
 
     /**
-     * Register a lazy singleton service
-     * Service is created only when first accessed
+     * Register a lazy singleton service is created only when first accessed
      * @param string $id
      * @param callable $factory
      * @return void

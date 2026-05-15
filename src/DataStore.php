@@ -2,6 +2,8 @@
 
 namespace NimblePHP\Framework;
 
+use RuntimeException;
+
 /**
  * Simple key-value data store.
  */
@@ -14,7 +16,7 @@ class DataStore
     private array $data = [];
 
     /**
-     * Set a value by key.
+     * Set a value by a key.
      * @param string $key
      * @param mixed $value
      * @return void
@@ -151,7 +153,7 @@ class DataStore
     public function getRequired(string $key): mixed
     {
         if (!array_key_exists($key, $this->data)) {
-            throw new \RuntimeException("Missing data key: {$key}");
+            throw new RuntimeException("Missing data key: $key");
         }
 
         return $this->data[$key];
@@ -188,7 +190,7 @@ class DataStore
     }
 
     /**
-     * Check if store is empty.
+     * Check if the store is empty.
      * @return bool
      */
     public function isEmpty(): bool

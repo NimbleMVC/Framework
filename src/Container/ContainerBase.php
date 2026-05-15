@@ -15,7 +15,7 @@ abstract class ContainerBase
     protected static array $instances = [];
 
     /**
-     * Returns singleton instance of the called class.
+     * Returns a singleton instance of the called class.
      * @return static
      */
     public static function getInstance(): static
