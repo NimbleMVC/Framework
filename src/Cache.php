@@ -41,15 +41,12 @@ class Cache implements CacheInterface
      */
     public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
-        $ttl = $ttl ?? $this->defaultTtl;
-        $expiry = time() + $ttl;
         $data = [
             'value' => $value,
-            'expiry' => $expiry
+            'expiry' => time() + ($ttl ?? $this->defaultTtl)
         ];
-        $filename = $this->getCacheFilename($key);
 
-        return $this->storage->put($filename, serialize($data));
+        return $this->storage->put($this->getCacheFilename($key), serialize($data));
     }
 
     /**
@@ -60,21 +57,9 @@ class Cache implements CacheInterface
      */
     public function get(string $key, mixed $default = null): mixed
     {
-        $filename = $this->getCacheFilename($key);
-        $content = $this->storage->get($filename);
+        $data = $this->getCacheEntry($this->getCacheFilename($key));
 
-        if ($content === null) {
-            return $default;
-        }
-
-        $data = @unserialize($content);
-
-        if (!is_array($data) || !isset($data['expiry']) || !isset($data['value'])) {
-            return $default;
-        }
-
-        if (time() > $data['expiry']) {
-            $this->storage->delete($filename);
+        if ($data === null) {
             return $default;
         }
 
@@ -88,7 +73,7 @@ class Cache implements CacheInterface
      */
     public function has(string $key): bool
     {
-        return $this->get($key) !== null;
+        return $this->getCacheEntry($this->getCacheFilename($key)) !== null;
     }
 
     /**
@@ -98,9 +83,7 @@ class Cache implements CacheInterface
      */
     public function delete(string $key): bool
     {
-        $filename = $this->getCacheFilename($key);
-
-        return $this->storage->delete($filename);
+        return $this->storage->delete($this->getCacheFilename($key));
     }
 
     /**
@@ -126,6 +109,40 @@ class Cache implements CacheInterface
     private function getCacheFilename(string $key): string
     {
         return md5($key) . '.cache';
+    }
+
+    /**
+     * Get a valid cache entry
+     * @param string $filename
+     * @return array{value: mixed, expiry: int}|null
+     */
+    private function getCacheEntry(string $filename): ?array
+    {
+        $content = $this->storage->get($filename);
+
+        if ($content === null) {
+            return null;
+        }
+
+        $data = @unserialize($content, ['allowed_classes' => true]);
+
+        if (!is_array($data)
+            || !array_key_exists('expiry', $data)
+            || !array_key_exists('value', $data)
+            || !is_int($data['expiry'])
+        ) {
+            $this->storage->delete($filename);
+
+            return null;
+        }
+
+        if (time() > $data['expiry']) {
+            $this->storage->delete($filename);
+
+            return null;
+        }
+
+        return $data;
     }
 
 }
