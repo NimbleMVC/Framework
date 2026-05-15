@@ -4,6 +4,9 @@ namespace NimblePHP\Framework\Middleware\Interfaces;
 
 use Throwable;
 
+/**
+ * @deprecated Use NimblePHP\Framework\Event\Framework\ExceptionEvent listeners instead.
+ */
 interface ExceptionMiddlewareInterface
 {
 

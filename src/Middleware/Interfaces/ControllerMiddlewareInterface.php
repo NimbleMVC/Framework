@@ -4,6 +4,9 @@ namespace NimblePHP\Framework\Middleware\Interfaces;
 
 use ReflectionMethod;
 
+/**
+ * @deprecated Use typed framework events instead.
+ */
 interface ControllerMiddlewareInterface
 {
 

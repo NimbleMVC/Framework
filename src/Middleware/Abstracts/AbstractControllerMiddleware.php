@@ -5,6 +5,9 @@ namespace NimblePHP\Framework\Middleware\Abstracts;
 use NimblePHP\Framework\Middleware\Interfaces\ControllerMiddlewareInterface;
 use ReflectionMethod;
 
+/**
+ * @deprecated Use typed framework events instead.
+ */
 abstract class AbstractControllerMiddleware implements ControllerMiddlewareInterface
 {
 

@@ -1,6 +1,10 @@
 <?php
 
 use NimblePHP\Framework\Container\ServiceContainer;
+use NimblePHP\Framework\Event\Framework\AfterServiceResolvedEvent;
+use NimblePHP\Framework\Event\Framework\ServiceContainerEvent;
+use NimblePHP\Framework\Kernel;
+use NimblePHP\Framework\Middleware\MiddlewareManager;
 use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Response;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +16,13 @@ class ServiceContainerTest extends TestCase
     protected function setUp(): void
     {
         $this->container = new ServiceContainer();
+        Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
+    }
+
+    protected function tearDown(): void
+    {
+        Kernel::$eventDispatcher = null;
     }
 
     public function testSetAndGetService()
@@ -213,6 +224,60 @@ class ServiceContainerTest extends TestCase
         $this->container->set('test', 'value2');
 
         $this->assertEquals('value2', $this->container->get('test'));
+    }
+
+    public function testContainerDispatchesServiceLifecycleEvents(): void
+    {
+        $events = [];
+        $resolvedEvents = [];
+
+        Kernel::getEventDispatcher()->addListener(ServiceContainerEvent::class, function (ServiceContainerEvent $event) use (&$events): void {
+            $events[] = [$event->operation, $event->id, $event->service];
+        });
+        Kernel::getEventDispatcher()->addListener(AfterServiceResolvedEvent::class, function (AfterServiceResolvedEvent $event) use (&$resolvedEvents): void {
+            $resolvedEvents[] = [$event->id, $event->resolvedId, $event->service, $event->source];
+        });
+
+        $this->container->set('request', 'value');
+        $this->container->get('request');
+        $this->container->get('request');
+        $this->container->has('request');
+        $this->container->remove('request');
+
+        $this->assertSame([
+            ['set', 'request', 'value'],
+            ['get', 'request', null],
+            ['get', 'request', null],
+            ['has', 'request', null],
+            ['remove', 'request', null],
+        ], $events);
+        $this->assertSame([
+            ['request', 'request', 'value', 'service'],
+            ['request', 'request', 'value', 'resolved'],
+        ], $resolvedEvents);
+    }
+
+    public function testContainerDispatchesAfterServiceResolvedForFactoriesAndAliases(): void
+    {
+        $events = [];
+
+        Kernel::getEventDispatcher()->addListener(AfterServiceResolvedEvent::class, function (AfterServiceResolvedEvent $event) use (&$events): void {
+            $events[] = [$event->id, $event->resolvedId, $event->service, $event->source];
+        });
+
+        $this->container->setFactory('factory', function () {
+            return 'factory-value';
+        });
+        $this->container->set('service', 'service-value');
+        $this->container->setAlias('service.alias', 'service');
+
+        $this->assertSame('factory-value', $this->container->get('factory'));
+        $this->assertSame('service-value', $this->container->get('service.alias'));
+
+        $this->assertSame([
+            ['factory', 'factory', 'factory-value', 'factory'],
+            ['service.alias', 'service', 'service-value', 'service'],
+        ], $events);
     }
 
     public function testFactoryOverwrite()

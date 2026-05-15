@@ -13,6 +13,17 @@ use Krzysztofzylka\File\File;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Container\ServiceContainer;
+use NimblePHP\Framework\Event\EventDispatcher;
+use NimblePHP\Framework\Event\Framework\AfterAttributesControllerEvent;
+use NimblePHP\Framework\Event\Framework\AfterBootstrapEvent;
+use NimblePHP\Framework\Event\Framework\AfterControllerDispatchEvent;
+use NimblePHP\Framework\Event\Framework\AfterControllerEvent;
+use NimblePHP\Framework\Event\Framework\BeforeControllerEvent;
+use NimblePHP\Framework\Event\Framework\BeforeRouteDispatchEvent;
+use NimblePHP\Framework\Event\Framework\ControllerResolvedEvent;
+use NimblePHP\Framework\Event\Framework\ExceptionEvent;
+use NimblePHP\Framework\Event\Framework\RequestResolvedEvent;
+use NimblePHP\Framework\Event\Listener\CorsListener;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NimbleException;
@@ -21,7 +32,6 @@ use NimblePHP\Framework\Interfaces\KernelInterface;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
-use NimblePHP\Framework\Middleware\CorsMiddleware;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
 use NimblePHP\Framework\Module\ModuleRegister;
 use NimblePHP\Framework\Translation\Translation;
@@ -49,6 +59,12 @@ class Kernel implements KernelInterface
      * @var MiddlewareManager
      */
     public static MiddlewareManager $middlewareManager;
+
+    /**
+     * Event dispatcher
+     * @var ?EventDispatcher
+     */
+    public static ?EventDispatcher $eventDispatcher = null;
 
     /**
      * Service container
@@ -103,12 +119,14 @@ class Kernel implements KernelInterface
             self::$middlewareManager = new MiddlewareManager();
         }
 
+        self::getEventDispatcher();
+
         if (!isset(self::$serviceContainer)) {
             self::$serviceContainer = ServiceContainer::getInstance();
         }
 
         $this->registerServices();
-        CorsMiddleware::registerFromEnv();
+        CorsListener::registerFromEnv();
     }
 
     /**
@@ -165,6 +183,20 @@ class Kernel implements KernelInterface
     protected function getProjectPath(): string
     {
         return realpath(dirname($_SERVER['SCRIPT_FILENAME']) . '/../');
+    }
+
+    public static function getEventDispatcher(): EventDispatcher
+    {
+        if (!self::$eventDispatcher instanceof EventDispatcher) {
+            self::$eventDispatcher = new EventDispatcher();
+        }
+
+        return self::$eventDispatcher;
+    }
+
+    public static function dispatchEvent(object $event): object
+    {
+        return self::getEventDispatcher()->dispatch($event);
     }
 
     /**
@@ -225,6 +257,7 @@ class Kernel implements KernelInterface
         $this->connectToDatabase();
         $this->router::registerRoutes(self::$projectPath . '/App/Controller', 'App\Controller');
         $this->loadModules();
+        self::dispatchEvent(new AfterBootstrapEvent());
         self::$middlewareManager->runHook('afterBootstrap');
         $this->initializedBootstrap = true;
     }
@@ -244,6 +277,7 @@ class Kernel implements KernelInterface
 
                 Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
                 $exception = new ErrorException($errstr, 0, $errno, $errfile, $errline);
+                self::dispatchEvent(new ExceptionEvent($exception));
                 self::$middlewareManager->runHook('exceptionHook', [$exception]);
             }
         );
@@ -387,10 +421,28 @@ class Kernel implements KernelInterface
      */
     protected function loadController(): void
     {
+        self::dispatchEvent(new BeforeRouteDispatchEvent($this->router, $this->request));
         $this->router->reload();
         $controllerName = $this->router->getController();
         $methodName = $this->router->getMethod();
         $params = $this->router->getParams();
+
+        $requestResolvedEvent = self::dispatchEvent(
+            new RequestResolvedEvent($this->router, $this->request, $controllerName, $methodName, $params)
+        );
+        $controllerName = $requestResolvedEvent->controllerName;
+        $methodName = $requestResolvedEvent->methodName;
+        $params = $requestResolvedEvent->params;
+        $this->router->setController($controllerName);
+        $this->router->setMethod($methodName);
+        $this->router->setParams($params);
+
+        $beforeControllerEvent = self::dispatchEvent(
+            new BeforeControllerEvent($controllerName, $methodName, $params)
+        );
+        $controllerName = $beforeControllerEvent->controllerName;
+        $methodName = $beforeControllerEvent->methodName;
+        $params = $beforeControllerEvent->params;
 
         $controllerMiddlewareContext = ['controllerName' => $controllerName, 'methodName' => $methodName, 'params' => $params];
         Kernel::$middlewareManager->runHookWithReference('beforeController', $controllerMiddlewareContext);
@@ -421,6 +473,8 @@ class Kernel implements KernelInterface
             throw new NotFoundException('Method ' . $methodName . ' does not exist');
         }
 
+        self::dispatchEvent(new ControllerResolvedEvent($controller, $controllerClass, $controllerName, $methodName, $params));
+
         $controller->name = str_replace('\App\Controller\\', '', $controllerName);
         $controller->action = $methodName;
         $attributes = [];
@@ -429,6 +483,7 @@ class Kernel implements KernelInterface
             $reflection = new ReflectionMethod($controller, $methodName);
             $attributes = $reflection->getAttributes(Action::class);
 
+            self::dispatchEvent(new AfterAttributesControllerEvent($reflection, $controller));
             Kernel::$middlewareManager->runHook('afterAttributesController', [$reflection, $controller]);
         }
 
@@ -445,7 +500,9 @@ class Kernel implements KernelInterface
         DependencyInjector::inject($controller);
         $controller->$methodName(...$params);
 
+        self::dispatchEvent(new AfterControllerDispatchEvent($controller, $controllerName, $methodName, $params));
         Kernel::$middlewareManager->runHook('afterControllerDispatch', [$controller, $controllerName, $methodName, $params]);
+        self::dispatchEvent(new AfterControllerEvent($controllerName, $methodName, $params));
         Kernel::$middlewareManager->runHook('afterController', [$controllerName, $methodName, $params]);
     }
 
@@ -458,6 +515,7 @@ class Kernel implements KernelInterface
     protected function handleException(Throwable $exception): void
     {
         try {
+            self::dispatchEvent(new ExceptionEvent($exception));
             self::$middlewareManager->runHook('exceptionHook', [$exception]);
         } catch (Throwable) {
         }

@@ -51,12 +51,54 @@ php vendor/bin/nimble cache:clear
 php vendor/bin/nimble serve <host:127.0.0.1> <port:8080>
 ```
 
+## Event listeners
+Framework udostępnia teraz `EventDispatcher`, który działa równolegle do obecnego systemu middleware.
+
+Nowe rozszerzenia aplikacji warto budować już na eventach:
+
+```php
+use App\Event\AfterTaskAdd;
+use NimblePHP\Framework\Kernel;
+
+Kernel::getEventDispatcher()->addListener(AfterTaskAdd::class, function (AfterTaskAdd $event): void {
+    // np. webhook, mail, aktualizacja statystyk
+});
+```
+
+Następnie w aplikacji można wyemitować własny event:
+
+```php
+Kernel::dispatchEvent(new AfterTaskAdd($taskId, $payload));
+```
+
+Framework dispatchuje też własne eventy m.in. dla:
+
+- bootstrapu kernela,
+- rozwiązywania requestu i routingu,
+- dispatchu kontrolera,
+- wysyłania response,
+- logów,
+- renderowania widoków,
+- modeli i ORM,
+- lifecycle create/update/delete modeli,
+- operacji na service containerze,
+- rozwiązywania serwisów z kontenera.
+
+> `MiddlewareManager` i interfejsy middleware pozostają dostępne dla kompatybilności, ale są traktowane jako **deprecated / legacy**. Nowy kod powinien używać event listenerów.
+
 ## Benchmark Route
 Ręczny benchmark routera można uruchomić poleceniem:
 ```shell
 php bin/route-benchmark
 ```
 Skrypt wypisuje średni koszt `reload()` dla tras statycznych i dynamicznych oraz porównanie `registerRoutes()` dla cold cache i warm cache.
+
+## Benchmark Cache
+Ręczny benchmark cache można uruchomić poleceniem:
+```shell
+php bin/cache-benchmark
+```
+Skrypt mierzy koszt podstawowych operacji `set()`, `get()`, `has()` i `clear()` dla cache plikowego.
 
 ## Współtworzenie
 Zachęcamy do współtworzenia! Masz sugestie, znalazłeś błędy, chcesz pomóc w rozwoju? Otwórz issue lub prześlij pull request.

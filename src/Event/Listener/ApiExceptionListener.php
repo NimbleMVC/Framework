@@ -1,9 +1,10 @@
 <?php
 
-namespace NimblePHP\Framework\Middleware;
+namespace NimblePHP\Framework\Event\Listener;
 
 use JetBrains\PhpStorm\NoReturn;
 use NimblePHP\Framework\Config;
+use NimblePHP\Framework\Event\Framework\ExceptionEvent;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Exception\ValidationException;
@@ -12,18 +13,20 @@ use NimblePHP\Framework\Log;
 use Throwable;
 
 /**
- * Converts unhandled exceptions into JSON responses for API controllers.
+ * Convert unhandled API exceptions into JSON responses.
  */
-class ApiExceptionHandler
+class ApiExceptionListener
 {
 
     /**
-     * Whether the handler is already registered with the middleware manager.
+     * Whether the listener is already registered with the event dispatcher.
      */
     protected static bool $registered = false;
 
     /**
-     * Register the handler with the kernel middleware manager (idempotent).
+     * Register the listener with the kernel event dispatcher.
+     *
+     * @return void
      */
     public static function register(): void
     {
@@ -31,12 +34,14 @@ class ApiExceptionHandler
             return;
         }
 
-        Kernel::$middlewareManager->add(new self(), 100);
+        Kernel::getEventDispatcher()->addListener(ExceptionEvent::class, new self(), 100);
         self::$registered = true;
     }
 
     /**
-     * Reset registration flag (useful for tests).
+     * Reset the registration flag used by tests and repeated bootstrap.
+     *
+     * @return void
      */
     public static function reset(): void
     {
@@ -44,10 +49,25 @@ class ApiExceptionHandler
     }
 
     /**
-     * Exception hook invoked by the kernel when a Throwable bubbles up.
+     * Handle the framework exception event.
+     *
+     * @param ExceptionEvent $event
+     * @return void
      */
     #[NoReturn]
-    public function exceptionHook(Throwable $exception): void
+    public function handle(ExceptionEvent $event): void
+    {
+        $this->renderException($event->exception);
+    }
+
+    /**
+     * Render an exception as a JSON API error response.
+     *
+     * @param Throwable $exception
+     * @return void
+     */
+    #[NoReturn]
+    protected function renderException(Throwable $exception): void
     {
         $statusCode = $this->resolveStatusCode($exception);
         $publicMessage = $exception->getMessage();
@@ -102,6 +122,9 @@ class ApiExceptionHandler
 
     /**
      * Map an exception to an HTTP status code.
+     *
+     * @param Throwable $exception
+     * @return int
      */
     protected function resolveStatusCode(Throwable $exception): int
     {

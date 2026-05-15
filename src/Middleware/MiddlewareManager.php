@@ -4,6 +4,8 @@ namespace NimblePHP\Framework\Middleware;
 
 /**
  * Middleware manager that supports priorities and special hooks (e.g. afterBootstrap).
+ *
+ * @deprecated Use NimblePHP\Framework\Event\EventDispatcher for new extensions.
  */
 class MiddlewareManager
 {
@@ -25,6 +27,7 @@ class MiddlewareManager
      * @param callable|object|string $middleware
      * @param int $priority
      * @return void
+     * @deprecated Use EventDispatcher::addListener() for new integrations.
      */
     public function add(mixed $middleware, int $priority = 0): void
     {
@@ -76,6 +79,7 @@ class MiddlewareManager
      * @param mixed $request
      * @param callable $finalHandler
      * @return mixed
+     * @deprecated Use a dedicated HTTP pipeline for new request/response middleware.
      */
     public function handle(mixed $request, callable $finalHandler): mixed
     {
@@ -120,6 +124,7 @@ class MiddlewareManager
      * @param string $methodName
      * @param array $args
      * @return void
+     * @deprecated Use EventDispatcher with typed event objects.
      */
     public function runHook(string $methodName, array $args = []): void
     {
@@ -140,6 +145,7 @@ class MiddlewareManager
      * @param string $methodName
      * @param mixed $context
      * @return void
+     * @deprecated Use EventDispatcher with mutable event objects.
      */
     public function runHookWithReference(string $methodName, mixed &$context): void
     {

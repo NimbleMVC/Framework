@@ -45,6 +45,13 @@ namespace {
 
 use App\Controller\KernelDispatchController;
 use NimblePHP\Framework\Container\ServiceContainer;
+use NimblePHP\Framework\Event\Framework\AfterAttributesControllerEvent;
+use NimblePHP\Framework\Event\Framework\AfterControllerDispatchEvent;
+use NimblePHP\Framework\Event\Framework\AfterControllerEvent;
+use NimblePHP\Framework\Event\Framework\BeforeControllerEvent;
+use NimblePHP\Framework\Event\Framework\BeforeRouteDispatchEvent;
+use NimblePHP\Framework\Event\Framework\ControllerResolvedEvent;
+use NimblePHP\Framework\Event\Framework\RequestResolvedEvent;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
@@ -72,9 +79,15 @@ class KernelCoverageTest extends TestCase
 
         KernelDispatchController::$calls = [];
         Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         Kernel::$serviceContainer = new ServiceContainer();
         Kernel::$serviceContainer->clear();
         Kernel::$projectPath = getcwd();
+    }
+
+    protected function tearDown(): void
+    {
+        Kernel::$eventDispatcher = null;
     }
 
     public function testRegisterServicesRegistersCoreServicesAndSingletons(): void
@@ -98,6 +111,29 @@ class KernelCoverageTest extends TestCase
 
     public function testLoadControllerDispatchesAndRunsMiddlewareHooks(): void
     {
+        $events = [];
+        Kernel::getEventDispatcher()->addListener(BeforeRouteDispatchEvent::class, function (BeforeRouteDispatchEvent $event) use (&$events): void {
+            $events[] = 'beforeRouteDispatchEvent';
+        }, 200);
+        Kernel::getEventDispatcher()->addListener(RequestResolvedEvent::class, function (RequestResolvedEvent $event) use (&$events): void {
+            $events[] = 'requestResolvedEvent';
+            $event->params = ['84'];
+        }, 150);
+        Kernel::getEventDispatcher()->addListener(BeforeControllerEvent::class, function (BeforeControllerEvent $event) use (&$events): void {
+            $events[] = 'beforeControllerEvent';
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(ControllerResolvedEvent::class, function (ControllerResolvedEvent $event) use (&$events): void {
+            $events[] = ['controllerResolvedEvent', $event->controllerClass, $event->methodName];
+        });
+        Kernel::getEventDispatcher()->addListener(AfterAttributesControllerEvent::class, function (AfterAttributesControllerEvent $event) use (&$events): void {
+            $events[] = 'afterAttributesControllerEvent';
+        });
+        Kernel::getEventDispatcher()->addListener(AfterControllerDispatchEvent::class, function (AfterControllerDispatchEvent $event) use (&$events): void {
+            $events[] = 'afterControllerDispatchEvent';
+        });
+        Kernel::getEventDispatcher()->addListener(AfterControllerEvent::class, function (AfterControllerEvent $event) use (&$events): void {
+            $events[] = 'afterControllerEvent';
+        });
         $middleware = new KernelCoverageMiddleware();
         Kernel::$middlewareManager->add($middleware);
 
@@ -112,11 +148,20 @@ class KernelCoverageTest extends TestCase
         $this->invokeKernelMethod($kernel, 'loadController');
 
         $this->assertTrue($route->reloaded);
+        $this->assertSame([
+            'beforeRouteDispatchEvent',
+            'requestResolvedEvent',
+            'beforeControllerEvent',
+            ['controllerResolvedEvent', '\App\Controller\KernelDispatchController', 'index'],
+            'afterAttributesControllerEvent',
+            'afterControllerDispatchEvent',
+            'afterControllerEvent',
+        ], $events);
         $this->assertSame(['beforeController', 'afterAttributesController', 'afterControllerDispatch', 'afterController'], $middleware->events);
         $this->assertSame('afterConstruct', KernelDispatchController::$calls[0]);
         $this->assertSame([
             'method' => 'index',
-            'id' => '42',
+            'id' => '84',
             'name' => 'KernelDispatchController',
             'action' => 'index',
             'request' => true,
