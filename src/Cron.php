@@ -90,7 +90,7 @@ class Cron
     }
 
     /**
-     * Add job
+     * Add a job
      * @param string $type
      * @param string $name
      * @param string $action
@@ -136,6 +136,7 @@ class Cron
     }
 
     /**
+     * Run a job
      * @param AbstractController|null $controller
      * @param callable|null $output
      * @return bool

@@ -35,11 +35,11 @@ class Session implements SessionInterface
                 case 'redis':
                     $redisHost = Config::get('SESSION_REDIS_HOST', '127.0.0.1');
                     $redisPort = (int) Config::get('SESSION_REDIS_PORT', 6379);
-                    $redisPassword = Config::get('SESSION_REDIS_PASSWORD', null);
+                    $redisPassword = Config::get('SESSION_REDIS_PASSWORD');
                     $redisConnectTimeout = (float) Config::get('SESSION_REDIS_CONNECT_TIMEOUT', 0.5);
                     $redisReadTimeout = (float) Config::get('SESSION_REDIS_READ_TIMEOUT', 1);
                     ini_set('session.save_handler', 'redis');
-                    $redisConnection = "tcp://{$redisHost}:{$redisPort}";
+                    $redisConnection = "tcp://$redisHost:$redisPort";
                     $redisConnectionParams = [
                         'timeout' => $redisConnectTimeout,
                         'read_timeout' => $redisReadTimeout,

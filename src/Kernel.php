@@ -75,7 +75,7 @@ class Kernel implements KernelInterface
     protected ResponseInterface $response;
 
     /**
-     * Bootstrap is initalized
+     * Bootstrap is initialized
      * @var bool
      */
     protected bool $initializedBootstrap = false;
@@ -159,7 +159,7 @@ class Kernel implements KernelInterface
     }
 
     /**
-     * Get project path
+     * Get a project path
      * @return string
      */
     protected function getProjectPath(): string
@@ -236,15 +236,17 @@ class Kernel implements KernelInterface
      */
     protected function errorCatcher(): void
     {
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-            if (!(error_reporting() & $errno)) {
-                return false;
-            }
+        set_error_handler(
+            function ($errno, $errstr, $errfile, $errline) {
+                if (!(error_reporting() & $errno)) {
+                    return false;
+                }
 
-            Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
-            $exception = new ErrorException($errstr, 0, $errno, $errfile, $errline);
-            self::$middlewareManager->runHook('exceptionHook', [$exception]);
-        });
+                Log::log($errstr, 'ERR', ['errno' => $errno, 'errfile' => $errfile, 'errline' => $errline]);
+                $exception = new ErrorException($errstr, 0, $errno, $errfile, $errline);
+                self::$middlewareManager->runHook('exceptionHook', [$exception]);
+            }
+        );
     }
 
     /**
@@ -283,7 +285,7 @@ class Kernel implements KernelInterface
     }
 
     /**
-     * Connect to database
+     * Connect to a database
      * @return void
      * @throws DatabaseException
      * @throws Throwable
@@ -340,6 +342,10 @@ class Kernel implements KernelInterface
         }
     }
 
+    /**
+     * @param DatabaseManagerException $exception
+     * @return bool
+     */
     protected function shouldRetryDatabaseConnection(DatabaseManagerException $exception): bool
     {
         if (Config::get('DATABASE_TYPE') !== 'mysql') {
@@ -358,7 +364,7 @@ class Kernel implements KernelInterface
     }
 
     /**
-     * Class auto loader
+     * Class autoloader
      * @return void
      */
     protected function autoloader(): void

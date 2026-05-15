@@ -12,7 +12,7 @@ use NimblePHP\Framework\Response;
 use NimblePHP\Framework\Validation\Validator;
 
 /**
- * Base controller for JSON APIs (e.g. SPA backends).
+ * Base controller for JSON APIs (e.g., SPA backends).
  * Provides JSON body parsing, automatic Content-Type header, and JSON
  * exception handling. All public methods that are reachable as routes
  * should send their response via $this->success/error/created/etc.
@@ -77,7 +77,7 @@ abstract class AbstractApiController extends AbstractController
     }
 
     /**
-     * Get a single value from JSON body, falling back to query/post.
+     * Get a single value from the JSON body, falling back to query/post.
      * @throws NimbleException
      */
     #[Action('disabled')]

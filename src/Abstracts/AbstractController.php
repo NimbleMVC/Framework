@@ -93,7 +93,7 @@ abstract class AbstractController implements ControllerInterface
     }
 
     /**
-     * Check if dynamic method exists
+     * Check if a dynamic method exists
      * @param string $methodName
      * @param string|null $controllerClass
      * @return bool

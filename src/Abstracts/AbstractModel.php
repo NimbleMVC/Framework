@@ -79,7 +79,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Create element
+     * Create an element
      * @param array $data
      * @return bool
      * @throws DatabaseException
@@ -105,7 +105,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Update single value
+     * Update a single value
      * @param string $name
      * @param mixed $value
      * @return bool
@@ -133,7 +133,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Create or update element
+     * Create or update an element
      * @param array $data
      * @return bool
      * @throws DatabaseException
@@ -249,7 +249,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Delete element by ID
+     * Delete an element by ID
      * @return bool
      * @throws DatabaseException
      */
@@ -310,7 +310,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Prepare table instance
+     * Prepare a table instance
      * @return void
      */
     public function prepareTableInstance(): void
@@ -444,7 +444,7 @@ abstract class AbstractModel implements ModelInterface
     }
 
     /**
-     * Get table instance
+     * Get a table instance
      * @return Table
      */
     public function getTableInstance(): Table

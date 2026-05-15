@@ -43,7 +43,7 @@ class Response implements ResponseInterface
     protected RequestInterface $request;
 
     /**
-     * Costructor
+     * Constructor
      */
     public function __construct()
     {
@@ -176,7 +176,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Send successfull API response
+     * Send a successful API response
      * @param mixed $data Response data
      * @param int $statusCode HTTP status code
      * @param string $message Success message
@@ -259,7 +259,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Send no content response (204)
+     * Send no-content response (204)
      * @return void
      */
     public function noContent(): void

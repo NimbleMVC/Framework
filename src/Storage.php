@@ -144,7 +144,7 @@ class Storage
     }
 
     /**
-     * Get base path
+     * Get a base path
      * @return string
      */
     public function getPath(): string
