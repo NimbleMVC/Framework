@@ -123,7 +123,7 @@ class Cron
             $runAfterDate = date('Y-m-d H:i:s');
         }
 
-        $this->table->setId(null)->insert([
+        $this->table->setId()->insert([
             'type' => $type,
             'name' => $name,
             'action' => $action,

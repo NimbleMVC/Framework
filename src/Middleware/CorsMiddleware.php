@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Middleware;
 
+use JetBrains\PhpStorm\NoReturn;
 use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Kernel;
 
@@ -94,9 +95,11 @@ class CorsMiddleware
     /**
      * End the request with the given status code (overridable for tests).
      */
+    #[NoReturn]
     protected function terminate(int $statusCode): void
     {
         http_response_code($statusCode);
+
         exit;
     }
 

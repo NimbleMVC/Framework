@@ -78,7 +78,7 @@ class Cron
                     break;
                 }
 
-                $controller = $this->resolveController(Config::get('CRON_CONTROLLER', null));
+                $controller = $this->resolveController(Config::get('CRON_CONTROLLER'));
                 $jobsRun = $cron->runJob($controller, function (string $message) use ($output): void {
                     $output->info($message);
                 });

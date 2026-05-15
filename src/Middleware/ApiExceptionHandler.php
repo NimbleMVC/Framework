@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Middleware;
 
+use JetBrains\PhpStorm\NoReturn;
 use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Exception\HiddenException;
 use NimblePHP\Framework\Exception\NotFoundException;
@@ -45,6 +46,7 @@ class ApiExceptionHandler
     /**
      * Exception hook invoked by the kernel when a Throwable bubbles up.
      */
+    #[NoReturn]
     public function exceptionHook(Throwable $exception): void
     {
         $statusCode = $this->resolveStatusCode($exception);
@@ -94,6 +96,7 @@ class ApiExceptionHandler
         }
 
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         exit;
     }
 
