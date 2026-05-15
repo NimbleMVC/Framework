@@ -1,0 +1,176 @@
+#!/usr/bin/env php
+<?php
+
+use NimblePHP\Framework\Cache;
+use NimblePHP\Framework\Kernel;
+
+if (isset($GLOBALS['_composer_autoload_path'])) {
+    require_once $GLOBALS['_composer_autoload_path'];
+} elseif (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/../../../autoload.php')) {
+    require_once __DIR__ . '/../../../autoload.php';
+} else {
+    fwrite(STDERR, "Autoload not found.\n");
+    exit(1);
+}
+
+function measureMilliseconds(callable $callback): float
+{
+    $start = hrtime(true);
+    $callback();
+
+    return (hrtime(true) - $start) / 1_000_000;
+}
+
+function median(array $values): float
+{
+    sort($values);
+    $count = count($values);
+    $middle = intdiv($count, 2);
+
+    if ($count % 2 === 1) {
+        return $values[$middle];
+    }
+
+    return ($values[$middle - 1] + $values[$middle]) / 2;
+}
+
+function benchmark(int $rounds, callable $callback): array
+{
+    $samples = [];
+
+    for ($round = 0; $round < $rounds; $round++) {
+        $samples[] = measureMilliseconds($callback);
+    }
+
+    return [
+        'median_ms_total' => median($samples),
+    ];
+}
+
+function printMetric(string $name, array $metric, int $operations): void
+{
+    $perOperation = $metric['median_ms_total'] / $operations;
+    $opsPerSecond = $perOperation > 0 ? 1000 / $perOperation : INF;
+
+    printf(
+        "%-26s %10.3f ms/op  %12.0f ops/s  (%0.3f ms total median)\n",
+        $name,
+        $perOperation,
+        $opsPerSecond,
+        $metric['median_ms_total']
+    );
+}
+
+function removeDirectory(string $directory): void
+{
+    if (!is_dir($directory)) {
+        return;
+    }
+
+    foreach (scandir($directory) ?: [] as $item) {
+        if ($item === '.' || $item === '..') {
+            continue;
+        }
+
+        $path = $directory . '/' . $item;
+
+        if (is_dir($path)) {
+            removeDirectory($path);
+        } else {
+            unlink($path);
+        }
+    }
+
+    rmdir($directory);
+}
+
+$projectPath = sys_get_temp_dir() . '/nimble_cache_benchmark_' . uniqid('', true);
+mkdir($projectPath . '/storage/cache', 0777, true);
+Kernel::$projectPath = $projectPath;
+
+$cache = new Cache();
+$rounds = 7;
+$setIterations = 1000;
+$readIterations = 20000;
+$payload = [
+    'string' => str_repeat('cache-benchmark', 8),
+    'numbers' => range(1, 50),
+    'flags' => ['a' => true, 'b' => false],
+    'nested' => [
+        'alpha' => 'beta',
+        'gamma' => ['delta' => 'epsilon'],
+    ],
+];
+
+try {
+    $cache->clear();
+    $cache->set('warm-scalar', 'value', 3600);
+    $cache->set('warm-array', $payload, 3600);
+
+    $overwriteSetMetric = benchmark($rounds, function () use ($cache, $setIterations): void {
+        for ($i = 0; $i < $setIterations; $i++) {
+            $cache->set('overwrite-key', 'value-' . $i, 3600);
+        }
+    });
+
+    $uniqueSetMetric = benchmark($rounds, function () use ($cache, $setIterations): void {
+        $cache->clear();
+
+        for ($i = 0; $i < $setIterations; $i++) {
+            $cache->set('unique-key-' . $i, ['value' => $i, 'payload' => str_repeat('x', 32)], 3600);
+        }
+    });
+
+    $warmGetScalarMetric = benchmark($rounds, function () use ($cache, $readIterations): void {
+        for ($i = 0; $i < $readIterations; $i++) {
+            $cache->get('warm-scalar');
+        }
+    });
+
+    $warmGetArrayMetric = benchmark($rounds, function () use ($cache, $readIterations): void {
+        for ($i = 0; $i < $readIterations; $i++) {
+            $cache->get('warm-array');
+        }
+    });
+
+    $hasMetric = benchmark($rounds, function () use ($cache, $readIterations): void {
+        for ($i = 0; $i < $readIterations; $i++) {
+            $cache->has('warm-scalar');
+        }
+    });
+
+    $missMetric = benchmark($rounds, function () use ($cache, $readIterations): void {
+        for ($i = 0; $i < $readIterations; $i++) {
+            $cache->get('missing-key');
+        }
+    });
+
+    $cache->clear();
+    for ($i = 0; $i < $setIterations; $i++) {
+        $cache->set('clear-key-' . $i, ['value' => $i], 3600);
+    }
+
+    $clearMetric = benchmark($rounds, function () use ($cache, $setIterations): void {
+        $cache->clear();
+
+        for ($i = 0; $i < $setIterations; $i++) {
+            $cache->set('clear-key-' . $i, ['value' => $i], 3600);
+        }
+    });
+
+    echo "Cache benchmark\n";
+    echo "===============\n";
+    printf("Project temp dir: %s\n\n", $projectPath);
+
+    printMetric('set overwrite scalar', $overwriteSetMetric, $setIterations);
+    printMetric('set unique payload', $uniqueSetMetric, $setIterations);
+    printMetric('get warm scalar', $warmGetScalarMetric, $readIterations);
+    printMetric('get warm array', $warmGetArrayMetric, $readIterations);
+    printMetric('has warm scalar', $hasMetric, $readIterations);
+    printMetric('get missing key', $missMetric, $readIterations);
+    printMetric('clear 1000 entries', $clearMetric, $setIterations);
+} finally {
+    removeDirectory($projectPath);
+}
