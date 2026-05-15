@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Routes;
 
+use NimblePHP\Framework\Config;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\RouteInterface;
 
@@ -45,8 +46,8 @@ class SimpleRoute implements RouteInterface
     public static function addRoute(string $name, ?string $controller = null, ?string $method = null): void
     {
         self::$routes[$name] = [
-            'controller' => $controller ?? $_ENV['DEFAULT_CONTROLLER'],
-            'method' => $method ?? $_ENV['DEFAULT_METHOD']
+            'controller' => $controller ?? Config::get('DEFAULT_CONTROLLER'),
+            'method' => $method ?? Config::get('DEFAULT_METHOD')
         ];
     }
 
@@ -102,7 +103,7 @@ class SimpleRoute implements RouteInterface
      */
     public function getController(): string
     {
-        return $this->controller ?? $_ENV['DEFAULT_CONTROLLER'];
+        return $this->controller ?? Config::get('DEFAULT_CONTROLLER');
     }
 
     /**
@@ -121,7 +122,7 @@ class SimpleRoute implements RouteInterface
      */
     public function getMethod(): string
     {
-        return $this->method ?? $_ENV['DEFAULT_METHOD'];
+        return $this->method ?? Config::get('DEFAULT_METHOD');
     }
 
     /**

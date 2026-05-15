@@ -290,7 +290,7 @@ class Kernel implements KernelInterface
      */
     protected function connectToDatabase(): void
     {
-        if (!$_ENV['DATABASE']) {
+        if (!Config::get('DATABASE', false)) {
             return;
         }
 
@@ -300,24 +300,24 @@ class Kernel implements KernelInterface
 
         $connect = DatabaseConnect::create();
 
-        switch ($_ENV['DATABASE_TYPE']) {
+        switch (Config::get('DATABASE_TYPE')) {
             case 'mysql':
                 $connect->setType(DatabaseType::mysql);
-                $connect->setHost(trim($_ENV['DATABASE_HOST']));
-                $connect->setDatabaseName(trim($_ENV['DATABASE_NAME']));
-                $connect->setUsername(trim($_ENV['DATABASE_USERNAME']));
-                $connect->setPassword(trim($_ENV['DATABASE_PASSWORD']));
-                $connect->setPort((int)$_ENV['DATABASE_PORT']);
+                $connect->setHost(trim(Config::get('DATABASE_HOST')));
+                $connect->setDatabaseName(trim(Config::get('DATABASE_NAME')));
+                $connect->setUsername(trim(Config::get('DATABASE_USERNAME')));
+                $connect->setPassword(trim(Config::get('DATABASE_PASSWORD')));
+                $connect->setPort((int)Config::get('DATABASE_PORT', 3306));
                 break;
             case 'sqlite':
                 $connect->setType(DatabaseType::sqlite);
-                $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . $_ENV['DATABASE_PATH']);
+                $connect->setSqlitePath($this->getProjectPath() . DIRECTORY_SEPARATOR . Config::get('DATABASE_PATH'));
                 break;
             default:
                 throw new DatabaseException('Invalid database type');
         }
 
-        $connect->setCharset($_ENV['DATABASE_CHARSET']);
+        $connect->setCharset(Config::get('DATABASE_CHARSET'));
 
         $manager = new DatabaseManager();
         $attempts = max(1, (int)Config::get('DATABASE_CONNECT_RETRY_ATTEMPTS', 3));
@@ -342,7 +342,7 @@ class Kernel implements KernelInterface
 
     protected function shouldRetryDatabaseConnection(DatabaseManagerException $exception): bool
     {
-        if (($_ENV['DATABASE_TYPE'] ?? null) !== 'mysql') {
+        if (Config::get('DATABASE_TYPE') !== 'mysql') {
             return false;
         }
 
@@ -489,13 +489,13 @@ class Kernel implements KernelInterface
      */
     protected function debug(): void
     {
-        if (!$_ENV['DEBUG']) {
-            ini_set('display_errors', 0);
-            ini_set('display_startup_errors', 0);
-        } else {
+        if (Config::get('DEBUG', false)) {
             ini_set('display_errors', 1);
             ini_set('display_startup_errors', 1);
             error_reporting(E_ALL);
+        } else {
+            ini_set('display_errors', 0);
+            ini_set('display_startup_errors', 0);
         }
     }
 
@@ -532,7 +532,7 @@ class Kernel implements KernelInterface
      */
     private function initializeDebugHandler(): void
     {
-        if (!$_ENV['DEBUG']) {
+        if (!Config::get('DEBUG', false)) {
             return;
         }
 
