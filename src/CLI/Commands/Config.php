@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\CLI\Commands;
 
+use Exception;
 use NimblePHP\Framework\CLI\AbstractCommand;
 use NimblePHP\Framework\CLI\Attributes\ConsoleCommand;
 use NimblePHP\Framework\CLI\ConsoleHelper;
@@ -18,6 +19,10 @@ use NimblePHP\Framework\CLI\ConsoleHelper;
 class Config extends AbstractCommand
 {
 
+    /**
+     * @return int
+     * @throws Exception
+     */
     public function handle(): int
     {
         ConsoleHelper::loadConfig();

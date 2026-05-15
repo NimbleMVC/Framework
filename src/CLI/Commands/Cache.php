@@ -36,7 +36,7 @@ class Cache
         $exit = !isset($arguments['no-exit']);
         $output->success('Cleared cache');
 
-        return $exit ? 0 : 0;
+        return $exit ? 0 : 1;
     }
 
 }
