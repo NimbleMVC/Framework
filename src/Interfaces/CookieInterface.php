@@ -34,7 +34,7 @@ interface CookieInterface
      * @param string $path
      * @param string $domain
      * @param ?bool $secure
-     * @param ?bool $httponlya
+     * @param bool|null $httponly
      * @return void
      */
     public function set(
