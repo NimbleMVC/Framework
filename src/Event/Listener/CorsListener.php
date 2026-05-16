@@ -1,28 +1,24 @@
 <?php
 
-namespace NimblePHP\Framework\Middleware;
+namespace NimblePHP\Framework\Event\Listener;
 
 use JetBrains\PhpStorm\NoReturn;
 use NimblePHP\Framework\Config;
+use NimblePHP\Framework\Event\Framework\AfterBootstrapEvent;
 use NimblePHP\Framework\Kernel;
 
 /**
- * Adds CORS headers and short-circuits OPTIONS preflight requests.
- *
- * Configured entirely via env variables:
- *  - API_CORS_ORIGINS:     comma-separated list of allowed origins, or `*` (default empty = disabled)
- *  - API_CORS_METHODS:     comma-separated allowed HTTP methods (default GET,POST,PUT,PATCH,DELETE,OPTIONS)
- *  - API_CORS_HEADERS:     comma-separated allowed request headers (default Content-Type,Authorization,X-Requested-With)
- *  - API_CORS_CREDENTIALS: 1/true to send Access-Control-Allow-Credentials (default false)
- *  - API_CORS_MAX_AGE:     seconds to cache preflight (default 600)
+ * Applies CORS headers during the post-bootstrap framework event.
  */
-class CorsMiddleware
+class CorsListener
 {
 
     protected static bool $registered = false;
 
     /**
-     * Register the middleware if API_CORS_ORIGINS is configured (idempotent).
+     * Register the listener when CORS configuration is enabled.
+     *
+     * @return void
      */
     public static function registerFromEnv(): void
     {
@@ -34,16 +30,14 @@ class CorsMiddleware
             return;
         }
 
-        if (!isset(Kernel::$middlewareManager)) {
-            return;
-        }
-
-        Kernel::$middlewareManager->add(new self(), 200);
+        Kernel::getEventDispatcher()->addListener(AfterBootstrapEvent::class, new self(), 200);
         self::$registered = true;
     }
 
     /**
-     * Reset registration flag (useful for tests).
+     * Reset the listener registration flag.
+     *
+     * @return void
      */
     public static function reset(): void
     {
@@ -51,9 +45,22 @@ class CorsMiddleware
     }
 
     /**
-     * Hook called by Kernel after bootstrap, before any controller dispatch.
+     * Handle the framework bootstrap completion event.
+     *
+     * @param AfterBootstrapEvent $event
+     * @return void
      */
-    public function afterBootstrap(): void
+    public function handle(AfterBootstrapEvent $event): void
+    {
+        $this->applyCors();
+    }
+
+    /**
+     * Apply the configured CORS policy to the current request.
+     *
+     * @return void
+     */
+    protected function applyCors(): void
     {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
 
@@ -93,18 +100,10 @@ class CorsMiddleware
     }
 
     /**
-     * End the request with the given status code (overridable for tests).
-     */
-    #[NoReturn]
-    protected function terminate(int $statusCode): void
-    {
-        http_response_code($statusCode);
-
-        exit;
-    }
-
-    /**
-     * Resolve the value to put in Access-Control-Allow-Origin, or null if origin is not allowed.
+     * Resolve the response origin value for the provided request origin.
+     *
+     * @param string $origin
+     * @return string|null
      */
     protected function resolveAllowedOrigin(string $origin): ?string
     {
@@ -126,7 +125,9 @@ class CorsMiddleware
     }
 
     /**
-     * Detect a CORS preflight request (OPTIONS + Access-Control-Request-Method header).
+     * Determine whether the request is a CORS preflight request.
+     *
+     * @return bool
      */
     protected function isPreflight(): bool
     {
@@ -135,7 +136,11 @@ class CorsMiddleware
     }
 
     /**
-     * Wrapper around header() to keep the class testable.
+     * Send a response header unless headers were already emitted.
+     *
+     * @param string $name
+     * @param string $value
+     * @return void
      */
     protected function sendHeader(string $name, string $value): void
     {
@@ -144,6 +149,20 @@ class CorsMiddleware
         }
 
         header($name . ': ' . $value, $name !== 'Vary');
+    }
+
+    #[NoReturn]
+    /**
+     * Terminate the request after responding to a preflight request.
+     *
+     * @param int $statusCode
+     * @return void
+     */
+    protected function terminate(int $statusCode): void
+    {
+        http_response_code($statusCode);
+
+        exit;
     }
 
 }

@@ -28,6 +28,14 @@ namespace App\Model {
     {
     }
 
+    class EventEnabledModel extends AbstractModel
+    {
+        public function setTableMock(\krzysztofzylka\DatabaseManager\Table $table): void
+        {
+            $this->table = $table;
+        }
+    }
+
     class InvalidLoadTarget
     {
     }
@@ -38,6 +46,14 @@ namespace {
 use App\Model\DemoModel;
 use App\Model\DemoModelModel;
 use App\Model\DemoOrmRecord;
+use App\Model\EventEnabledModel;
+use NimblePHP\Framework\Event\Framework\AfterConstructModelEvent;
+use NimblePHP\Framework\Event\Framework\AfterConstructOrmModelEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelCreateEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelDeleteEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelUpdateEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingModelDataEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingModelQueryEvent;
 use NimblePHP\Framework\Abstracts\AbstractController;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
@@ -55,10 +71,16 @@ class OrmAndTraitsTest extends TestCase
         $_ENV['DATABASE'] = false;
         $_ENV['LOG'] = true;
         Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         Kernel::$projectPath = getcwd();
         $this->setStaticProperty(DemoOrmRecord::class, 'table', $this->createMock(Table::class));
         $this->setStaticProperty(Log::class, 'session', null);
         $this->setStaticProperty(Log::class, 'storage', null);
+    }
+
+    protected function tearDown(): void
+    {
+        Kernel::$eventDispatcher = null;
     }
 
     public function testAbstractOrmColumnsRespectAttributesAndDefaults(): void
@@ -78,6 +100,10 @@ class OrmAndTraitsTest extends TestCase
 
     public function testAbstractOrmReadReadAllSaveDeleteAndToArrayUseTableContract(): void
     {
+        $ormEvents = [];
+        Kernel::getEventDispatcher()->addListener(AfterConstructOrmModelEvent::class, function (AfterConstructOrmModelEvent $event) use (&$ormEvents): void {
+            $ormEvents[] = $event->model::class;
+        });
         $table = $this->createMock(Table::class);
         $table->expects($this->once())
             ->method('find')
@@ -122,6 +148,7 @@ class OrmAndTraitsTest extends TestCase
         $this->assertInstanceOf(DemoOrmRecord::class, $record);
         $this->assertSame('Alice', $record->name);
         $this->assertCount(2, $all);
+        $this->assertContains(DemoOrmRecord::class, $ormEvents);
         $this->assertSame('A', $all[0]->name);
         $this->assertSame('B', $all[1]->name);
 
@@ -154,6 +181,10 @@ class OrmAndTraitsTest extends TestCase
 
     public function testLoadModelUsesControllerInstanceForClassicModel(): void
     {
+        $modelEvents = [];
+        Kernel::getEventDispatcher()->addListener(AfterConstructModelEvent::class, function (AfterConstructModelEvent $event) use (&$modelEvents): void {
+            $modelEvents[] = $event->model::class;
+        });
         $loader = new class extends AbstractController {
             public function index(): void
             {
@@ -168,6 +199,7 @@ class OrmAndTraitsTest extends TestCase
         $this->assertInstanceOf(DemoModel::class, $model);
         $this->assertSame($loader, $model->controller);
         $this->assertSame('Demo', $model->name);
+        $this->assertContains(DemoModel::class, $modelEvents);
     }
 
     public function testLoadModelUsesV2NamingAndFallbackController(): void
@@ -207,6 +239,87 @@ class OrmAndTraitsTest extends TestCase
         $model = $loader->loadModel(DemoModel::class);
 
         $this->assertSame($controller, $model->controller);
+    }
+
+    public function testModelEventsCanMutateDataAndQueryBeforeTableExecution(): void
+    {
+        $_ENV['DATABASE'] = true;
+        $capturedEvents = [];
+        $afterLifecycleEvents = [];
+
+        Kernel::getEventDispatcher()->addListener(ProcessingModelDataEvent::class, function (ProcessingModelDataEvent $event) use (&$capturedEvents): void {
+            $capturedEvents[] = ['data', $event->type];
+            $event->data['from_event'] = 'yes';
+            if ($event->type === 'updateValue') {
+                $event->data['title'] = strtoupper($event->data['title']);
+            }
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(ProcessingModelQueryEvent::class, function (ProcessingModelQueryEvent $event) use (&$capturedEvents): void {
+            $capturedEvents[] = ['query', $event->type];
+            $event->query = 'SELECT 2';
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(AfterModelCreateEvent::class, function (AfterModelCreateEvent $event) use (&$afterLifecycleEvents): void {
+            $afterLifecycleEvents[] = ['create', $event->data, $event->result];
+        });
+        Kernel::getEventDispatcher()->addListener(AfterModelUpdateEvent::class, function (AfterModelUpdateEvent $event) use (&$afterLifecycleEvents): void {
+            $afterLifecycleEvents[] = [$event->type, $event->data, $event->result];
+        });
+        Kernel::getEventDispatcher()->addListener(AfterModelDeleteEvent::class, function (AfterModelDeleteEvent $event) use (&$afterLifecycleEvents): void {
+            $afterLifecycleEvents[] = [$event->type, $event->id, $event->conditions, $event->result];
+        });
+
+        $table = $this->createMock(Table::class);
+        $table->expects($this->once())
+            ->method('setId')
+            ->willReturnSelf();
+        $table->expects($this->once())
+            ->method('insert')
+            ->with([
+                'title' => 'draft',
+                'from_event' => 'yes',
+            ])
+            ->willReturn(true);
+        $table->expects($this->once())
+            ->method('getId')
+            ->willReturn(11);
+        $table->expects($this->once())
+            ->method('updateValue')
+            ->with('title', 'DRAFT')
+            ->willReturn(true);
+        $table->expects($this->once())
+            ->method('query')
+            ->with('SELECT 2')
+            ->willReturn([['ok' => true]]);
+        $table->expects($this->once())
+            ->method('delete')
+            ->with(11)
+            ->willReturn(true);
+        $table->expects($this->once())
+            ->method('deleteByConditions')
+            ->with(['status' => 'archived'])
+            ->willReturn(true);
+
+        $model = new EventEnabledModel();
+        $model->useTable = 'event_enabled';
+        $model->setTableMock($table);
+
+        $this->assertTrue($model->create(['title' => 'draft']));
+        $this->assertSame(11, $model->getId());
+        $this->assertTrue($model->updateValue('title', 'draft'));
+        $this->assertSame([['ok' => true]], $model->query('SELECT 1'));
+        $this->assertTrue($model->delete());
+        $this->assertTrue($model->deleteByConditions(['status' => 'archived']));
+        $this->assertSame([
+            ['data', 'create'],
+            ['data', 'updateValue'],
+            ['query', 'create'],
+        ], $capturedEvents);
+        $this->assertSame([
+            ['create', ['title' => 'draft', 'from_event' => 'yes'], true],
+            ['updateValue', ['title' => 'DRAFT', 'from_event' => 'yes'], true],
+            ['delete', 11, null, true],
+            ['deleteByConditions', null, ['status' => 'archived'], true],
+        ], $afterLifecycleEvents);
     }
 
     public function testLoadModelThrowsForMissingAndInvalidTargets(): void

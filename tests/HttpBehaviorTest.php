@@ -3,10 +3,14 @@
 namespace {
 
 use NimblePHP\Framework\Attributes\Http\Action;
+use NimblePHP\Framework\Event\Framework\AfterResponseSendEvent;
+use NimblePHP\Framework\Event\Framework\BeforeResponseSendEvent;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\NotFoundException;
+use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Response;
+use NimblePHP\Framework\Middleware\MiddlewareManager;
 use PHPUnit\Framework\TestCase;
 use TestSupport\RuntimeFunctionState;
 
@@ -17,6 +21,8 @@ class HttpBehaviorTest extends TestCase
     protected function setUp(): void
     {
         RuntimeFunctionState::reset();
+        Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         $_GET = [
             'escaped' => '<b>query</b>',
             'email' => 'john@example.com',
@@ -36,6 +42,11 @@ class HttpBehaviorTest extends TestCase
             'HTTP_AUTHORIZATION' => 'Bearer token',
             'HTTP_ACCEPT_LANGUAGE' => 'en-US;q=0.9,pl;q=1.0,de;q=0.8',
         ];
+    }
+
+    protected function tearDown(): void
+    {
+        Kernel::$eventDispatcher = null;
     }
 
     public function testRequestCanReadHeadersBodyAndProtectedValues(): void
@@ -84,6 +95,17 @@ class HttpBehaviorTest extends TestCase
     public function testResponseSendWritesHeadersAndContent(): void
     {
         $response = new Response();
+        $events = [];
+        Kernel::getEventDispatcher()->addListener(BeforeResponseSendEvent::class, function (BeforeResponseSendEvent $event) use (&$events): void {
+            $events[] = ['before', $event->statusCode, $event->content, $event->die];
+            $event->statusCode = 203;
+            $event->statusText = 'Non-Authoritative Information';
+            $event->headers['X-Event'] = 'before-send';
+            $event->content = 'event-payload';
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(AfterResponseSendEvent::class, function (AfterResponseSendEvent $event) use (&$events): void {
+            $events[] = ['after', $event->statusCode, $event->content, $event->die];
+        }, 100);
         $response->setStatusCode(202, 'Accepted');
         $response->addHeader('X-Test', 'yes');
         $response->setContent('payload');
@@ -92,9 +114,14 @@ class HttpBehaviorTest extends TestCase
         $response->send();
         $output = ob_get_clean();
 
-        $this->assertSame('payload', $output);
-        $this->assertSame('HTTP/1.1 202 Accepted', RuntimeFunctionState::$headers[0]['header']);
+        $this->assertSame('event-payload', $output);
+        $this->assertSame('HTTP/1.1 203 Non-Authoritative Information', RuntimeFunctionState::$headers[0]['header']);
         $this->assertSame('X-Test: yes', RuntimeFunctionState::$headers[1]['header']);
+        $this->assertSame('X-Event: before-send', RuntimeFunctionState::$headers[2]['header']);
+        $this->assertSame([
+            ['before', 202, 'payload', false],
+            ['after', 203, 'event-payload', false],
+        ], $events);
     }
 
     public function testResponseJsonHelpersProduceExpectedPayloads(): void

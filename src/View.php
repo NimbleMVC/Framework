@@ -2,6 +2,9 @@
 
 namespace NimblePHP\Framework;
 
+use NimblePHP\Framework\Event\Framework\AfterViewRenderEvent;
+use NimblePHP\Framework\Event\Framework\BeforeViewRenderEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingViewDataEvent;
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Interfaces\ViewInterface;
 
@@ -62,10 +65,17 @@ class View implements ViewInterface
      */
     public function render(string $viewName, array $data = []): void
     {
+        $processingEvent = Kernel::dispatchEvent(new ProcessingViewDataEvent($data));
+        $data = $processingEvent->data;
         Kernel::$middlewareManager->runHookWithReference('processingViewData', $data);
         $_previewData = $data;
         extract($data);
         $filePath = $this->viewPath . $viewName . '.phtml';
+
+        $beforeViewRenderEvent = Kernel::dispatchEvent(new BeforeViewRenderEvent($_previewData, $viewName, $filePath));
+        $_previewData = $beforeViewRenderEvent->previewData;
+        $viewName = $beforeViewRenderEvent->viewName;
+        $filePath = $beforeViewRenderEvent->filePath;
 
         Kernel::$middlewareManager->runHook('beforeViewRender', [$_previewData, $viewName, $filePath]);
 
@@ -82,6 +92,7 @@ class View implements ViewInterface
         $response->setStatusCode($this->responseCode);
         $response->send();
 
+        Kernel::dispatchEvent(new AfterViewRenderEvent($_previewData, $viewName, $filePath));
         Kernel::$middlewareManager->runHook('afterViewRender', [$_previewData, $viewName, $filePath]);
     }
 

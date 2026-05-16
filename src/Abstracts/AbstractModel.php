@@ -7,6 +7,12 @@ use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Config;
+use NimblePHP\Framework\Event\Framework\AfterConstructModelEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelCreateEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelDeleteEvent;
+use NimblePHP\Framework\Event\Framework\AfterModelUpdateEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingModelDataEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingModelQueryEvent;
 use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\DatabaseException;
 use NimblePHP\Framework\Exception\NimbleException;
@@ -75,6 +81,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function afterConstruct(): void
     {
+        Kernel::dispatchEvent(new AfterConstructModelEvent($this));
         Kernel::$middlewareManager->runHookWithReference('afterConstructModel', $this);
     }
 
@@ -91,12 +98,15 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'create'));
+            $data = $modelDataEvent->data;
             $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'create'];
             Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
             $data = $middlewareData['data'];
 
             $create = $this->table->insert($data);
             $this->setId($this->table->getId());
+            Kernel::dispatchEvent(new AfterModelCreateEvent($this, $data, $create));
 
             return $create;
         } catch (DatabaseManagerException $exception) {
@@ -122,11 +132,16 @@ abstract class AbstractModel implements ModelInterface
 
         try {
             $data = [$name => $value];
+            $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'updateValue'));
+            $data = $modelDataEvent->data;
             $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'updateValue'];
             Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
             $data = $middlewareData['data'];
 
-            return $this->table->updateValue($name, $data[$name]);
+            $updated = $this->table->updateValue($name, $data[$name]);
+            Kernel::dispatchEvent(new AfterModelUpdateEvent($this, $data, $updated, 'updateValue'));
+
+            return $updated;
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -238,11 +253,16 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'update'));
+            $data = $modelDataEvent->data;
             $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'update'];
             Kernel::$middlewareManager->runHookWithReference('processingModelData', $middlewareData);
             $data = $middlewareData['data'];
 
-            return $this->table->update($data);
+            $updated = $this->table->update($data);
+            Kernel::dispatchEvent(new AfterModelUpdateEvent($this, $data, $updated, 'update'));
+
+            return $updated;
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -262,7 +282,11 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
-            return $this->table->delete($this->getId());
+            $id = $this->getId();
+            $deleted = $this->table->delete($id);
+            Kernel::dispatchEvent(new AfterModelDeleteEvent($this, $deleted, $id));
+
+            return $deleted;
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -281,7 +305,10 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
-            return $this->table->deleteByConditions($conditions);
+            $deleted = $this->table->deleteByConditions($conditions);
+            Kernel::dispatchEvent(new AfterModelDeleteEvent($this, $deleted, null, $conditions, 'deleteByConditions'));
+
+            return $deleted;
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -433,6 +460,8 @@ abstract class AbstractModel implements ModelInterface
         }
 
         try {
+            $modelQueryEvent = Kernel::dispatchEvent(new ProcessingModelQueryEvent($this, $sql, 'create'));
+            $sql = $modelQueryEvent->query;
             $middlewareData = ['model' => $this, 'query' => $sql, 'type' => 'create'];
             Kernel::$middlewareManager->runHookWithReference('processingModelQuery', $middlewareData);
             $sql = $middlewareData['query'];

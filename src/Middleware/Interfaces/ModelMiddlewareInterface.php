@@ -4,6 +4,9 @@ namespace NimblePHP\Framework\Middleware\Interfaces;
 
 use NimblePHP\Framework\Interfaces\ModelInterface;
 
+/**
+ * @deprecated Use typed framework events instead.
+ */
 interface ModelMiddlewareInterface
 {
 

@@ -2,10 +2,11 @@
 
 use NimblePHP\Framework\Abstracts\AbstractApiController;
 use NimblePHP\Framework\Container\ServiceContainer;
+use NimblePHP\Framework\Event\Framework\ExceptionEvent;
+use NimblePHP\Framework\Event\Listener\ApiExceptionListener;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Middleware\ApiExceptionHandler;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
 use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Response;
@@ -17,17 +18,24 @@ class AbstractApiControllerTest extends TestCase
     protected function setUp(): void
     {
         Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         Kernel::$serviceContainer = ServiceContainer::getInstance();
         Kernel::$serviceContainer->set('kernel.response', new Response());
-        ApiExceptionHandler::reset();
+        ApiExceptionListener::reset();
     }
 
     public function testAfterConstructRegistersExceptionHandler()
     {
         $this->buildController();
 
-        $namespaces = array_column(Kernel::$middlewareManager->getList(), 'namespace');
-        $this->assertContains(ApiExceptionHandler::class, $namespaces);
+        $listeners = array_values(array_filter(
+            Kernel::getEventDispatcher()->getListeners(),
+            fn (array $listener): bool =>
+                $listener['event'] === ExceptionEvent::class
+                && $listener['listener'] instanceof ApiExceptionListener
+        ));
+
+        $this->assertCount(1, $listeners);
     }
 
     public function testAfterConstructIsIdempotent()
@@ -36,8 +44,12 @@ class AbstractApiControllerTest extends TestCase
         $this->buildController();
         $this->buildController();
 
-        $namespaces = array_column(Kernel::$middlewareManager->getList(), 'namespace');
-        $registered = array_filter($namespaces, fn ($ns) => $ns === ApiExceptionHandler::class);
+        $registered = array_values(array_filter(
+            Kernel::getEventDispatcher()->getListeners(),
+            fn (array $listener): bool =>
+                $listener['event'] === ExceptionEvent::class
+                && $listener['listener'] instanceof ApiExceptionListener
+        ));
 
         $this->assertCount(1, $registered);
     }

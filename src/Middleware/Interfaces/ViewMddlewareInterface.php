@@ -2,6 +2,9 @@
 
 namespace NimblePHP\Framework\Middleware\Interfaces;
 
+/**
+ * @deprecated Use typed framework events instead.
+ */
 interface ViewMddlewareInterface
 {
 

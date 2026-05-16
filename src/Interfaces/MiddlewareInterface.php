@@ -6,6 +6,8 @@ use Throwable;
 
 /**
  * Loader interface
+ *
+ * @deprecated Use EventDispatcher and typed event objects instead.
  */
 interface MiddlewareInterface
 {

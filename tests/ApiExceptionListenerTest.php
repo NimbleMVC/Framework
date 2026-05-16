@@ -2,15 +2,15 @@
 
 use NimblePHP\Framework\Exception\NotFoundException;
 use NimblePHP\Framework\Exception\ValidationException;
-use NimblePHP\Framework\Middleware\ApiExceptionHandler;
+use NimblePHP\Framework\Event\Listener\ApiExceptionListener;
 use PHPUnit\Framework\TestCase;
 
-class ApiExceptionHandlerTest extends TestCase
+class ApiExceptionListenerTest extends TestCase
 {
 
     public function testValidationExceptionIsMappedTo422()
     {
-        $handler = new class extends ApiExceptionHandler {
+        $handler = new class extends ApiExceptionListener {
 
             public function resolveStatusCodePublic(\Throwable $e): int
             {
@@ -28,7 +28,7 @@ class ApiExceptionHandlerTest extends TestCase
 
     public function testValidationExceptionWithoutFieldErrorsKeepsOriginalCode()
     {
-        $handler = new class extends ApiExceptionHandler {
+        $handler = new class extends ApiExceptionListener {
 
             public function resolveStatusCodePublic(\Throwable $e): int
             {
@@ -44,7 +44,7 @@ class ApiExceptionHandlerTest extends TestCase
 
     public function testNotFoundExceptionIsMappedTo404()
     {
-        $handler = new class extends ApiExceptionHandler {
+        $handler = new class extends ApiExceptionListener {
 
             public function resolveStatusCodePublic(\Throwable $e): int
             {
@@ -58,7 +58,7 @@ class ApiExceptionHandlerTest extends TestCase
 
     public function testGenericExceptionDefaultsTo500()
     {
-        $handler = new class extends ApiExceptionHandler {
+        $handler = new class extends ApiExceptionListener {
 
             public function resolveStatusCodePublic(\Throwable $e): int
             {
@@ -72,7 +72,7 @@ class ApiExceptionHandlerTest extends TestCase
 
     public function testExceptionWithHttpCodeIsRespected()
     {
-        $handler = new class extends ApiExceptionHandler {
+        $handler = new class extends ApiExceptionListener {
 
             public function resolveStatusCodePublic(\Throwable $e): int
             {

@@ -2,6 +2,8 @@
 
 namespace NimblePHP\Framework\Container;
 
+use NimblePHP\Framework\Event\Framework\AfterServiceResolvedEvent;
+use NimblePHP\Framework\Event\Framework\ServiceContainerEvent;
 use NimblePHP\Framework\Interfaces\ContainerInterface;
 use NimblePHP\Framework\Kernel;
 use RuntimeException;
@@ -61,6 +63,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
         }
 
         $this->increaseStats($id, 'set');
+        Kernel::dispatchEvent(new ServiceContainerEvent('set', $id, $service));
         Kernel::$middlewareManager->runHook('serviceSet', [$id, $service]);
 
         if (empty($id)) {
@@ -100,6 +103,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
         }
 
         $this->increaseStats($id, 'set');
+        Kernel::dispatchEvent(new ServiceContainerEvent('set', $id, 'singleton'));
         Kernel::$middlewareManager->runHook('serviceSet', [$id, 'singleton']);
 
         $this->factories[$id] = function($container) use ($factory, $id) {
@@ -120,6 +124,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     public function get(string $id): mixed
     {
         $this->increaseStats($id, 'get');
+        Kernel::dispatchEvent(new ServiceContainerEvent('get', $id));
         Kernel::$middlewareManager->runHook('serviceGet', [$id]);
 
         if (empty($id)) {
@@ -129,7 +134,10 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
         $resolvedId = $this->resolveAlias($id);
 
         if (isset($this->resolved[$resolvedId])) {
-            return $this->resolved[$resolvedId];
+            $service = $this->resolved[$resolvedId];
+            Kernel::dispatchEvent(new AfterServiceResolvedEvent($this, $id, $resolvedId, $service, 'resolved'));
+
+            return $service;
         }
 
         if (isset($this->resolving[$resolvedId])) {
@@ -140,10 +148,14 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
 
         try {
             if (isset($this->factories[$resolvedId])) {
-                return call_user_func($this->factories[$resolvedId], $this);
+                $service = call_user_func($this->factories[$resolvedId], $this);
+                Kernel::dispatchEvent(new AfterServiceResolvedEvent($this, $id, $resolvedId, $service, 'factory'));
+
+                return $service;
             } elseif (isset($this->services[$resolvedId])) {
                 $service = $this->services[$resolvedId];
                 $this->resolved[$resolvedId] = $service;
+                Kernel::dispatchEvent(new AfterServiceResolvedEvent($this, $id, $resolvedId, $service, 'service'));
 
                 return $service;
             } else {
@@ -162,6 +174,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     public function has(string $id): bool
     {
         $this->increaseStats($id, 'has');
+        Kernel::dispatchEvent(new ServiceContainerEvent('has', $id));
         Kernel::$middlewareManager->runHook('serviceHas', [$id]);
 
         if (empty($id)) {
@@ -180,6 +193,7 @@ class ServiceContainer extends ContainerBase implements ContainerInterface
     public function remove(string $id): void
     {
         $this->increaseStats($id, 'remove');
+        Kernel::dispatchEvent(new ServiceContainerEvent('remove', $id));
         Kernel::$middlewareManager->runHook('serviceRemove', [$id]);
 
         if (empty($id)) {

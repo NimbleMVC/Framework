@@ -2,6 +2,9 @@
 
 namespace NimblePHP\Framework\Middleware\Interfaces;
 
+/**
+ * @deprecated Use NimblePHP\Framework\Event\EventDispatcher instead.
+ */
 interface MiddlewareInterface
 {
 

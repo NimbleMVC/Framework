@@ -4,10 +4,10 @@ namespace NimblePHP\Framework\Abstracts;
 
 use NimblePHP\Framework\Attributes\Http\Action;
 use NimblePHP\Framework\Config;
+use NimblePHP\Framework\Event\Listener\ApiExceptionListener;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Exception\ValidationException;
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Middleware\ApiExceptionHandler;
 use NimblePHP\Framework\Response;
 use NimblePHP\Framework\Validation\Validator;
 
@@ -31,7 +31,7 @@ abstract class AbstractApiController extends AbstractController
     protected ?array $jsonBodyCache = null;
 
     /**
-     * Hook the API exception handler and prime the response for JSON output.
+     * Hook the API exception listener and prime the response for JSON output.
      */
     #[Action('disabled')]
     public function afterConstruct(): void
@@ -42,7 +42,7 @@ abstract class AbstractApiController extends AbstractController
 
         $this->response->addHeader('Content-Type', 'application/json');
 
-        ApiExceptionHandler::register();
+        ApiExceptionListener::register();
     }
 
     /**
@@ -188,7 +188,7 @@ abstract class AbstractApiController extends AbstractController
      * Returns the validated data filtered to keys present in the rules
      * (whitelist – guards against mass assignment). Throws
      * ValidationException with a per-field error map on failure;
-     * ApiExceptionHandler converts that into a 422 JSON response.
+     * ApiExceptionListener converts that into a 422 JSON response.
      *
      * @param array $rules Field => rule list (same format as Validator::validate)
      * @return array Validated, whitelisted data

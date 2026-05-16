@@ -2,6 +2,8 @@
 
 namespace NimblePHP\Framework;
 
+use NimblePHP\Framework\Event\Framework\AfterResponseSendEvent;
+use NimblePHP\Framework\Event\Framework\BeforeResponseSendEvent;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\RequestInterface;
 use NimblePHP\Framework\Interfaces\ResponseInterface;
@@ -137,6 +139,21 @@ class Response implements ResponseInterface
             ob_clean();
         }
 
+        $beforeSendEvent = Kernel::dispatchEvent(new BeforeResponseSendEvent(
+            $this,
+            $this->content,
+            $this->statusCode,
+            $this->statusText,
+            $this->headers,
+            $die
+        ));
+
+        $this->content = $beforeSendEvent->content;
+        $this->statusCode = $beforeSendEvent->statusCode;
+        $this->statusText = $beforeSendEvent->statusText;
+        $this->headers = $beforeSendEvent->headers;
+        $die = $beforeSendEvent->die;
+
         if (!headers_sent()) {
             header(sprintf('HTTP/1.1 %s %s', $this->statusCode, $this->statusText), true, $this->statusCode);
 
@@ -145,11 +162,19 @@ class Response implements ResponseInterface
             }
         }
 
-        if ($die) {
-            die($this->content);
-        }
-
         echo $this->content;
+        Kernel::dispatchEvent(new AfterResponseSendEvent(
+            $this,
+            $this->content,
+            $this->statusCode,
+            $this->statusText,
+            $this->headers,
+            $die
+        ));
+
+        if ($die) {
+            exit;
+        }
     }
 
     /**

@@ -3,6 +3,11 @@
 namespace {
 
 use NimblePHP\Framework\Cookie;
+use NimblePHP\Framework\Event\Framework\AfterLogEvent;
+use NimblePHP\Framework\Event\Framework\AfterViewRenderEvent;
+use NimblePHP\Framework\Event\Framework\BeforeLogEvent;
+use NimblePHP\Framework\Event\Framework\BeforeViewRenderEvent;
+use NimblePHP\Framework\Event\Framework\ProcessingViewDataEvent;
 use NimblePHP\Framework\Kernel;
 use NimblePHP\Framework\Log;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
@@ -21,6 +26,7 @@ class ViewLogCookieTest extends TestCase
         RuntimeFunctionState::reset();
         $_ENV['LOG'] = true;
         Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         $this->projectPath = sys_get_temp_dir() . '/nimble_runtime_' . uniqid('', true);
         mkdir($this->projectPath . '/App/View', 0777, true);
         mkdir($this->projectPath . '/storage/logs', 0777, true);
@@ -30,12 +36,24 @@ class ViewLogCookieTest extends TestCase
 
     protected function tearDown(): void
     {
+        Kernel::$eventDispatcher = null;
         $this->removeDirectory($this->projectPath);
     }
 
     public function testViewRenderRunsHooksAndSendsConfiguredStatusCode(): void
     {
         file_put_contents($this->projectPath . '/App/View/demo.phtml', 'Hello <?= $name ?>');
+        $eventLog = [];
+        Kernel::getEventDispatcher()->addListener(ProcessingViewDataEvent::class, function (ProcessingViewDataEvent $event) use (&$eventLog): void {
+            $event->data['name'] = 'event-' . $event->data['name'];
+            $eventLog[] = 'processing';
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(BeforeViewRenderEvent::class, function (BeforeViewRenderEvent $event) use (&$eventLog): void {
+            $eventLog[] = ['before', $event->previewData['name'], $event->viewName, basename($event->filePath)];
+        });
+        Kernel::getEventDispatcher()->addListener(AfterViewRenderEvent::class, function (AfterViewRenderEvent $event) use (&$eventLog): void {
+            $eventLog[] = ['after', $event->previewData['name'], $event->viewName, basename($event->filePath)];
+        });
         $middleware = new class {
             public array $events = [];
 
@@ -64,12 +82,17 @@ class ViewLogCookieTest extends TestCase
         $view->render('demo', ['name' => 'john']);
         $output = ob_get_clean();
 
-        $this->assertSame('Hello JOHN', $output);
+        $this->assertSame('Hello EVENT-JOHN', $output);
         $this->assertSame('HTTP/1.1 202 ', RuntimeFunctionState::$headers[0]['header']);
         $this->assertSame([
             'processing',
-            ['before', 'JOHN', 'demo', 'demo.phtml'],
-            ['after', 'JOHN', 'demo', 'demo.phtml'],
+            ['before', 'EVENT-JOHN', 'demo', 'demo.phtml'],
+            ['after', 'EVENT-JOHN', 'demo', 'demo.phtml'],
+        ], $eventLog);
+        $this->assertSame([
+            'processing',
+            ['before', 'EVENT-JOHN', 'demo', 'demo.phtml'],
+            ['after', 'EVENT-JOHN', 'demo', 'demo.phtml'],
         ], $middleware->events);
     }
 
@@ -111,6 +134,14 @@ class ViewLogCookieTest extends TestCase
     public function testLogNormalizesLevelsRunsHooksAndRotatesFiles(): void
     {
         $_GET = ['scope' => 'tests'];
+        $eventPayloads = [];
+        Kernel::getEventDispatcher()->addListener(BeforeLogEvent::class, function (BeforeLogEvent $event): void {
+            $event->message = '[event] ' . $event->message;
+        }, 100);
+        Kernel::getEventDispatcher()->addListener(AfterLogEvent::class, function (AfterLogEvent $event) use (&$eventPayloads): void {
+            $event->payload['content']['event'] = true;
+            $eventPayloads[] = $event->payload;
+        }, 100);
         $middleware = new class {
             public array $messages = [];
             public array $payloads = [];
@@ -145,7 +176,8 @@ class ViewLogCookieTest extends TestCase
         $files = glob($this->projectPath . '/storage/logs/*') ?: [];
         $backups = glob($this->projectPath . '/storage/logs/*.log.json.*') ?: [];
 
-        $this->assertContains('Something happened [hooked]', $middleware->messages);
+        $this->assertContains('[event] Something happened [hooked]', $middleware->messages);
+        $this->assertTrue($eventPayloads[0]['content']['event']);
         $this->assertSame('CRITICAL', $middleware->payloads[0]['level']);
         $this->assertTrue($middleware->payloads[0]['content']['after']);
         $this->assertLessThanOrEqual(31, count($backups));

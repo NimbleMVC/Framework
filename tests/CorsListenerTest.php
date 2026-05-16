@@ -1,11 +1,12 @@
 <?php
 
 use NimblePHP\Framework\Kernel;
-use NimblePHP\Framework\Middleware\CorsMiddleware;
+use NimblePHP\Framework\Event\Framework\AfterBootstrapEvent;
+use NimblePHP\Framework\Event\Listener\CorsListener;
 use NimblePHP\Framework\Middleware\MiddlewareManager;
 use PHPUnit\Framework\TestCase;
 
-class CorsMiddlewareTest extends TestCase
+class CorsListenerTest extends TestCase
 {
 
     private array $envBackup;
@@ -17,33 +18,38 @@ class CorsMiddlewareTest extends TestCase
         $this->envBackup = $_ENV;
         $this->serverBackup = $_SERVER;
         Kernel::$middlewareManager = new MiddlewareManager();
-        CorsMiddleware::reset();
+        Kernel::$eventDispatcher = null;
+        CorsListener::reset();
     }
 
     protected function tearDown(): void
     {
         $_ENV = $this->envBackup;
         $_SERVER = $this->serverBackup;
-        CorsMiddleware::reset();
+        Kernel::$eventDispatcher = null;
+        CorsListener::reset();
     }
 
     public function testRegisterFromEnvSkippedWhenOriginsEmpty()
     {
         $_ENV['API_CORS_ORIGINS'] = '';
-        CorsMiddleware::registerFromEnv();
+        CorsListener::registerFromEnv();
 
-        $namespaces = array_column(Kernel::$middlewareManager->getList(), 'namespace');
-        $this->assertNotContains(CorsMiddleware::class, $namespaces);
+        $this->assertSame([], Kernel::getEventDispatcher()->getListeners());
     }
 
-    public function testRegisterFromEnvAddsMiddlewareWhenOriginsConfigured()
+    public function testRegisterFromEnvAddsCorsEventListenerWhenOriginsConfigured()
     {
         $_ENV['API_CORS_ORIGINS'] = 'https://app.example.com';
-        CorsMiddleware::registerFromEnv();
-        CorsMiddleware::registerFromEnv();
+        CorsListener::registerFromEnv();
+        CorsListener::registerFromEnv();
 
-        $namespaces = array_column(Kernel::$middlewareManager->getList(), 'namespace');
-        $registered = array_filter($namespaces, fn ($ns) => $ns === CorsMiddleware::class);
+        $registered = array_values(array_filter(
+            Kernel::getEventDispatcher()->getListeners(),
+            fn (array $listener): bool =>
+                $listener['event'] === AfterBootstrapEvent::class
+                && $listener['listener'] instanceof CorsListener
+        ));
 
         $this->assertCount(1, $registered);
     }
@@ -53,11 +59,11 @@ class CorsMiddlewareTest extends TestCase
         $_ENV['API_CORS_ORIGINS'] = '*';
         unset($_SERVER['HTTP_ORIGIN']);
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertSame([], $middleware->headers);
-        $this->assertFalse($middleware->exited);
+        $this->assertSame([], $listener->headers);
+        $this->assertFalse($listener->exited);
     }
 
     public function testWildcardOriginEmitsStarWhenCredentialsDisabled()
@@ -67,12 +73,12 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['HTTP_ORIGIN'] = 'https://anything.example';
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertSame('*', $middleware->headers['Access-Control-Allow-Origin'] ?? null);
-        $this->assertSame('Origin', $middleware->headers['Vary'] ?? null);
-        $this->assertArrayNotHasKey('Access-Control-Allow-Credentials', $middleware->headers);
+        $this->assertSame('*', $listener->headers['Access-Control-Allow-Origin'] ?? null);
+        $this->assertSame('Origin', $listener->headers['Vary'] ?? null);
+        $this->assertArrayNotHasKey('Access-Control-Allow-Credentials', $listener->headers);
     }
 
     public function testWildcardOriginEchoesOriginWhenCredentialsEnabled()
@@ -82,11 +88,11 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['HTTP_ORIGIN'] = 'https://app.example.com';
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertSame('https://app.example.com', $middleware->headers['Access-Control-Allow-Origin'] ?? null);
-        $this->assertSame('true', $middleware->headers['Access-Control-Allow-Credentials'] ?? null);
+        $this->assertSame('https://app.example.com', $listener->headers['Access-Control-Allow-Origin'] ?? null);
+        $this->assertSame('true', $listener->headers['Access-Control-Allow-Credentials'] ?? null);
     }
 
     public function testAllowListedOriginIsEchoed()
@@ -95,10 +101,10 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['HTTP_ORIGIN'] = 'https://app.example.com';
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertSame('https://app.example.com', $middleware->headers['Access-Control-Allow-Origin'] ?? null);
+        $this->assertSame('https://app.example.com', $listener->headers['Access-Control-Allow-Origin'] ?? null);
     }
 
     public function testOriginNotInAllowListEmitsNothing()
@@ -107,10 +113,10 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['HTTP_ORIGIN'] = 'https://evil.example';
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertSame([], $middleware->headers);
+        $this->assertSame([], $listener->headers);
     }
 
     public function testPreflightShortCircuitsAndSendsAllowHeaders()
@@ -123,13 +129,13 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'OPTIONS';
         $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] = 'POST';
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertTrue($middleware->exited);
-        $this->assertSame('GET,POST,DELETE', $middleware->headers['Access-Control-Allow-Methods'] ?? null);
-        $this->assertSame('Content-Type,Authorization', $middleware->headers['Access-Control-Allow-Headers'] ?? null);
-        $this->assertSame('120', $middleware->headers['Access-Control-Max-Age'] ?? null);
+        $this->assertTrue($listener->exited);
+        $this->assertSame('GET,POST,DELETE', $listener->headers['Access-Control-Allow-Methods'] ?? null);
+        $this->assertSame('Content-Type,Authorization', $listener->headers['Access-Control-Allow-Headers'] ?? null);
+        $this->assertSame('120', $listener->headers['Access-Control-Max-Age'] ?? null);
     }
 
     public function testOptionsWithoutPreflightHeaderDoesNotShortCircuit()
@@ -139,16 +145,16 @@ class CorsMiddlewareTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'OPTIONS';
         unset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']);
 
-        $middleware = $this->buildSpy();
-        $middleware->afterBootstrap();
+        $listener = $this->buildSpy();
+        $listener->handle(new AfterBootstrapEvent());
 
-        $this->assertFalse($middleware->exited);
-        $this->assertArrayNotHasKey('Access-Control-Allow-Methods', $middleware->headers);
+        $this->assertFalse($listener->exited);
+        $this->assertArrayNotHasKey('Access-Control-Allow-Methods', $listener->headers);
     }
 
-    private function buildSpy(): CorsMiddleware
+    private function buildSpy(): CorsListener
     {
-        return new class extends CorsMiddleware {
+        return new class extends CorsListener {
 
             public array $headers = [];
 

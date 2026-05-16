@@ -26,6 +26,7 @@ class TranslationTest extends TestCase
 
         Kernel::$projectPath = $this->projectPath;
         Kernel::$middlewareManager = new MiddlewareManager();
+        Kernel::$eventDispatcher = null;
         Kernel::$serviceContainer = new ServiceContainer();
 
         $this->cookie = new TranslationTestCookie();
@@ -39,6 +40,7 @@ class TranslationTest extends TestCase
     {
         $_ENV = $this->envBackup;
         $_SERVER = $this->serverBackup;
+        Kernel::$eventDispatcher = null;
         $this->resetTranslationState();
         $this->removeDirectory($this->projectPath);
     }

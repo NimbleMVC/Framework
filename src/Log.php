@@ -4,6 +4,8 @@ namespace NimblePHP\Framework;
 
 use DateTime;
 use Exception;
+use NimblePHP\Framework\Event\Framework\AfterLogEvent;
+use NimblePHP\Framework\Event\Framework\BeforeLogEvent;
 
 /**
  * Log
@@ -51,6 +53,9 @@ class Log
             return false;
         }
 
+        $beforeLogEvent = Kernel::dispatchEvent(new BeforeLogEvent($message));
+        $message = $beforeLogEvent->message;
+
         if (isset(Kernel::$middlewareManager)) {
             Kernel::$middlewareManager->runHookWithReference('beforeLog', $message);
         }
@@ -86,6 +91,9 @@ class Log
                 'get' => $_GET,
                 'session' => self::$session
             ];
+
+            $afterLogEvent = Kernel::dispatchEvent(new AfterLogEvent($logContent));
+            $logContent = $afterLogEvent->payload;
 
             if (isset(Kernel::$middlewareManager)) {
                 Kernel::$middlewareManager->runHookWithReference('afterLog', $logContent);

@@ -7,6 +7,7 @@ use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
 use NimblePHP\Framework\Attributes\Database\DataType;
 use NimblePHP\Framework\Attributes\Database\DefaultValue;
+use NimblePHP\Framework\Event\Framework\AfterConstructOrmModelEvent;
 use NimblePHP\Framework\Interfaces\ORMModelInterface;
 use NimblePHP\Framework\Kernel;
 use ReflectionClass;
@@ -37,6 +38,7 @@ abstract class AbstractORM implements ORMModelInterface
      */
     public function __construct(array $data = [])
     {
+        Kernel::dispatchEvent(new AfterConstructOrmModelEvent($this));
         Kernel::$middlewareManager->runHookWithReference('afterConstructORMModel', $this);
 
         foreach ($data as $key => $value) {
