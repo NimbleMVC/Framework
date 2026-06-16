@@ -177,7 +177,7 @@ class Log
     {
         return DateTime::createFromFormat(
             'U.u',
-            sprintf('%.f', microtime(true))
+            sprintf('%.6f', microtime(true))
         )->format('Y-m-d H:i:s.u');
     }
 
