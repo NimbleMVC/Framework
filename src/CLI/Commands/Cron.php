@@ -33,17 +33,19 @@ class Cron
     #[ConsoleCommand(
         'cron:execute',
         'Execute cron scripts',
-        help: 'Run queued cron jobs in a loop. By default the worker stops after 10 minutes, but it can also run continuously with safe limits.',
-        usage: 'php vendor/bin/nimble cron:execute [--forever] [--max-duration=600] [--max-jobs=1000] [--max-memory-mb=128]',
+        help: 'Run queued cron jobs in a loop. By default the worker stops after 10 minutes, but it can also run continuously with safe limits. Use --workers to process multiple jobs concurrently in subprocesses.',
+        usage: 'php vendor/bin/nimble cron:execute [--forever] [--max-duration=600] [--max-jobs=1000] [--max-memory-mb=128] [--workers=1]',
         options: [
             ['name' => '--forever', 'description' => 'Run the worker without a time limit.'],
             ['name' => '--max-duration', 'description' => 'Maximum worker lifetime in seconds. Use 0 to disable the time limit.'],
             ['name' => '--max-jobs', 'description' => 'Maximum number of executed jobs before graceful exit. Use 0 to disable the job limit.'],
             ['name' => '--max-memory-mb', 'description' => 'Maximum memory usage in MB before graceful exit. Use 0 to disable the memory limit.'],
+            ['name' => '--workers', 'description' => 'Number of cron jobs to run concurrently in subprocesses. Default is 1 (no parallelism).'],
         ],
         examples: [
             ['command' => 'php vendor/bin/nimble cron:execute', 'description' => 'Start the cron worker loop.'],
             ['command' => 'php vendor/bin/nimble cron:execute --forever --max-memory-mb=128 --max-jobs=1000', 'description' => 'Run continuously but restart safely after memory or job thresholds.'],
+            ['command' => 'php vendor/bin/nimble cron:execute --forever --workers=4', 'description' => 'Run continuously with 4 jobs processed in parallel subprocesses.'],
         ]
     )]
     public function execute(Output $output, array $options = []): int
@@ -62,6 +64,25 @@ class Cron
             return 1;
         }
 
+        $workers = $this->resolvePositiveIntSetting($options, 'workers', 'CRON_WORKERS', 1);
+
+        if ($workers > 1) {
+            return $this->runSupervisor($output, $options, $workers);
+        }
+
+        return $this->runWorkerLoop($output, $options);
+    }
+
+    /**
+     * @param Output $output
+     * @param array $options
+     * @return int
+     * @throws NimbleException
+     * @throws Throwable
+     * @throws DatabaseException
+     */
+    protected function runWorkerLoop(Output $output, array $options): int
+    {
         $cron = new \NimblePHP\Framework\Cron();
         $startTime = time();
         $workerLimits = $this->resolveWorkerLimits($options);
@@ -115,6 +136,123 @@ class Cron
             $output->error('Cron error');
 
             return 1;
+        }
+    }
+
+    /**
+     * Supervise a pool of worker subprocesses, each running its own cron job loop.
+     * @param Output $output
+     * @param array $options
+     * @param int $workers
+     * @return int
+     * @throws NimbleException
+     */
+    protected function runSupervisor(Output $output, array $options, int $workers): int
+    {
+        if (!function_exists('proc_open')) {
+            $output->error('Parallel cron workers require the proc_open function to be available.');
+
+            return 1;
+        }
+
+        $command = $this->buildWorkerCommand($options);
+        $output->info('Starting cron supervisor with ' . $workers . ' parallel worker(s)');
+
+        $processes = [];
+
+        for ($workerId = 1; $workerId <= $workers; $workerId++) {
+            $processes[$workerId] = $this->spawnWorkerProcess($command, $workerId, $output);
+        }
+
+        while (!$this->shouldStopAfterCurrentIteration) {
+            foreach ($processes as $workerId => $process) {
+                if ($this->shouldStopAfterCurrentIteration) {
+                    break;
+                }
+
+                $status = proc_get_status($process);
+
+                if ($status['running']) {
+                    continue;
+                }
+
+                proc_close($process);
+                $output->info('Worker #' . $workerId . ' exited (exit code ' . $status['exitcode'] . '), restarting');
+                $processes[$workerId] = $this->spawnWorkerProcess($command, $workerId, $output);
+            }
+
+            $this->sleepInterruptibly(1);
+        }
+
+        $output->info('Stop signal received, stopping worker processes');
+        $this->stopWorkerProcesses($processes);
+        $output->success('End run cron supervisor');
+
+        return 0;
+    }
+
+    /**
+     * Build the child worker command line, forwarding worker limit options and forcing a single job loop per process.
+     * @param array $options
+     * @return array
+     */
+    protected function buildWorkerCommand(array $options): array
+    {
+        $command = [PHP_BINARY, Kernel::$projectPath . '/vendor/bin/nimble', 'cron:execute'];
+
+        foreach ($options as $name => $value) {
+            if (is_int($name) || $name === 'workers') {
+                continue;
+            }
+
+            $command[] = $value === true ? ('--' . $name) : ('--' . $name . '=' . $value);
+        }
+
+        $command[] = '--workers=1';
+
+        return $command;
+    }
+
+    /**
+     * @param array $command
+     * @param int $workerId
+     * @param Output $output
+     * @return resource
+     * @throws NimbleException
+     */
+    protected function spawnWorkerProcess(array $command, int $workerId, Output $output): mixed
+    {
+        $output->info('Starting worker #' . $workerId);
+
+        $process = proc_open($command, [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes, Kernel::$projectPath);
+
+        if ($process === false) {
+            throw new NimbleException('Failed to start cron worker process #' . $workerId);
+        }
+
+        if (isset($pipes[0])) {
+            fclose($pipes[0]);
+        }
+
+        return $process;
+    }
+
+    /**
+     * @param array $processes
+     * @return void
+     */
+    protected function stopWorkerProcesses(array $processes): void
+    {
+        foreach ($processes as $process) {
+            $status = proc_get_status($process);
+
+            if ($status['running']) {
+                proc_terminate($process, defined('SIGTERM') ? SIGTERM : 15);
+            }
+        }
+
+        foreach ($processes as $process) {
+            proc_close($process);
         }
     }
 
@@ -227,11 +365,11 @@ class Cron
                 0
             ),
             'maxMemoryBytes' => $this->resolvePositiveIntSetting(
-                $options,
-                'max-memory-mb',
-                'CRON_MAX_MEMORY_MB',
-                0
-            ) * 1024 * 1024,
+                    $options,
+                    'max-memory-mb',
+                    'CRON_MAX_MEMORY_MB',
+                    0
+                ) * 1024 * 1024,
         ];
     }
 
