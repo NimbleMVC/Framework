@@ -61,6 +61,10 @@ class RouteCoverageTest extends TestCase
         $normalize->setAccessible(true);
 
         $this->assertSame(['GET', 'POST'], $normalize->invoke(null, ' get , POST , get '));
+        $this->assertSame(['GET', 'POST'], $normalize->invoke(null, 'GET,POST'));
+        $this->assertSame(['GET', 'POST'], $normalize->invoke(null, 'GET, POST'));
+        $this->assertSame(['GET', 'POST'], $normalize->invoke(null, ['GET, POST']));
+        $this->assertSame(['GET', 'POST'], $normalize->invoke(null, ['GET, POST', 'get']));
 
         Route::addRoute('/zeta', 'ZetaController', 'index', ['post', 'get', 'GET']);
         Route::addRoute('/alpha', 'AlphaController', 'index', 'PATCH');
@@ -234,6 +238,20 @@ class RouteCoverageTest extends TestCase
         $this->assertSame('Admin\\DashboardController', $routes['/dashboard [PATCH]']['controller']);
     }
 
+    public function testRegisterRoutesScansControllerAttributesWithCommaSeparatedMethods(): void
+    {
+        $this->registerAliasedController(RouteCoverageMultiMethodControllerStub::class, 'App\\Controller\\MultiController');
+        $this->touchControllerFile('MultiController.php');
+
+        Route::registerRoutes($this->projectPath . '/App/Controller', 'App\\Controller');
+        $routes = Route::getRoutes();
+
+        $this->assertArrayHasKey('/multi [GET]', $routes);
+        $this->assertArrayHasKey('/multi [POST]', $routes);
+        $this->assertSame('MultiController', $routes['/multi [GET]']['controller']);
+        $this->assertSame('handle', $routes['/multi [POST]']['method']);
+    }
+
     public function testRegisterRoutesUsesFreshCacheWhenAvailable(): void
     {
         $_ENV['CACHE_ROUTE'] = true;
@@ -385,6 +403,14 @@ class RouteCoverageNestedControllerStub
 {
     #[HttpRoute('/dashboard', 'PATCH')]
     public function update(): void
+    {
+    }
+}
+
+class RouteCoverageMultiMethodControllerStub
+{
+    #[HttpRoute('/multi', 'GET, POST')]
+    public function handle(): void
     {
     }
 }

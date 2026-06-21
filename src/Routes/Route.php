@@ -666,13 +666,16 @@ class Route implements RouteInterface
     private static function normalizeHttpMethods(array|string $httpMethod): array
     {
         if (is_string($httpMethod)) {
-            $httpMethod = explode(',', $httpMethod);
+            $httpMethod = [$httpMethod];
         }
 
-        $methods = array_map(
-            static fn(string $method): string => strtoupper(trim($method)),
-            $httpMethod
-        );
+        $methods = [];
+
+        foreach ($httpMethod as $methodEntry) {
+            foreach (explode(',', $methodEntry) as $method) {
+                $methods[] = strtoupper(trim($method));
+            }
+        }
 
         return array_values(array_filter(array_unique($methods)));
     }
