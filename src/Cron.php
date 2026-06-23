@@ -165,7 +165,13 @@ class Cron
             }
 
             $this->updateStatus($job[$this->table->getName()]['id'], 'processing');
-            $this->databaseLock->unlock('cron_run_jobs');
+
+            try {
+                $this->databaseLock->unlock('cron_run_jobs');
+            } catch (\Throwable $unlockException) {
+                $this->logException('Cron lock unlock failed', $unlockException);
+            }
+
             $lockHeld = false;
 
             switch ($job[$this->table->getName()]['type']) {
@@ -190,14 +196,7 @@ class Cron
                 $this->updateStatus($job[$this->table->getName()]['id'], 'failed');
             }
 
-            $this->log('Cron job failed', 'ERR', [
-                'job' => $job,
-                'exception' => [
-                    'message' => $exception->getMessage(),
-                    'code' => $exception->getCode(),
-                    'trace' => $exception->getTraceAsString()
-                ]
-            ]);
+            $this->logException('Cron job failed', $exception, ['job' => $job]);
         } finally {
             if ($lockHeld) {
                 $this->databaseLock->unlock('cron_run_jobs');
@@ -205,6 +204,28 @@ class Cron
         }
 
         return false;
+    }
+
+    /**
+     * Log exception
+     * @param string $message
+     * @param \Throwable $exception
+     * @param array $context
+     * @return void
+     */
+    private function logException(string $message, \Throwable $exception, array $context = []): void
+    {
+        $exceptionMessage = $exception instanceof DatabaseManagerException
+            ? $exception->getHiddenMessage()
+            : $exception->getMessage();
+
+        $this->log($message, 'ERR', $context + [
+            'exception' => [
+                'message' => $exceptionMessage,
+                'code' => $exception->getCode(),
+                'trace' => $exception->getTraceAsString()
+            ]
+        ]);
     }
 
     /**
