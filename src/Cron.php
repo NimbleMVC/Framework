@@ -22,6 +22,7 @@ use NimblePHP\Framework\Enums\ModelTypeEnum;
 use NimblePHP\Framework\Exception\NimbleException;
 use NimblePHP\Framework\Interfaces\ControllerInterface;
 use NimblePHP\Framework\Libs\Classes;
+use NimblePHP\Framework\Module\ModuleRegister;
 use NimblePHP\Framework\Traits\LogTrait;
 use ReflectionClass;
 use ReflectionMethod;
@@ -220,12 +221,12 @@ class Cron
             : $exception->getMessage();
 
         $this->log($message, 'ERR', $context + [
-            'exception' => [
-                'message' => $exceptionMessage,
-                'code' => $exception->getCode(),
-                'trace' => $exception->getTraceAsString()
-            ]
-        ]);
+                'exception' => [
+                    'message' => $exceptionMessage,
+                    'code' => $exception->getCode(),
+                    'trace' => $exception->getTraceAsString()
+                ]
+            ]);
     }
 
     /**
@@ -255,7 +256,34 @@ class Cron
         $this->databaseLock->lock('cron_init_tasks');
         $cronCache = [];
 
+        $this->scanTasksFromDirectory($modelPath, $namespace, $cronCache);
+
+        foreach ($this->resolveModuleTaskSources() as $moduleSource) {
+            $this->scanTasksFromDirectory($moduleSource['path'], $moduleSource['namespace'], $cronCache, true);
+        }
+
+        $this->databaseLock->unlock('cron_init_tasks');
+    }
+
+    /**
+     * Scan a directory for model methods annotated with the Cron attribute and enqueue the due ones
+     * @param string $modelPath
+     * @param string $namespace
+     * @param array<string, CronExpression> $cronCache
+     * @param bool $requireModelSuffix Only consider classes whose name ends with "Model". Used when scanning
+     *     module source directories, which also hold non-model files (helpers, function definitions) whose
+     *     autoloading would have unwanted side effects.
+     * @return void
+     * @throws DatabaseManagerException
+     * @throws NimbleException
+     */
+    private function scanTasksFromDirectory(string $modelPath, string $namespace, array &$cronCache, bool $requireModelSuffix = false): void
+    {
         foreach (Classes::getAllClasses($modelPath, $namespace) as $model) {
+            if ($requireModelSuffix && !str_ends_with($model, 'Model')) {
+                continue;
+            }
+
             if (!class_exists($model)) {
                 continue;
             }
@@ -303,8 +331,43 @@ class Cron
                 }
             }
         }
+    }
 
-        $this->databaseLock->unlock('cron_init_tasks');
+    /**
+     * Resolve cron task source directories provided by registered modules
+     * @return array<int, array{path: string, namespace: string}>
+     */
+    private function resolveModuleTaskSources(): array
+    {
+        $sources = [];
+
+        foreach (ModuleRegister::getAll() as $module) {
+            $namespace = $module['namespace'] ?? null;
+            $config = $module['config'] ?? null;
+
+            if ($namespace === null || $config === null) {
+                continue;
+            }
+
+            $path = $config->get('path');
+
+            if (!is_string($path) || $path === '') {
+                continue;
+            }
+
+            $modelPath = $path . DIRECTORY_SEPARATOR . 'src';
+
+            if (!is_dir($modelPath)) {
+                continue;
+            }
+
+            $sources[] = [
+                'path' => $modelPath,
+                'namespace' => '\\' . trim($namespace, '\\'),
+            ];
+        }
+
+        return $sources;
     }
 
     /**
