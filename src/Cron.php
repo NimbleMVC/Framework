@@ -12,7 +12,6 @@ use krzysztofzylka\DatabaseManager\Columns\IdColumn;
 use krzysztofzylka\DatabaseManager\Columns\IntColumn;
 use krzysztofzylka\DatabaseManager\Columns\TextColumn;
 use krzysztofzylka\DatabaseManager\Columns\VarcharColumn;
-use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\CreateTable;
 use krzysztofzylka\DatabaseManager\DatabaseLock;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -88,6 +87,52 @@ class Cron
                 $alterTable->execute();
             }
         }
+
+        $this->ensureIndexExists();
+    }
+
+    private function ensureIndexExists(): void
+    {
+        try {
+            $pdo = $this->table->getPdoInstance();
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $tableName = $this->table->getName();
+            $indexName = 'idx_cron_pick';
+
+            if ($driver === 'mysql') {
+                $stmt = $pdo->query("SHOW INDEX FROM `{$tableName}` WHERE Key_name = '{$indexName}'");
+                if ($stmt === false) {
+                    return;
+                }
+
+                $result = $stmt->fetchAll();
+                if (!empty($result)) {
+                    return;
+                }
+
+                $pdo->exec(
+                    "ALTER TABLE `{$tableName}` ADD INDEX `{$indexName}` (status, priority, date_run_after)"
+                );
+                $this->log("Created index {$indexName} on {$tableName}");
+            } elseif ($driver === 'pgsql') {
+                $stmt = $pdo->prepare(
+                    "SELECT 1 FROM pg_indexes WHERE tablename = ? AND indexname = ?"
+                );
+                $stmt->execute([$tableName, $indexName]);
+                $result = $stmt->fetchAll();
+
+                if (!empty($result)) {
+                    return;
+                }
+
+                $pdo->exec(
+                    "CREATE INDEX \"{$indexName}\" ON \"{$tableName}\" (status, priority, date_run_after)"
+                );
+                $this->log("Created index {$indexName} on {$tableName}");
+            }
+        } catch (\Throwable $exception) {
+            $this->log('Failed to ensure index exists', 'WARN', ['error' => $exception->getMessage()]);
+        }
     }
 
     /**
@@ -146,40 +191,27 @@ class Cron
      */
     public function runJob(?ControllerInterface $controller = null, ?callable $output = null): bool
     {
-        $this->databaseLock->lock('cron_run_jobs');
-        $job = null;
-        $lockHeld = true;
+        $jobData = $this->reserveJob();
+
+        if ($jobData === null) {
+            return false;
+        }
+
+        $jobId = (int)$jobData['id'];
+        $jobExpirationDate = $jobData['date_expiration'];
+
+        if (!empty($jobExpirationDate) && strtotime($jobExpirationDate) <= time()) {
+            $this->table->delete($jobId);
+
+            return true;
+        }
 
         try {
-            $job = $this->getJob();
-
-            if (empty($job)) {
-                return false;
-            }
-
-            $jobExpirationDate = $job[$this->table->getName()]['date_expiration'];
-
-            if (!empty($jobExpirationDate) && strtotime($jobExpirationDate) <= time()) {
-                $this->table->delete($job[$this->table->getName()]['id']);
-
-                return true;
-            }
-
-            $this->updateStatus($job[$this->table->getName()]['id'], 'processing');
-
-            try {
-                $this->databaseLock->unlock('cron_run_jobs');
-            } catch (\Throwable $unlockException) {
-                $this->logException('Cron lock unlock failed', $unlockException);
-            }
-
-            $lockHeld = false;
-
-            switch ($job[$this->table->getName()]['type']) {
+            switch ($jobData['type']) {
                 case 'model':
-                    $modelName = $job[$this->table->getName()]['name'];
-                    $action = $job[$this->table->getName()]['action'];
-                    $parameters = $job[$this->table->getName()]['parameters'];
+                    $modelName = $jobData['name'];
+                    $action = $jobData['action'];
+                    $parameters = $jobData['parameters'];
                     $this->emitOutput(
                         $output,
                         'Run job model ' . $modelName . ', action ' . $action . ', parameters ' . $parameters
@@ -189,22 +221,77 @@ class Cron
                     break;
             }
 
-            $this->table->delete($job[$this->table->getName()]['id']);
+            $this->table->delete($jobId);
 
             return true;
         } catch (\Throwable $exception) {
-            if ($job !== null) {
-                $this->updateStatus($job[$this->table->getName()]['id'], 'failed');
-            }
-
-            $this->logException('Cron job failed', $exception, ['job' => $job]);
-        } finally {
-            if ($lockHeld) {
-                $this->databaseLock->unlock('cron_run_jobs');
-            }
+            $this->updateStatus($jobId, 'failed');
+            $this->logException('Cron job failed', $exception, ['job' => $jobData]);
         }
 
         return false;
+    }
+
+    /**
+     * Atomically fetch and claim the next runnable job.
+     *
+     * The job is selected and flipped from "new" to "processing" inside a single
+     * transaction. On MySQL/PostgreSQL the row is picked with FOR UPDATE SKIP LOCKED,
+     * so every worker grabs a different queued row and never waits on a row another
+     * worker already holds. This removes both the "thundering herd" on the highest
+     * priority row and the deadlocks that arise when many workers contend for the same
+     * rows, while still guaranteeing a job is claimed by at most one worker across all
+     * processes and pods sharing the database.
+     *
+     * SKIP LOCKED is unavailable on SQLite; there the whole-database write lock already
+     * serialises writers, and the conditional UPDATE below keeps the claim exclusive.
+     * @return array<string, mixed>|null Claimed job row, or null when nothing is runnable
+     * @throws DatabaseManagerException
+     */
+    private function reserveJob(): ?array
+    {
+        $tableName = $this->table->getName();
+        $pdo = $this->table->getPdoInstance();
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $lockClause = in_array($driver, ['mysql', 'pgsql'], true) ? ' FOR UPDATE SKIP LOCKED' : '';
+        $now = date('Y-m-d H:i:s');
+
+        $pdo->beginTransaction();
+
+        try {
+            $select = $pdo->prepare(
+                'SELECT * FROM ' . $tableName
+                . " WHERE status = 'new' AND (date_run_after <= :now OR date_run_after IS NULL)"
+                . ' ORDER BY priority DESC, id ASC'
+                . ' LIMIT 1' . $lockClause
+            );
+            $select->bindValue(':now', $now);
+            $select->execute();
+            $row = $select->fetch(\PDO::FETCH_ASSOC);
+
+            if ($row === false) {
+                $pdo->commit();
+
+                return null;
+            }
+
+            $update = $pdo->prepare(
+                'UPDATE ' . $tableName . " SET status = 'processing' WHERE id = :id AND status = 'new'"
+            );
+            $update->bindValue(':id', (int)$row['id'], \PDO::PARAM_INT);
+            $update->execute();
+            $claimed = $update->rowCount() === 1;
+
+            $pdo->commit();
+
+            return $claimed ? $row : null;
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw new DatabaseManagerException($exception->getMessage());
+        }
     }
 
     /**
@@ -383,26 +470,6 @@ class Cron
         $controller->action = 'cronjob';
 
         return $controller;
-    }
-
-    /**
-     * Get next job
-     * @return array
-     * @throws DatabaseManagerException
-     */
-    private function getJob(): array
-    {
-        return $this->table->find(
-            [
-                $this->table->getName() . '.status' => 'new',
-                'OR' => [
-                    new Condition($this->table->getName() . '.date_run_after', '<=', date('Y-m-d H:i:s')),
-                    [new Condition($this->table->getName() . '.date_run_after', 'IS', null),]
-                ]
-            ],
-            null,
-            $this->table->getName() . '.priority DESC'
-        );
     }
 
     /**
