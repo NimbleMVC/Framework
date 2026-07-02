@@ -138,6 +138,9 @@ class Cron
                 [
                     'message' => $exception->getMessage(),
                     'hiddenMessage' => $exception->getHiddenMessage(),
+                    'code' => $exception->getCode(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
                     'trace' => $exception->getTraceAsString()
                 ]
             );
