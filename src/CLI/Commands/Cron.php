@@ -132,7 +132,19 @@ class Cron
 
             return 0;
         } catch (DatabaseManagerException $exception) {
-            Log::log('Cron error', 'ERR', ['exception' => $exception->getMessage(), 'trace' => $exception->getTraceAsString()]);
+            Log::log(
+                'Cron error',
+                'ERR',
+                [
+                    'message' => $exception->getMessage(),
+                    'hiddenMessage' => $exception->getHiddenMessage(),
+                    'code' => $exception->getCode(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'trace' => $exception->getTraceAsString()
+                ]
+            );
+
             $output->error('Cron error');
 
             return 1;
