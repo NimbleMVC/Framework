@@ -42,6 +42,11 @@ class Cron
     public const int PRIORITY_HIGH = 255;
 
     /**
+     * How many times reserveJob() retries a claim after a transient deadlock
+     */
+    private const int RESERVE_JOB_MAX_ATTEMPTS = 5;
+
+    /**
      * Table instance
      * @var Table
      */
@@ -243,6 +248,13 @@ class Cron
      * rows, while still guaranteeing a job is claimed by at most one worker across all
      * processes and pods sharing the database.
      *
+     * SKIP LOCKED does not prevent every deadlock: the UPDATE that flips the status
+     * moves the row between sections of the status index, and under REPEATABLE READ
+     * the gap locks taken there can cross with other workers' claims and deletes.
+     * The claim transaction therefore runs under READ COMMITTED on MySQL, and a
+     * deadlock/serialization failure (SQLSTATE 40001/40P01) is retried with a short
+     * randomised backoff instead of being surfaced as an error.
+     *
      * SKIP LOCKED is unavailable on SQLite; there the whole-database write lock already
      * serialises writers, and the conditional UPDATE below keeps the claim exclusive.
      * @return array<string, mixed>|null Claimed job row, or null when nothing is runnable
@@ -256,42 +268,76 @@ class Cron
         $lockClause = in_array($driver, ['mysql', 'pgsql'], true) ? ' FOR UPDATE SKIP LOCKED' : '';
         $now = date('Y-m-d H:i:s');
 
-        $pdo->beginTransaction();
+        for ($attempt = 1; $attempt <= self::RESERVE_JOB_MAX_ATTEMPTS; $attempt++) {
+            if ($driver === 'mysql') {
+                $pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            }
 
-        try {
-            $select = $pdo->prepare(
-                'SELECT * FROM ' . $tableName
-                . " WHERE status = 'new' AND (date_run_after <= :now OR date_run_after IS NULL)"
-                . ' ORDER BY priority DESC, id ASC'
-                . ' LIMIT 1' . $lockClause
-            );
-            $select->bindValue(':now', $now);
-            $select->execute();
-            $row = $select->fetch(\PDO::FETCH_ASSOC);
+            $pdo->beginTransaction();
 
-            if ($row === false) {
+            try {
+                $select = $pdo->prepare(
+                    'SELECT * FROM ' . $tableName
+                    . " WHERE status = 'new' AND (date_run_after <= :now OR date_run_after IS NULL)"
+                    . ' ORDER BY priority DESC, id ASC'
+                    . ' LIMIT 1' . $lockClause
+                );
+                $select->bindValue(':now', $now);
+                $select->execute();
+                $row = $select->fetch(\PDO::FETCH_ASSOC);
+
+                if ($row === false) {
+                    $pdo->commit();
+
+                    return null;
+                }
+
+                $update = $pdo->prepare(
+                    'UPDATE ' . $tableName . " SET status = 'processing' WHERE id = :id AND status = 'new'"
+                );
+                $update->bindValue(':id', (int)$row['id'], \PDO::PARAM_INT);
+                $update->execute();
+                $claimed = $update->rowCount() === 1;
+
                 $pdo->commit();
 
-                return null;
+                return $claimed ? $row : null;
+            } catch (\Throwable $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                if ($attempt < self::RESERVE_JOB_MAX_ATTEMPTS && $this->isTransientLockError($exception)) {
+                    usleep(random_int(10000, 50000) * $attempt);
+
+                    continue;
+                }
+
+                throw new DatabaseManagerException($exception->getMessage());
             }
-
-            $update = $pdo->prepare(
-                'UPDATE ' . $tableName . " SET status = 'processing' WHERE id = :id AND status = 'new'"
-            );
-            $update->bindValue(':id', (int)$row['id'], \PDO::PARAM_INT);
-            $update->execute();
-            $claimed = $update->rowCount() === 1;
-
-            $pdo->commit();
-
-            return $claimed ? $row : null;
-        } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-
-            throw new DatabaseManagerException($exception->getMessage());
         }
+
+        return null;
+    }
+
+    /**
+     * Check whether an exception is a transient lock conflict that is safe to retry:
+     * a deadlock or lock wait timeout on MySQL (1213/1205, SQLSTATE 40001) or a
+     * deadlock/serialization failure on PostgreSQL (40P01/40001).
+     * @param \Throwable $exception
+     * @return bool
+     */
+    private function isTransientLockError(\Throwable $exception): bool
+    {
+        if (!$exception instanceof \PDOException) {
+            return false;
+        }
+
+        $sqlState = $exception->errorInfo[0] ?? null;
+        $driverCode = $exception->errorInfo[1] ?? null;
+
+        return in_array($sqlState, ['40001', '40P01'], true)
+            || in_array($driverCode, [1213, 1205], true);
     }
 
     /**

@@ -22,63 +22,74 @@ class CronTest extends TestCase
 
     public function testRunJobReturnsFalseWhenQueueIsEmpty(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([]);
-
-        $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
-
-        $cron = $this->buildCronInstance($table, $lock);
+        $pdo = $this->buildPdoMock(null);
+        $cron = $this->buildCronInstance($this->buildTableMock($pdo), $this->createMock(DatabaseLock::class));
 
         $this->assertFalse($cron->runJob());
     }
 
     public function testRunJobDeletesExpiredJob(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([
-            'cron_job' => [
-                'id' => 12,
-                'date_expiration' => date('Y-m-d H:i:s', time() - 60),
-            ],
+        $pdo = $this->buildPdoMock([
+            'id' => 12,
+            'status' => 'new',
+            'date_expiration' => date('Y-m-d H:i:s', time() - 60)
         ]);
+
+        $table = $this->buildTableMock($pdo);
         $table->expects($this->once())->method('delete')->with(12);
 
-        $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
-
-        $cron = $this->buildCronInstance($table, $lock);
+        $cron = $this->buildCronInstance($table, $this->createMock(DatabaseLock::class));
 
         $this->assertTrue($cron->runJob());
     }
 
+    public function testRunJobRetriesClaimAfterTransientDeadlock(): void
+    {
+        $deadlock = new PDOException('SQLSTATE[40001]: Serialization failure: 1213 Deadlock found');
+        $deadlock->errorInfo = ['40001', 1213, 'Deadlock found when trying to get lock'];
+
+        $attempts = 0;
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturnCallback(function () use (&$attempts, $deadlock): bool {
+            if (++$attempts === 1) {
+                throw $deadlock;
+            }
+
+            return true;
+        });
+        $select->method('fetch')->willReturn(false);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('getAttribute')->willReturn('sqlite');
+        $pdo->method('beginTransaction')->willReturn(true);
+        $pdo->method('commit')->willReturn(true);
+        $pdo->method('inTransaction')->willReturn(true);
+        $pdo->method('rollBack')->willReturn(true);
+        $pdo->method('prepare')->willReturn($select);
+
+        $cron = $this->buildCronInstance($this->buildTableMock($pdo), $this->createMock(DatabaseLock::class));
+
+        $this->assertFalse($cron->runJob());
+        $this->assertSame(2, $attempts);
+    }
+
     public function testRunJobCanEmitInfoAboutExecutedModelJob(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([
-            'cron_job' => [
-                'id' => 15,
-                'type' => 'model',
-                'name' => 'Report',
-                'action' => 'generate',
-                'parameters' => '["2026","monthly"]',
-                'date_expiration' => null,
-            ],
+        $pdo = $this->buildPdoMock([
+            'id' => 15,
+            'type' => 'model',
+            'name' => 'Report',
+            'action' => 'generate',
+            'parameters' => '["2026","monthly"]',
+            'status' => 'new',
+            'date_expiration' => null
         ]);
-        $table->expects($this->once())->method('setId')->with(15)->willReturnSelf();
-        $table->expects($this->once())->method('update')->with([
-            'status' => 'processing',
-        ])->willReturn(true);
+
+        $table = $this->buildTableMock($pdo);
         $table->expects($this->once())->method('delete')->with(15);
 
         $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
 
         $model = new class {
             public array $received = [];
@@ -244,6 +255,67 @@ class CronTest extends TestCase
             'Max memory reached, exiting cron worker',
             $command->callResolveMemoryLimitMessage(1024)
         );
+    }
+
+    public function testReserveJobRetriesTransientLockErrors(): void
+    {
+        $cron = (new ReflectionClass(Cron::class))->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod(Cron::class, 'isTransientLockError');
+        $method->setAccessible(true);
+
+        $deadlock = new PDOException('SQLSTATE[40001]: Serialization failure: 1213 Deadlock found');
+        $deadlock->errorInfo = ['40001', 1213, 'Deadlock found when trying to get lock'];
+        $this->assertTrue($method->invoke($cron, $deadlock));
+
+        $lockWaitTimeout = new PDOException('SQLSTATE[HY000]: General error: 1205 Lock wait timeout exceeded');
+        $lockWaitTimeout->errorInfo = ['HY000', 1205, 'Lock wait timeout exceeded'];
+        $this->assertTrue($method->invoke($cron, $lockWaitTimeout));
+
+        $pgsqlDeadlock = new PDOException('SQLSTATE[40P01]: Deadlock detected');
+        $pgsqlDeadlock->errorInfo = ['40P01', 7, 'deadlock detected'];
+        $this->assertTrue($method->invoke($cron, $pgsqlDeadlock));
+
+        $syntaxError = new PDOException('SQLSTATE[42S02]: Base table or view not found');
+        $syntaxError->errorInfo = ['42S02', 1146, 'Table does not exist'];
+        $this->assertFalse($method->invoke($cron, $syntaxError));
+
+        $this->assertFalse($method->invoke($cron, new RuntimeException('Deadlock found')));
+    }
+
+    /**
+     * Build a PDO mock serving the reserveJob() flow: the SELECT returns the given
+     * row (null for an empty queue) and the claiming UPDATE reports one changed row
+     * @param array|null $row
+     * @return PDO
+     */
+    private function buildPdoMock(?array $row): PDO
+    {
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturn(true);
+        $select->method('fetch')->willReturn($row ?? false);
+
+        $update = $this->createMock(PDOStatement::class);
+        $update->method('execute')->willReturn(true);
+        $update->method('rowCount')->willReturn(1);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('getAttribute')->willReturn('sqlite');
+        $pdo->method('beginTransaction')->willReturn(true);
+        $pdo->method('commit')->willReturn(true);
+        $pdo->method('prepare')->willReturnCallback(
+            static fn (string $query): PDOStatement => str_starts_with($query, 'UPDATE') ? $update : $select
+        );
+
+        return $pdo;
+    }
+
+    private function buildTableMock(PDO $pdo): Table
+    {
+        $table = $this->createMock(Table::class);
+        $table->method('getName')->willReturn('cron_job');
+        $table->method('getPdoInstance')->willReturn($pdo);
+
+        return $table;
     }
 
     private function buildCronInstance(Table $table, DatabaseLock $lock): Cron
