@@ -322,6 +322,40 @@ class OrmAndTraitsTest extends TestCase
         ], $afterLifecycleEvents);
     }
 
+    public function testReadAllRejectsNonNumericLimitAndAllowsValidOnes(): void
+    {
+        $_ENV['DATABASE'] = true;
+
+        $table = $this->createMock(Table::class);
+        $table->expects($this->exactly(3))
+            ->method('findAll')
+            ->willReturnMap([
+                [[], null, null, '10', null, []],
+                [[], null, null, '0, 25', null, []],
+                [[], null, null, null, null, []],
+            ]);
+
+        $model = new EventEnabledModel();
+        $model->useTable = 'event_enabled';
+        $model->setTableMock($table);
+
+        $this->assertSame([], $model->readAll(null, null, null, '10'));
+        $this->assertSame([], $model->readAll(null, null, null, '0, 25'));
+        $this->assertSame([], $model->readAll());
+
+        foreach (['1; DROP TABLE users', '10 OR 1=1', 'abc', '10,', ', 10', '1e5'] as $maliciousLimit) {
+            try {
+                $model->readAll(null, null, null, $maliciousLimit);
+                $this->fail('Expected InvalidArgumentException for limit: ' . $maliciousLimit);
+            } catch (\InvalidArgumentException $exception) {
+                $this->assertSame(
+                    'Invalid LIMIT value, expected an unsigned integer or "offset, count"',
+                    $exception->getMessage()
+                );
+            }
+        }
+    }
+
     public function testLoadModelThrowsForMissingAndInvalidTargets(): void
     {
         $loader = new class {
