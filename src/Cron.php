@@ -42,6 +42,11 @@ class Cron
     public const int PRIORITY_HIGH = 255;
 
     /**
+     * How many queued rows reserveJob() fetches as claim candidates per attempt
+     */
+    private const int RESERVE_JOB_CANDIDATE_LIMIT = 50;
+
+    /**
      * Table instance
      * @var Table
      */
@@ -235,16 +240,18 @@ class Cron
     /**
      * Atomically fetch and claim the next runnable job.
      *
-     * The job is selected and flipped from "new" to "processing" inside a single
-     * transaction. On MySQL/PostgreSQL the row is picked with FOR UPDATE SKIP LOCKED,
-     * so every worker grabs a different queued row and never waits on a row another
-     * worker already holds. This removes both the "thundering herd" on the highest
-     * priority row and the deadlocks that arise when many workers contend for the same
-     * rows, while still guaranteeing a job is claimed by at most one worker across all
-     * processes and pods sharing the database.
+     * The claim is optimistic: a plain, non-locking SELECT collects a batch of
+     * runnable candidates, then a conditional UPDATE flips the status from "new"
+     * to "processing". The UPDATE is a single-statement, single-row write by
+     * primary key, so a job is claimed by at most one worker across all processes
+     * and pods sharing the database. When another worker wins the race, the UPDATE
+     * reports zero affected rows and the next candidate is tried.
      *
-     * SKIP LOCKED is unavailable on SQLite; there the whole-database write lock already
-     * serialises writers, and the conditional UPDATE below keeps the claim exclusive.
+     * There is deliberately no SELECT ... FOR UPDATE and no multi-statement
+     * transaction here: a locking read whose ORDER BY cannot be served by the index
+     * locks every matching row (not just the LIMIT), and combined with the status
+     * flip moving rows between sections of the status index it deadlocked under
+     * load. A single-row claim by primary key cannot form a lock cycle.
      * @return array<string, mixed>|null Claimed job row, or null when nothing is runnable
      * @throws DatabaseManagerException
      */
@@ -252,44 +259,38 @@ class Cron
     {
         $tableName = $this->table->getName();
         $pdo = $this->table->getPdoInstance();
-        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        $lockClause = in_array($driver, ['mysql', 'pgsql'], true) ? ' FOR UPDATE SKIP LOCKED' : '';
         $now = date('Y-m-d H:i:s');
-
-        $pdo->beginTransaction();
 
         try {
             $select = $pdo->prepare(
                 'SELECT * FROM ' . $tableName
                 . " WHERE status = 'new' AND (date_run_after <= :now OR date_run_after IS NULL)"
                 . ' ORDER BY priority DESC, id ASC'
-                . ' LIMIT 1' . $lockClause
+                . ' LIMIT ' . self::RESERVE_JOB_CANDIDATE_LIMIT
             );
             $select->bindValue(':now', $now);
             $select->execute();
-            $row = $select->fetch(\PDO::FETCH_ASSOC);
+            $candidates = $select->fetchAll(\PDO::FETCH_ASSOC);
 
-            if ($row === false) {
-                $pdo->commit();
-
+            if ($candidates === []) {
                 return null;
             }
 
             $update = $pdo->prepare(
                 'UPDATE ' . $tableName . " SET status = 'processing' WHERE id = :id AND status = 'new'"
             );
-            $update->bindValue(':id', (int)$row['id'], \PDO::PARAM_INT);
-            $update->execute();
-            $claimed = $update->rowCount() === 1;
 
-            $pdo->commit();
+            foreach ($candidates as $candidate) {
+                $update->bindValue(':id', (int)$candidate['id'], \PDO::PARAM_INT);
+                $update->execute();
 
-            return $claimed ? $row : null;
-        } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
+                if ($update->rowCount() === 1) {
+                    return $candidate;
+                }
             }
 
+            return null;
+        } catch (\Throwable $exception) {
             throw new DatabaseManagerException($exception->getMessage());
         }
     }

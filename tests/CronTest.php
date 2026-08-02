@@ -22,63 +22,71 @@ class CronTest extends TestCase
 
     public function testRunJobReturnsFalseWhenQueueIsEmpty(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([]);
-
-        $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
-
-        $cron = $this->buildCronInstance($table, $lock);
+        $pdo = $this->buildPdoMock(null);
+        $cron = $this->buildCronInstance($this->buildTableMock($pdo), $this->createMock(DatabaseLock::class));
 
         $this->assertFalse($cron->runJob());
     }
 
     public function testRunJobDeletesExpiredJob(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([
-            'cron_job' => [
-                'id' => 12,
-                'date_expiration' => date('Y-m-d H:i:s', time() - 60),
-            ],
+        $pdo = $this->buildPdoMock([
+            'id' => 12,
+            'status' => 'new',
+            'date_expiration' => date('Y-m-d H:i:s', time() - 60)
         ]);
+
+        $table = $this->buildTableMock($pdo);
         $table->expects($this->once())->method('delete')->with(12);
 
-        $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
+        $cron = $this->buildCronInstance($table, $this->createMock(DatabaseLock::class));
 
-        $cron = $this->buildCronInstance($table, $lock);
+        $this->assertTrue($cron->runJob());
+    }
+
+    public function testRunJobSkipsCandidatesClaimedByAnotherWorker(): void
+    {
+        $expired = date('Y-m-d H:i:s', time() - 60);
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturn(true);
+        $select->method('fetchAll')->willReturn([
+            ['id' => 1, 'status' => 'new', 'date_expiration' => $expired],
+            ['id' => 2, 'status' => 'new', 'date_expiration' => $expired]
+        ]);
+
+        $update = $this->createMock(PDOStatement::class);
+        $update->method('execute')->willReturn(true);
+        $update->method('rowCount')->willReturnOnConsecutiveCalls(0, 1);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(
+            static fn (string $query): PDOStatement => str_starts_with($query, 'UPDATE') ? $update : $select
+        );
+
+        $table = $this->buildTableMock($pdo);
+        $table->expects($this->once())->method('delete')->with(2);
+
+        $cron = $this->buildCronInstance($table, $this->createMock(DatabaseLock::class));
 
         $this->assertTrue($cron->runJob());
     }
 
     public function testRunJobCanEmitInfoAboutExecutedModelJob(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getName')->willReturn('cron_job');
-        $table->expects($this->once())->method('find')->willReturn([
-            'cron_job' => [
-                'id' => 15,
-                'type' => 'model',
-                'name' => 'Report',
-                'action' => 'generate',
-                'parameters' => '["2026","monthly"]',
-                'date_expiration' => null,
-            ],
+        $pdo = $this->buildPdoMock([
+            'id' => 15,
+            'type' => 'model',
+            'name' => 'Report',
+            'action' => 'generate',
+            'parameters' => '["2026","monthly"]',
+            'status' => 'new',
+            'date_expiration' => null
         ]);
-        $table->expects($this->once())->method('setId')->with(15)->willReturnSelf();
-        $table->expects($this->once())->method('update')->with([
-            'status' => 'processing',
-        ])->willReturn(true);
+
+        $table = $this->buildTableMock($pdo);
         $table->expects($this->once())->method('delete')->with(15);
 
         $lock = $this->createMock(DatabaseLock::class);
-        $lock->expects($this->once())->method('lock')->with('cron_run_jobs');
-        $lock->expects($this->once())->method('unlock')->with('cron_run_jobs');
 
         $model = new class {
             public array $received = [];
@@ -244,6 +252,40 @@ class CronTest extends TestCase
             'Max memory reached, exiting cron worker',
             $command->callResolveMemoryLimitMessage(1024)
         );
+    }
+
+    /**
+     * Build a PDO mock serving the reserveJob() flow: the SELECT returns the given
+     * row as the only candidate (null for an empty queue) and the claiming UPDATE
+     * reports one changed row
+     * @param array|null $row
+     * @return PDO
+     */
+    private function buildPdoMock(?array $row): PDO
+    {
+        $select = $this->createMock(PDOStatement::class);
+        $select->method('execute')->willReturn(true);
+        $select->method('fetchAll')->willReturn($row === null ? [] : [$row]);
+
+        $update = $this->createMock(PDOStatement::class);
+        $update->method('execute')->willReturn(true);
+        $update->method('rowCount')->willReturn(1);
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturnCallback(
+            static fn (string $query): PDOStatement => str_starts_with($query, 'UPDATE') ? $update : $select
+        );
+
+        return $pdo;
+    }
+
+    private function buildTableMock(PDO $pdo): Table
+    {
+        $table = $this->createMock(Table::class);
+        $table->method('getName')->willReturn('cron_job');
+        $table->method('getPdoInstance')->willReturn($pdo);
+
+        return $table;
     }
 
     private function buildCronInstance(Table $table, DatabaseLock $lock): Cron
