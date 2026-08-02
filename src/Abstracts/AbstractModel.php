@@ -2,6 +2,7 @@
 
 namespace NimblePHP\Framework\Abstracts;
 
+use InvalidArgumentException;
 use krzysztofzylka\DatabaseManager\Condition;
 use krzysztofzylka\DatabaseManager\Enum\BindType;
 use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
@@ -218,10 +219,11 @@ abstract class AbstractModel implements ModelInterface
      * @param array|null $condition
      * @param array|null $columns
      * @param string|null $orderBy
-     * @param string|null $limit
+     * @param string|null $limit Raw SQL LIMIT clause, e.g. "25" or "0, 25". Must contain only digits, whitespace and a single comma.
      * @param string|null $groupBy
      * @return array
      * @throws DatabaseException
+     * @throws InvalidArgumentException if $limit contains anything other than an unsigned integer or "offset, count"
      */
     public function readAll(?array $condition = null, ?array $columns = null, ?string $orderBy = null, ?string $limit = null, ?string $groupBy = null): array
     {
@@ -232,7 +234,7 @@ abstract class AbstractModel implements ModelInterface
         try {
             $condition = $this->prepareCondition($condition);
 
-            return $this->table->findAll($condition, $columns, $orderBy, $limit, $groupBy);
+            return $this->table->findAll($condition, $columns, $orderBy, $this->sanitizeLimit($limit), $groupBy);
         } catch (DatabaseManagerException $exception) {
             throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
         }
@@ -589,6 +591,25 @@ abstract class AbstractModel implements ModelInterface
         }
 
         return $returnCondition;
+    }
+
+    /**
+     * Validate a raw SQL LIMIT clause to prevent SQL injection (CWE-89)
+     * @param string|null $limit
+     * @return string|null
+     * @throws InvalidArgumentException if $limit is not an unsigned integer or "offset, count" pair
+     */
+    private function sanitizeLimit(?string $limit): ?string
+    {
+        if ($limit === null) {
+            return null;
+        }
+
+        if (!preg_match('/^\s*\d+\s*(,\s*\d+\s*)?$/', $limit)) {
+            throw new InvalidArgumentException('Invalid LIMIT value, expected an unsigned integer or "offset, count"');
+        }
+
+        return $limit;
     }
 
 }
