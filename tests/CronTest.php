@@ -22,6 +22,10 @@ class CronTest extends TestCase
 
     public function testRunJobReturnsFalseWhenQueueIsEmpty(): void
     {
+        if (!isset(\krzysztofzylka\DatabaseManager\DatabaseManager::$connection)) {
+            $this->markTestSkipped('No database connection');
+        }
+
         $table = $this->createMock(Table::class);
         $table->method('getName')->willReturn('cron_job');
         $table->expects($this->once())->method('find')->willReturn([]);
@@ -37,6 +41,10 @@ class CronTest extends TestCase
 
     public function testRunJobDeletesExpiredJob(): void
     {
+        if (!isset(\krzysztofzylka\DatabaseManager\DatabaseManager::$connection)) {
+            $this->markTestSkipped('No database connection');
+        }
+
         $table = $this->createMock(Table::class);
         $table->method('getName')->willReturn('cron_job');
         $table->expects($this->once())->method('find')->willReturn([
@@ -58,6 +66,10 @@ class CronTest extends TestCase
 
     public function testRunJobCanEmitInfoAboutExecutedModelJob(): void
     {
+        if (!isset(\krzysztofzylka\DatabaseManager\DatabaseManager::$connection)) {
+            $this->markTestSkipped('No database connection');
+        }
+
         $table = $this->createMock(Table::class);
         $table->method('getName')->willReturn('cron_job');
         $table->expects($this->once())->method('find')->willReturn([

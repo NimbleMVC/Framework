@@ -20,7 +20,8 @@
     "require": {
         "php": ">=8.3",
         "ext-mbstring": "*",
-        "krzysztofzylka/database-manager": "^1.1.18",
+        "ext-ctype": "*",
+        "krzysztofzylka/database-manager": "^1.1.23",
         "krzysztofzylka/file": "^1.0.6",
         "krzysztofzylka/env": "^2.0.2",
         "krzysztofzylka/console": "^1.1.0",
