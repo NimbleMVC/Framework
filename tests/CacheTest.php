@@ -5,6 +5,35 @@ use NimblePHP\Framework\Kernel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+class CacheGadgetStub
+{
+    public static bool $magicCalled = false;
+
+    public string $payload = 'gadget';
+
+    public function __wakeup(): void
+    {
+        self::$magicCalled = true;
+    }
+
+    public function __destruct()
+    {
+        self::$magicCalled = true;
+    }
+}
+
+class CacheAllowedDto
+{
+    public function __construct(private string $name = '')
+    {
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+}
+
 class CacheTest extends TestCase
 {
     private Cache $cache;
@@ -189,6 +218,68 @@ class CacheTest extends TestCase
 
         $this->assertSame('fallback', $this->cache->get('missing-keys', 'fallback'));
         $this->assertFileDoesNotExist($this->getCacheFilePath('missing-keys'));
+    }
+
+    public function testObjectOfNotAllowedClassIsNotInstantiatedAndIsTreatedAsMiss(): void
+    {
+        $payload = serialize(['value' => new CacheGadgetStub(), 'expiry' => time() + 3600]);
+        CacheGadgetStub::$magicCalled = false;
+        file_put_contents($this->getCacheFilePath('gadget'), $payload);
+
+        $this->assertSame('fallback', $this->cache->get('gadget', 'fallback'));
+        $this->assertFalse($this->cache->has('gadget'));
+        $this->assertFalse(CacheGadgetStub::$magicCalled);
+        $this->assertFileDoesNotExist($this->getCacheFilePath('gadget'));
+    }
+
+    public function testNotAllowedObjectNestedInArrayOrObjectIsTreatedAsMiss(): void
+    {
+        $wrapper = new stdClass();
+        $wrapper->inner = ['deep' => new CacheGadgetStub()];
+        CacheGadgetStub::$magicCalled = false;
+
+        $this->cache->set('nested-array', ['list' => [1, new CacheGadgetStub()]], 3600);
+        $this->cache->set('nested-object', $wrapper, 3600);
+        CacheGadgetStub::$magicCalled = false;
+
+        $this->assertSame('fallback', $this->cache->get('nested-array', 'fallback'));
+        $this->assertSame('fallback', $this->cache->get('nested-object', 'fallback'));
+        $this->assertFalse(CacheGadgetStub::$magicCalled);
+    }
+
+    public function testClassesPassedToConstructorCanBeRestored(): void
+    {
+        $cache = new Cache(null, [CacheAllowedDto::class]);
+        $cache->set('dto', ['item' => new CacheAllowedDto('restored')], 3600);
+
+        $value = $cache->get('dto');
+
+        $this->assertInstanceOf(CacheAllowedDto::class, $value['item']);
+        $this->assertSame('restored', $value['item']->getName());
+        $this->assertNull($this->cache->get('dto'));
+    }
+
+    public function testSelfReferencingObjectCanBeRestored(): void
+    {
+        $node = new stdClass();
+        $node->name = 'root';
+        $node->self = $node;
+
+        $this->cache->set('cyclic', $node, 3600);
+        $value = $this->cache->get('cyclic');
+
+        $this->assertSame('root', $value->name);
+        $this->assertSame($value, $value->self);
+    }
+
+    public function testEmptyAllowListRejectsAllObjects(): void
+    {
+        $cache = new Cache(null, []);
+        $cache->set('std', (object)['a' => 1], 3600);
+        $cache->set('scalar', ['a' => 1], 3600);
+
+        $this->assertNull($cache->get('std'));
+        $this->assertSame(['a' => 1], $cache->get('scalar'));
     }
 
     private function getCacheFilePath(string $key, string $directory = 'cache'): string
