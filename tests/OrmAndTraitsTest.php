@@ -62,7 +62,9 @@ use NimblePHP\Framework\Request;
 use NimblePHP\Framework\Traits\LoadModelTrait;
 use NimblePHP\Framework\Traits\LogTrait;
 use PHPUnit\Framework\TestCase;
+use krzysztofzylka\DatabaseManager\Exception\DatabaseManagerException;
 use krzysztofzylka\DatabaseManager\Table;
+use NimblePHP\Framework\Exception\DatabaseException;
 
 class OrmAndTraitsTest extends TestCase
 {
@@ -81,6 +83,7 @@ class OrmAndTraitsTest extends TestCase
     protected function tearDown(): void
     {
         Kernel::$eventDispatcher = null;
+        unset($_ENV['DEBUG']);
     }
 
     public function testAbstractOrmColumnsRespectAttributesAndDefaults(): void
@@ -354,6 +357,98 @@ class OrmAndTraitsTest extends TestCase
                 );
             }
         }
+    }
+
+    public function testDatabaseOperationsThrowWhenDatabaseIsDisabled(): void
+    {
+        $operations = [
+            'create' => fn (EventEnabledModel $model) => $model->create(['title' => 'draft']),
+            'updateValue' => fn (EventEnabledModel $model) => $model->updateValue('title', 'draft'),
+            'save' => fn (EventEnabledModel $model) => $model->save(['title' => 'draft']),
+            'read' => fn (EventEnabledModel $model) => $model->read(),
+            'readSecure' => fn (EventEnabledModel $model) => $model->readSecure(),
+            'readAll' => fn (EventEnabledModel $model) => $model->readAll(),
+            'update' => fn (EventEnabledModel $model) => $model->update(['title' => 'draft']),
+            'delete' => fn (EventEnabledModel $model) => $model->delete(),
+            'deleteByConditions' => fn (EventEnabledModel $model) => $model->deleteByConditions(['id' => 1]),
+            'count' => fn (EventEnabledModel $model) => $model->count(),
+            'isset' => fn (EventEnabledModel $model) => $model->isset(),
+            'query' => fn (EventEnabledModel $model) => $model->query('SELECT 1'),
+        ];
+        $scenarios = [
+            'database disabled' => [false, 'event_enabled'],
+            'table disabled' => [true, false],
+        ];
+
+        // DEBUG keeps the original message available until DatabaseException preserves it on its own
+        $_ENV['DEBUG'] = true;
+
+        foreach ($scenarios as $scenario => [$databaseEnabled, $useTable]) {
+            $_ENV['DATABASE'] = $databaseEnabled;
+
+            foreach ($operations as $name => $operation) {
+                $table = $this->createMock(Table::class);
+                $table->expects($this->never())->method($this->anything());
+
+                $model = new EventEnabledModel();
+                $model->useTable = $useTable;
+                $model->setTableMock($table);
+
+                try {
+                    $operation($model);
+                    $this->fail($name . ' should throw when ' . $scenario);
+                } catch (DatabaseException $exception) {
+                    $this->assertSame('Database is disabled', $exception->getHiddenMessage(), $name . ' / ' . $scenario);
+                }
+            }
+        }
+    }
+
+    public function testDatabaseManagerExceptionsAreWrappedInDatabaseException(): void
+    {
+        $_ENV['DATABASE'] = true;
+        $_ENV['DEBUG'] = true;
+        $operations = [
+            'find' => fn (EventEnabledModel $model) => $model->read(),
+            'findAll' => fn (EventEnabledModel $model) => $model->readAll(),
+            'findCount' => fn (EventEnabledModel $model) => $model->count(),
+            'deleteByConditions' => fn (EventEnabledModel $model) => $model->deleteByConditions(['id' => 1]),
+        ];
+
+        foreach ($operations as $tableMethod => $operation) {
+            $original = new DatabaseManagerException('SQLSTATE[42S02] table missing', 42);
+            $table = $this->createStub(Table::class);
+            $table->method($tableMethod)->willThrowException($original);
+
+            $model = new EventEnabledModel();
+            $model->useTable = 'event_enabled';
+            $model->setTableMock($table);
+
+            try {
+                $operation($model);
+                $this->fail($tableMethod . ' should throw DatabaseException');
+            } catch (DatabaseException $exception) {
+                $this->assertSame('SQLSTATE[42S02] table missing', $exception->getHiddenMessage(), $tableMethod);
+                $this->assertSame(42, $exception->getCode(), $tableMethod);
+                $this->assertSame($original, $exception->getPrevious(), $tableMethod);
+            }
+        }
+    }
+
+    public function testUpdateAndDeleteWithoutIdReturnFalseWithoutTouchingTable(): void
+    {
+        $_ENV['DATABASE'] = true;
+
+        $table = $this->createMock(Table::class);
+        $table->expects($this->never())->method($this->anything());
+
+        $model = new EventEnabledModel();
+        $model->useTable = 'event_enabled';
+        $model->setTableMock($table);
+
+        $this->assertFalse($model->update(['title' => 'draft']));
+        $this->assertFalse($model->updateValue('title', 'draft'));
+        $this->assertFalse($model->delete());
     }
 
     public function testLoadModelThrowsForMissingAndInvalidTargets(): void
