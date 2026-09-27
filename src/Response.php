@@ -264,7 +264,7 @@ class Response implements ResponseInterface
                 'total' => $total,
                 'page' => $page,
                 'per_page' => $perPage,
-                'pages' => ceil($total / $perPage),
+                'pages' => $perPage > 0 ? (int)ceil($total / $perPage) : 0,
             ],
             'timestamp' => date('c'),
         ]);
