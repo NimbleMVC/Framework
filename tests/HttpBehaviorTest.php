@@ -156,6 +156,23 @@ class HttpBehaviorTest extends TestCase
         $this->assertSame(3, $paginatedPayload['pagination']['pages']);
         $this->assertSame(2, $paginatedPayload['pagination']['page']);
 
+        foreach ([0, -5] as $invalidPerPage) {
+            RuntimeFunctionState::reset();
+            ob_start();
+            $response->paginated([], 13, 1, $invalidPerPage);
+            $invalidPerPagePayload = json_decode((string)ob_get_clean(), true);
+
+            $this->assertSame(0, $invalidPerPagePayload['pagination']['pages'], 'per_page ' . $invalidPerPage);
+            $this->assertSame($invalidPerPage, $invalidPerPagePayload['pagination']['per_page']);
+        }
+
+        RuntimeFunctionState::reset();
+        ob_start();
+        $response->paginated([], 0, 1, 10);
+        $emptyPayload = json_decode((string)ob_get_clean(), true);
+
+        $this->assertSame(0, $emptyPayload['pagination']['pages']);
+
         RuntimeFunctionState::reset();
         ob_start();
         $response->created(['id' => 10], 'Saved');
