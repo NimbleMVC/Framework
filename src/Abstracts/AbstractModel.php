@@ -94,11 +94,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function create(array $data): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
+        return $this->runDatabaseOperation(function () use ($data): bool {
             $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'create'));
             $data = $modelDataEvent->data;
             $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'create'];
@@ -110,9 +106,7 @@ abstract class AbstractModel implements ModelInterface
             Kernel::dispatchEvent(new AfterModelCreateEvent($this, $data, $create));
 
             return $create;
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -125,13 +119,13 @@ abstract class AbstractModel implements ModelInterface
      */
     public function updateValue(string $name, mixed $value): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        } elseif (is_null($this->getId())) {
+        $this->assertDatabaseEnabled();
+
+        if (is_null($this->getId())) {
             return false;
         }
 
-        try {
+        return $this->runDatabaseOperation(function () use ($name, $value): bool {
             $data = [$name => $value];
             $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'updateValue'));
             $data = $modelDataEvent->data;
@@ -143,9 +137,7 @@ abstract class AbstractModel implements ModelInterface
             Kernel::dispatchEvent(new AfterModelUpdateEvent($this, $data, $updated, 'updateValue'));
 
             return $updated;
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -156,9 +148,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function save(array $data): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
+        $this->assertDatabaseEnabled();
 
         if (is_null($this->getId())) {
             return $this->create($data);
@@ -177,17 +167,9 @@ abstract class AbstractModel implements ModelInterface
      */
     public function read(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
-            $condition = $this->prepareCondition($condition);
-
-            return $this->table->find($condition, $columns, $orderBy);
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        return $this->runDatabaseOperation(
+            fn (): array => $this->table->find($this->prepareCondition($condition), $columns, $orderBy)
+        );
     }
 
     /**
@@ -201,9 +183,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function readSecure(?array $condition = null, ?array $columns = null, ?string $orderBy = null): array
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
+        $this->assertDatabaseEnabled();
 
         $find = $this->read($condition, $columns, $orderBy);
 
@@ -227,17 +207,15 @@ abstract class AbstractModel implements ModelInterface
      */
     public function readAll(?array $condition = null, ?array $columns = null, ?string $orderBy = null, ?string $limit = null, ?string $groupBy = null): array
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
-            $condition = $this->prepareCondition($condition);
-
-            return $this->table->findAll($condition, $columns, $orderBy, $this->sanitizeLimit($limit), $groupBy);
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        return $this->runDatabaseOperation(
+            fn (): array => $this->table->findAll(
+                $this->prepareCondition($condition),
+                $columns,
+                $orderBy,
+                $this->sanitizeLimit($limit),
+                $groupBy
+            )
+        );
     }
 
     /**
@@ -248,13 +226,13 @@ abstract class AbstractModel implements ModelInterface
      */
     public function update(array $data): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        } elseif (is_null($this->getId())) {
+        $this->assertDatabaseEnabled();
+
+        if (is_null($this->getId())) {
             return false;
         }
 
-        try {
+        return $this->runDatabaseOperation(function () use ($data): bool {
             $modelDataEvent = Kernel::dispatchEvent(new ProcessingModelDataEvent($this, $data, 'update'));
             $data = $modelDataEvent->data;
             $middlewareData = ['model' => $this, 'data' => $data, 'type' => 'update'];
@@ -265,9 +243,7 @@ abstract class AbstractModel implements ModelInterface
             Kernel::dispatchEvent(new AfterModelUpdateEvent($this, $data, $updated, 'update'));
 
             return $updated;
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -277,21 +253,19 @@ abstract class AbstractModel implements ModelInterface
      */
     public function delete(): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        } elseif (is_null($this->getId())) {
+        $this->assertDatabaseEnabled();
+
+        if (is_null($this->getId())) {
             return false;
         }
 
-        try {
+        return $this->runDatabaseOperation(function (): bool {
             $id = $this->getId();
             $deleted = $this->table->delete($id);
             Kernel::dispatchEvent(new AfterModelDeleteEvent($this, $deleted, $id));
 
             return $deleted;
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -302,18 +276,12 @@ abstract class AbstractModel implements ModelInterface
      */
     public function deleteByConditions(array $conditions): bool
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
+        return $this->runDatabaseOperation(function () use ($conditions): bool {
             $deleted = $this->table->deleteByConditions($conditions);
             Kernel::dispatchEvent(new AfterModelDeleteEvent($this, $deleted, null, $conditions, 'deleteByConditions'));
 
             return $deleted;
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -415,17 +383,9 @@ abstract class AbstractModel implements ModelInterface
      */
     public function count(?array $condition = null, ?string $groupBy = null): int
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
-            $condition = $this->prepareCondition($condition);
-
-            return $this->table->findCount($condition, $groupBy);
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        return $this->runDatabaseOperation(
+            fn (): int => $this->table->findCount($this->prepareCondition($condition), $groupBy)
+        );
     }
 
     /**
@@ -436,17 +396,11 @@ abstract class AbstractModel implements ModelInterface
      */
     public function isset(?array $condition = null): int
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
+        return $this->runDatabaseOperation(function () use ($condition): int {
             $condition = $this->prepareCondition($condition);
 
             return !empty($this->read($condition, [$this->useTable . '.id'], $this->useTable . '.id DESC'));
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -457,11 +411,7 @@ abstract class AbstractModel implements ModelInterface
      */
     public function query(string $sql): array
     {
-        if (!Config::get('DATABASE', false) || $this->useTable === false) {
-            throw new DatabaseException('Database is disabled');
-        }
-
-        try {
+        return $this->runDatabaseOperation(function () use ($sql): array {
             $modelQueryEvent = Kernel::dispatchEvent(new ProcessingModelQueryEvent($this, $sql, 'create'));
             $sql = $modelQueryEvent->query;
             $middlewareData = ['model' => $this, 'query' => $sql, 'type' => 'create'];
@@ -469,9 +419,7 @@ abstract class AbstractModel implements ModelInterface
             $sql = $middlewareData['query'];
 
             return $this->table->query($sql);
-        } catch (DatabaseManagerException $exception) {
-            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
-        }
+        });
     }
 
     /**
@@ -591,6 +539,36 @@ abstract class AbstractModel implements ModelInterface
         }
 
         return $returnCondition;
+    }
+
+    /**
+     * Throw when the database is disabled globally or for this model
+     * @return void
+     * @throws DatabaseException
+     */
+    private function assertDatabaseEnabled(): void
+    {
+        if (!Config::get('DATABASE', false) || $this->useTable === false) {
+            throw new DatabaseException('Database is disabled');
+        }
+    }
+
+    /**
+     * Run a database operation, converting DatabaseManagerException into DatabaseException
+     * @template T
+     * @param callable(): T $operation
+     * @return T
+     * @throws DatabaseException
+     */
+    private function runDatabaseOperation(callable $operation): mixed
+    {
+        $this->assertDatabaseEnabled();
+
+        try {
+            return $operation();
+        } catch (DatabaseManagerException $exception) {
+            throw new DatabaseException($exception->getHiddenMessage(), $exception->getCode(), $exception);
+        }
     }
 
     /**
