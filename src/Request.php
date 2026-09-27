@@ -161,13 +161,13 @@ readonly class Request implements RequestInterface
     }
 
     /**
-     * Get header
+     * Get header (case-insensitive)
      * @param string $key
      * @return mixed
      */
     public function getHeader(string $key): mixed
     {
-        return $this->headers[$key] ?? null;
+        return $this->headers[strtolower($key)] ?? null;
     }
 
     /**
@@ -220,7 +220,7 @@ readonly class Request implements RequestInterface
     }
 
     /**
-     * Get all headers
+     * Get all headers with lowercase names
      * @return array
      */
     private function getAllHeaders(): array
@@ -230,14 +230,14 @@ readonly class Request implements RequestInterface
 
             foreach ($_SERVER as $name => $value) {
                 if (str_starts_with($name, 'HTTP_')) {
-                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                    $headers[str_replace('_', '-', strtolower(substr($name, 5)))] = $value;
                 }
             }
 
             return $headers;
-        } else {
-            return getallheaders();
         }
+
+        return array_change_key_case(getallheaders(), CASE_LOWER);
     }
 
     /**

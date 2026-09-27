@@ -62,6 +62,21 @@ class HttpBehaviorTest extends TestCase
         $this->assertSame('{"message":"hello"}', $request->getBody());
     }
 
+    public function testRequestHeaderLookupIsCaseInsensitive(): void
+    {
+        $_SERVER['HTTP_CONTENT_TYPE'] = 'application/json';
+        $_SERVER['HTTP_X_REQUEST_ID'] = 'abc-123';
+        $request = new Request();
+
+        $this->assertSame('application/json', $request->getHeader('Content-Type'));
+        $this->assertSame('application/json', $request->getHeader('content-type'));
+        $this->assertSame('application/json', $request->getHeader('CONTENT-TYPE'));
+        $this->assertSame('abc-123', $request->getHeader('X-Request-Id'));
+        $this->assertSame('abc-123', $request->getHeader('x-request-id'));
+        $this->assertSame('Bearer token', $request->getHeader('authorization'));
+        $this->assertNull($request->getHeader('X-Missing'));
+    }
+
     public function testRequestValidateInputSupportsSupportedTypes(): void
     {
         $request = new Request();
